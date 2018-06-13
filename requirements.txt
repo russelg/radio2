@@ -1,0 +1,17 @@
+jinja2
+marshmallow
+munch
+xmltodict
+mutagen
+Cython
+werkzeug
+arrow
+bcrypt
+flask
+flask_debugtoolbar
+flask-jwt-extended
+flask-restful
+gunicorn
+pony
+psycopg2
+webargs

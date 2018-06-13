@@ -1,0 +1,16 @@
+#theme_chooser {
+    margin-left: 15px;
+}
+
+.player {
+    margin: -13px 0;
+    margin-right: 1rem;
+}
+
+.no-flex-grow {
+    flex-grow: 0;
+}
+
+.flex-grow {
+    flex-grow: 1;
+}

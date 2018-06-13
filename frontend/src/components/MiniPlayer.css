@@ -1,0 +1,16 @@
+.mini-progress {
+    width: 320px;
+    height: 0.35rem;
+}
+
+@media (max-width: 576px) {
+    .mini-progress {
+        width: 50vw;
+    }
+}
+
+@media (max-width: 476px) {
+    .mini-progress {
+        width: 40vw;
+    }
+}
