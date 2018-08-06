@@ -13,7 +13,7 @@ import {
 import './Navbar.css'
 
 import ThemeChooser from './ThemeChooser'
-import { NavLink as RRNavLink } from 'react-router-dom'
+import { NavLink as RRNavLink, withRouter } from 'react-router-dom'
 import LoginDropdown from './LoginDropdown'
 import { auth } from '../store'
 import LoggedInDropdown from './LoggedInDropdown'
@@ -38,7 +38,7 @@ class Navbar extends React.Component {
   render() {
     const songsButton = (
       <NavItem>
-        <NavLink to='/songs' activeClassName='active' tag={RRNavLink}>Songs</NavLink>
+        <NavLink to='/songs' exact activeClassName='active' tag={RRNavLink}>Songs</NavLink>
       </NavItem>
     )
 
@@ -78,4 +78,4 @@ class Navbar extends React.Component {
   }
 }
 
-export default view(Navbar)
+export default withRouter(view(Navbar))

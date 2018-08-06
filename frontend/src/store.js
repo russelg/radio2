@@ -75,6 +75,23 @@ export const auth = store({
       })
   },
 
+  async register(username, password) {
+    let resp = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      body: JSON.stringify({username, password}),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    })
+
+    let r = await resp.clone().json()
+    if (r.status_code === 200 && r.error === null) {
+      return r.description
+    }
+
+    throw new Error(r.description)
+  },
+
   logout() {
     this.username = ''
     this.logged_in = false
@@ -82,7 +99,6 @@ export const auth = store({
     clear()
     this.access_token = ''
     this.refresh_token = ''
-
   }
 })
 

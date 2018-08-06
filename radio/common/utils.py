@@ -1,8 +1,10 @@
 import math
 import os
+import re
 import shutil
 import string
 import subprocess
+from collections import namedtuple
 from enum import Enum
 from functools import partial
 from random import choice, sample, choices
@@ -394,6 +396,30 @@ def when_requestable(lastplayed: int, length: int) -> arrow.arrow.Arrow:
     :return: Arrow object of when song will be requestable
     """
     return arrow.get(lastplayed + (60 * 30) + length)
+
+
+def valid_username(username: str) -> dict:
+    """
+    Validates the given username meets username requirements.
+    Requirements are as follows:
+        - Between 3 and 32 (inclusive) characters in length
+        - Only contains A-z, 0-9, -, _ and .
+
+    :param username: username to validate
+    :return: dict containing keys `valid` (`bool`) and `reason` (`str`)
+    """
+    validator = namedtuple("validator", ["valid", "reason"])
+
+    if len(username) < 3:
+        return validator(False, 'Username must be at least 3 characters')
+
+    if len(username) >= 32:
+        return validator(False, 'Username must be shorter than 32 characters')
+
+    if not re.match("^\w(?:\w*(?:[.-]\w+)?)*$", username):
+        return validator(False, 'Username may only contain the following: A-z, 0-9, -_.')
+
+    return validator(True, '')
 
 
 def parse_status(url: str) -> dict:

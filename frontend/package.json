@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@shoutem/fetch-token-intercept": "^0.2.2",
+    "formik": "^0.11.11",
     "moment": "^2.20.1",
     "query-string": "^5.1.0",
     "react": "^16.2.0",
@@ -19,7 +20,9 @@
     "react-router-dom": "^4.2.2",
     "react-router-transition": "^1.2.1",
     "react-scripts": "1.1.4",
-    "reactstrap": "^6.1.0"
+    "reactstrap": "^6.1.0",
+    "reactstrap-validation": "^1.0.0-beta.9",
+    "yup": "^0.25.1"
   },
   "scripts": {
     "start": "react-scripts start",

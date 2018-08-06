@@ -1,7 +1,7 @@
 import React from 'react'
 import { BrowserRouter as Router, Route } from 'react-router-dom'
 import { AnimatedSwitch } from 'react-router-transition'
-import { playingState, settings } from './store'
+import { API_BASE, playingState, settings } from './store'
 import { view } from 'react-easy-state'
 import ReactHowler from 'react-howler'
 import Loadable from 'react-loadable'
@@ -9,6 +9,8 @@ import Loadable from 'react-loadable'
 import Navbar from './components/Navbar'
 import Loader from './components/Loader'
 import MiniPlayer from './components/MiniPlayer'
+import SignUp from './pages/SignUp'
+import SignIn from './pages/SignIn'
 
 const AsyncHome = Loadable({
   loader: () => import('./pages/Home'),
@@ -122,6 +124,8 @@ class App extends React.Component {
                    render={() => <AsyncHome togglePlaying={this.togglePlaying} />}
             />
             <Route path='/songs' component={AsyncSongs} exact={true} />
+            <Route path='/sign-up' component={SignUp} exact={true} />
+            <Route path='/sign-in' component={SignIn} exact={true} />
           </AnimatedSwitch>
         </div>
       </Router>

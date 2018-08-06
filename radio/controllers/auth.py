@@ -7,7 +7,7 @@ from webargs import fields
 from webargs.flaskparser import parser, use_kwargs
 
 from radio.common.errors import webargs_error
-from radio.common.utils import make_error
+from radio.common.utils import make_error, valid_username
 from radio.models import *
 
 parser.error_handler(webargs_error)
@@ -73,6 +73,10 @@ class RegisterController(rest.Resource):
     @db_session
     @use_kwargs(auth_args, locations=('json',))
     def post(self, username: str, password: str) -> Response:
+        validator = valid_username(username)
+        if not validator.valid:
+            return make_error(422, 'Invalid Input', validator.reason)
+
         user: User = User.get(username=username)
         if user:
             return make_error(409, 'Conflict', 'Username already taken')
