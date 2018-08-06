@@ -11,7 +11,7 @@ import './Songs.css'
 import 'react-bootstrap-typeahead/css/Typeahead.css'
 import 'react-bootstrap-typeahead/css/Typeahead-bs4.css'
 import { AlertList } from 'react-bs-notifier'
-import { settings } from '../store'
+import { API_BASE, settings } from '../store'
 
 class Songs extends React.Component {
   constructor(props) {
@@ -85,7 +85,7 @@ class Songs extends React.Component {
 
   getPage(page, query = undefined) {
     const url = this.getUrl({page, query})
-    fetch(`/api/v1/${url}`)
+    fetch(`${API_BASE}/${url}`)
       .then(res => {
         if (res.status === 422) {
           this.setState({error: 'Page does not exist', loaded: false})
@@ -121,7 +121,7 @@ class Songs extends React.Component {
 
   requestSong(song) {
     const {id} = song
-    fetch('/api/v1/request', {
+    fetch(`${API_BASE}/request`, {
       method: 'PUT',
       body: JSON.stringify({id: id}),
       headers: new Headers({
@@ -231,7 +231,7 @@ class Songs extends React.Component {
                   isLoading={this.state.typeaheadLoading}
                   onSearch={query => {
                     this.setState({typeaheadLoading: true})
-                    fetch(`/api/v1/autocomplete?query=${query}`)
+                    fetch(`${API_BASE}/autocomplete?query=${query}`)
                       .then(resp => resp.json())
                       .then(json => this.setState({
                         typeaheadLoading: false,

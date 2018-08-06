@@ -34,7 +34,7 @@ class App extends React.Component {
   }
 
   fetchSettings() {
-    fetch('/api/v1/settings')
+    fetch(`${API_BASE}/settings`)
       .then(res => res.json())
       .then((result) => {
         settings.updateSettings(result)
@@ -45,7 +45,7 @@ class App extends React.Component {
   }
 
   updateState() {
-    fetch('/api/v1/np')
+    fetch(`${API_BASE}/np`)
       .then(res => res.json())
       .then((result) => {
         playingState.update(result)

@@ -5,6 +5,8 @@ if (!localStorage.getItem('volume')) {
   localStorage.setItem('volume', '80')
 }
 
+export const API_BASE = '/api/v1'
+
 let config = {
   shouldIntercept: (request) => true,
   shouldInvalidateAccessToken: (request) => false,
@@ -13,7 +15,7 @@ let config = {
     request.headers.set('Authorization', `Bearer ${accessToken}`)
     return request
   },
-  createAccessTokenRequest: (refreshToken) => new Request('/api/v1/auth/refresh', {
+  createAccessTokenRequest: (refreshToken) => new Request(`${API_BASE}/auth/refresh`, {
     headers: {Authorization: `Bearer ${refreshToken}`},
     method: 'POST'
   }),
@@ -51,7 +53,7 @@ export const auth = store({
   },
 
   async login(username, password) {
-    await fetch('/api/v1/auth/login', {
+    await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       body: JSON.stringify({username, password}),
       headers: new Headers({
