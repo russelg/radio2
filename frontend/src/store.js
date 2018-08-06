@@ -150,7 +150,7 @@ export const playingState = store({
     localStorage.setItem('volume', vol)
   },
 
-  sync_offset: 3,
+  sync_offset: 4,
   loaded: false,
   playing: false,
 
@@ -210,7 +210,7 @@ export const playingState = store({
     radio.counter = radio.counter + 0.5
     radio.current_pos = radio.current_pos + 0.5
 
-    if (radio.counter >= 2.5) {
+    if (radio.counter >= 3.5 || (radio.current_pos >= radio.current_len)) {
       radio.counter = 0.0
       func()
     }
