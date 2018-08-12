@@ -1,8 +1,8 @@
 import React from 'react'
-import { view } from 'react-easy-state'
-import { playingState } from '../store'
-import { Progress } from 'reactstrap'
-import { readable_seconds } from '../utils'
+import {view} from 'react-easy-state'
+import {playingState} from '../store'
+import {Progress} from 'reactstrap'
+import {readable_seconds} from '../utils'
 
 import './MiniPlayer.css'
 

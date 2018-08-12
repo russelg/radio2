@@ -1,8 +1,8 @@
 import React from 'react'
-import { BrowserRouter as Router, Route } from 'react-router-dom'
-import { AnimatedSwitch } from 'react-router-transition'
-import { API_BASE, playingState, settings } from './store'
-import { view } from 'react-easy-state'
+import {BrowserRouter as Router, Route} from 'react-router-dom'
+import {AnimatedSwitch} from 'react-router-transition'
+import {API_BASE, playingState, settings} from './store'
+import {view} from 'react-easy-state'
 import ReactHowler from 'react-howler'
 import Loadable from 'react-loadable'
 
@@ -14,7 +14,11 @@ import SignIn from './pages/SignIn'
 
 const AsyncHome = Loadable({
   loader: () => import('./pages/Home'),
-  loading: Loader
+  loading: Loader,
+  render(loaded, props) {
+    let Component = loaded.default
+    return <Component {...props} />
+  }
 })
 
 const AsyncSongs = Loadable({
@@ -123,9 +127,12 @@ class App extends React.Component {
             <Route exact path='/'
                    render={() => <AsyncHome togglePlaying={this.togglePlaying} />}
             />
-            <Route path='/songs' component={AsyncSongs} exact={true} />
-            <Route path='/sign-up' component={SignUp} exact={true} />
-            <Route path='/sign-in' component={SignIn} exact={true} />
+            <Route path='/songs' exact
+                   render={(props) => <AsyncSongs {...props} favourites={false} />} />
+            <Route path='/favourites' exact
+                   render={(props) => <AsyncSongs {...props} favourites={true} />} />
+            <Route path='/sign-up' component={SignUp} exact />
+            <Route path='/sign-in' component={SignIn} exact />
           </AnimatedSwitch>
         </div>
       </Router>

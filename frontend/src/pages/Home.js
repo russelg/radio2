@@ -20,9 +20,9 @@ import {
   Progress,
   Row
 } from 'reactstrap'
-import { view } from 'react-easy-state'
-import { playingState, settings } from '../store'
-import { fuzzy_time, readable_filesize, readable_seconds } from '../utils'
+import {view} from 'react-easy-state'
+import {playingState, settings} from '../store'
+import {fuzzy_time, readable_filesize, readable_seconds} from '../utils'
 import Loader from '../components/Loader'
 
 import './Home.css'
@@ -62,14 +62,14 @@ class Home extends React.Component {
           <Col>
             <Row className='align-items-center'>
               <Col xs={false} lg='6'>
-                <h1>{settings.title}</h1>
-                <h4 className='text-muted'>
+                <h2>{settings.title}</h2>
+                <h5 className='text-muted'>
                   We have <b>{info.total_songs}</b> songs in total,
                   with a total playcount of <b>{info.total_plays}</b>.
-                </h4>
-                <p className='text-muted'>
+                </h5>
+                <small className='text-muted'>
                   We've wasted <b>{readable_filesize(info.total_size)}</b>!
-                </p>
+                </small>
               </Col>
               <Col xs={false} lg='6' className='pb-3'>
                 <Button color='primary' block onClick={this.props.togglePlaying}>
@@ -77,13 +77,16 @@ class Home extends React.Component {
                   {!playingState.playing && 'Start Stream'}
                 </Button>
                 <ButtonGroup className='btn-block'>
-                  <Dropdown isOpen={this.state.dropdownOpen} toggle={this.toggleDropdown} className='btn-block'>
+                  <Dropdown isOpen={this.state.dropdownOpen} toggle={this.toggleDropdown}
+                            className='btn-block'>
                     <DropdownToggle caret className='btn-block'>
                       More Options
                     </DropdownToggle>
                     <DropdownMenu className='btn-block'>
-                      <DropdownItem tag='a' href={settings.stream_url}>Direct Stream Link</DropdownItem>
-                      <DropdownItem tag='a' href={settings.stream_url + '.m3u'}>Stream .m3u Playlist</DropdownItem>
+                      <DropdownItem tag='a' href={settings.stream_url}>Direct Stream
+                        Link</DropdownItem>
+                      <DropdownItem tag='a' href={settings.stream_url + '.m3u'}>Stream .m3u
+                        Playlist</DropdownItem>
                       <DropdownItem tag='a' href={settings.stream_url + '.xspf'}>Stream .xspf
                         Playlist</DropdownItem>
                       <DropdownItem divider />
@@ -133,18 +136,18 @@ class Home extends React.Component {
             </Row>
             <Row className='pt-3'>
               <Col>
-                <h1 className='pb-2 text-center'>{info.artist} - {info.title}</h1>
+                <h2 className='pb-2 text-center'>{info.artist} - {info.title}</h2>
                 <Progress value={playingState.progress} />
                 <Row className='pt-3'>
                   <Col sm={{size: 5, offset: 1}}>
-                    <p className='text-muted text-center'>
+                    <div className='text-muted text-center'>
                       Listeners: <span id='listeners'>{info.listeners}</span>
-                    </p>
+                    </div>
                   </Col>
                   <Col sm={{size: 5}}>
-                    <p className='text-muted text-center'>
+                    <div className='text-muted text-center'>
                       <span>{readable_seconds(radio.current_pos)} / {readable_seconds(radio.current_len)}</span>
-                    </p>
+                    </div>
                   </Col>
                 </Row>
               </Col>
@@ -153,7 +156,7 @@ class Home extends React.Component {
         </Row>
         <Row>
           <Col xs={false} lg='6' className='pt-3'>
-            <h3 className='text-center'>Last Played</h3>
+            <h4 className='text-center'>Last Played</h4>
             <ListGroup>
               {info.lp.map(item =>
                 <ListGroupItem key={item.time} className='clearfix p-4' active={item.requested}>
@@ -168,7 +171,7 @@ class Home extends React.Component {
             </ListGroup>
           </Col>
           <Col xs={false} lg='6' className='pt-3'>
-            <h3 className='text-center'>Queue</h3>
+            <h4 className='text-center'>Queue</h4>
             <ListGroup>
               {info.queue.map(item =>
                 <ListGroupItem key={item.time} className='clearfix p-4' active={item.requested}>

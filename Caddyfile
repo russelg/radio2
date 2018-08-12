@@ -1,0 +1,6 @@
+https://radio.local {
+    tls self_signed
+    proxy /         localhost:3000
+    proxy /api      localhost:5000
+    proxy /radio    localhost:8067
+}

@@ -1,7 +1,7 @@
 import React from 'react'
 import Pagination from 'react-js-pagination'
-import { AsyncTypeahead, Highlighter } from 'react-bootstrap-typeahead'
-import { Button, Col, Container, Form, Input, InputGroup, InputGroupAddon, Row } from 'reactstrap'
+import {AsyncTypeahead, Highlighter} from 'react-bootstrap-typeahead'
+import {Button, Col, Container, Form, Input, InputGroup, InputGroupAddon, Row} from 'reactstrap'
 import queryString from 'query-string'
 import Loader from '../components/Loader'
 import Error from '../components/Error'
@@ -10,8 +10,9 @@ import './Home.css'
 import './Songs.css'
 import 'react-bootstrap-typeahead/css/Typeahead.css'
 import 'react-bootstrap-typeahead/css/Typeahead-bs4.css'
-import { AlertList } from 'react-bs-notifier'
-import { API_BASE, settings } from '../store'
+import {AlertList} from 'react-bs-notifier'
+import {API_BASE, auth, settings} from '../store'
+import {view} from 'react-easy-state'
 
 class Songs extends React.Component {
   constructor(props) {
@@ -34,12 +35,15 @@ class Songs extends React.Component {
       query: null,
       typeaheadLoading: false,
       typeahead: [],
-      alerts: []
+      alerts: [],
+      username: null
     }
 
     this.handlePageChange = this.handlePageChange.bind(this)
     this.handleSearchChange = this.handleSearchChange.bind(this)
+    this.handleFavesChange = this.handleFavesChange.bind(this)
     this.handleSearch = this.handleSearch.bind(this)
+    this.handleFaves = this.handleFaves.bind(this)
     this.handlePage = this.handlePage.bind(this)
   }
 
@@ -47,15 +51,17 @@ class Songs extends React.Component {
     const parsed = queryString.parse(search)
     const page = 'page' in parsed ? Number.parseInt(parsed.page, 10) : 1
     const query = 'query' in parsed ? (parsed.query || undefined) : undefined
+    const username = 'user' in parsed ? (parsed.user || undefined) : undefined
 
-    return {page, query}
+    return {page, query, username}
   }
 
   firePageChange(search = null) {
-    const {page, query} = this.getSearchComponents(search || this.props.location.search)
+    console.log('firePageChange:', search, this.props.location.search)
+    const {page, query, username} = this.getSearchComponents(search || this.props.location.search)
 
-    this.handlePageChange(page, {query, history: false})
-    this.getPage(page, query)
+    this.handlePageChange(page, {query, history: false, username})
+    this.getPage(page, query, username)
   }
 
   componentDidMount() {
@@ -63,19 +69,28 @@ class Songs extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.location.search !== this.props.location.search) {
+    if (nextProps.location !== this.props.location) {
       this.firePageChange(nextProps.location.search)
     }
   }
 
-  getUrl(params) {
+  reloadPage() {
+    this.firePageChange()
+  }
+
+  getUrl(params, favourites = false) {
+    // remove page from the query should it be 1 (the default)
+    if (params.page === 1)
+      params.page = undefined
+
+    if (this.props.favourites || favourites) return `favourites?${queryString.stringify(params)}`
     return `songs?${queryString.stringify(params)}`
   }
 
-  handlePageChange(page, {query = undefined, history = true}) {
-    this.setState({loaded: false, page, search: query})
+  handlePageChange(page, {query = undefined, history = true, username = undefined}, favourites = false) {
+    this.setState({loaded: false, page, search: query, username})
 
-    const url = this.getUrl({page, query})
+    const url = this.getUrl({page, query, user: username}, favourites)
     if (history)
       this.props.history.push(`/${url}`)
 
@@ -83,12 +98,14 @@ class Songs extends React.Component {
     // will do that in reaction to the location changing
   }
 
-  getPage(page, query = undefined) {
-    const url = this.getUrl({page, query})
+  getPage(page, query = undefined, username = undefined) {
+    const url = this.getUrl({page, query, user: username})
     fetch(`${API_BASE}/${url}`)
-      .then(res => {
-        if (res.status === 422) {
-          this.setState({error: 'Page does not exist', loaded: false})
+      .then(async res => {
+        if (res.status === 422 || res.status !== 200) {
+          const json = await res.clone().json()
+          console.log(json)
+          this.setState({error: json.description, loaded: false})
           return
         }
         return res.json()
@@ -110,13 +127,27 @@ class Songs extends React.Component {
     this.setState({search: event.target.value || undefined})
   }
 
+  handleFavesChange(event) {
+    this.setState({username: event.target.value || undefined})
+  }
+
   handleSearch(event) {
     event.preventDefault()
     this.handlePage(1)
   }
 
-  handlePage(i) {
-    this.handlePageChange(i, {query: this.state.search, history: true})
+  handleFaves(event) {
+    event.preventDefault()
+    if (this.state.username !== undefined || auth.username)
+      this.handlePage(1, true)
+  }
+
+  handlePage(i, favourites = false) {
+    this.handlePageChange(i, {
+      query: this.state.search,
+      history: true,
+      username: this.state.username
+    }, favourites)
   }
 
   requestSong(song) {
@@ -144,6 +175,48 @@ class Songs extends React.Component {
         const {songs} = this.state
         const stateSong = songs.indexOf(song)
         songs[stateSong] = {...song, meta: result.meta}
+
+        this.setState({
+          alerts: [...this.state.alerts, newAlert],
+          songs
+        })
+      })
+  }
+
+  favouriteSong(song, unfavourite = false) {
+    const {id, meta} = song
+    const {songs} = this.state
+
+    let method = 'POST'
+    if (unfavourite)
+      method = 'DELETE'
+
+    fetch(`${API_BASE}/favourites`, {
+      method,
+      body: JSON.stringify({id: id}),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    })
+      .then(res => res.json())
+      .then(result => {
+        console.log(result)
+
+        const error = result.error !== null
+        let msg = 'description' in result ? result.description : result.message
+
+        const newAlert = {
+          id: (new Date()).getTime(),
+          message: msg,
+          type: error ? 'danger' : 'success'
+        }
+
+        if (!error) {
+          const stateSong = songs.indexOf(song)
+          console.log(stateSong, song, meta)
+          meta.favourited = !meta.favourited
+          songs[stateSong] = {...song, meta}
+        }
 
         this.setState({
           alerts: [...this.state.alerts, newAlert],
@@ -199,12 +272,15 @@ class Songs extends React.Component {
         />
         <Row>
           <Col>
-            <InputGroup>
-              <Input placeholder='Username' />
-              <InputGroupAddon addonType='append'>
-                <Button>Load Faves</Button>
-              </InputGroupAddon>
-            </InputGroup>
+            <Form onSubmit={this.handleFaves}>
+              <InputGroup>
+                <Input placeholder='Username' value={this.state.username || ''}
+                       onChange={this.handleFavesChange} />
+                <InputGroupAddon addonType='append'>
+                  <Button>Load Faves</Button>
+                </InputGroupAddon>
+              </InputGroup>
+            </Form>
           </Col>
           <Col>
             <Form onSubmit={this.handleSearch}>
@@ -228,6 +304,12 @@ class Songs extends React.Component {
                     const search = selected[0] || {result: ''}
                     this.setState({search: search.result})
                   }}
+                  onKeyDown={event => {
+                    // only submit on enter if the user has not selected a typeahead option
+                    if (event.keyCode === 13 && this.state.search === event.target.defaultValue) {
+                      this.handleSearch(event)
+                    }
+                  }}
                   isLoading={this.state.typeaheadLoading}
                   onSearch={query => {
                     this.setState({typeaheadLoading: true})
@@ -241,12 +323,11 @@ class Songs extends React.Component {
                   placeholder='Search'
                   options={this.state.typeahead}
                   defaultInputValue={this.state.search}
-                  highlightOnlyResult={true}
+                  highlightOnlyResult={false}
                   minLength={1}
                   selectHintOnEnter={false}
                   caseSensitive={false}
                 />
-
                 <InputGroupAddon addonType='append'>
                   <Button>Search</Button>
                 </InputGroupAddon>
@@ -270,7 +351,10 @@ class Songs extends React.Component {
               <SongsTable
                 songs={this.state.songs}
                 requestSong={this.requestSong.bind(this)}
+                favouriteSong={this.favouriteSong.bind(this)}
                 downloads={settings.downloads_enabled}
+                loggedIn={auth.logged_in}
+                reloadPage={this.reloadPage.bind(this)}
               />
             )}
             <hr />
@@ -286,4 +370,4 @@ class Songs extends React.Component {
   }
 }
 
-export default Songs
+export default view(Songs)

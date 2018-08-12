@@ -1,5 +1,5 @@
-import { store } from 'react-easy-state'
-import { authorize, clear, configure } from '@shoutem/fetch-token-intercept'
+import {store} from 'react-easy-state'
+import {authorize, clear, configure} from '@shoutem/fetch-token-intercept'
 
 if (!localStorage.getItem('volume')) {
   localStorage.setItem('volume', '80')

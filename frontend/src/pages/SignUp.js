@@ -14,14 +14,14 @@ import {
   InputGroupAddon,
   Row
 } from 'reactstrap'
-import { view } from 'react-easy-state'
+import {view} from 'react-easy-state'
 
 import './Home.css'
-import { auth } from '../store'
-import { Formik } from 'formik'
+import {auth} from '../store'
+import {Formik} from 'formik'
 import FontAwesome from 'react-fontawesome'
 import * as yup from 'yup'
-import { Link, Redirect } from 'react-router-dom'
+import {Link, Redirect} from 'react-router-dom'
 
 class FormInput extends React.Component {
   render() {
@@ -58,7 +58,7 @@ let schema = yup.object({
       message: 'Username may only contain the following: A-z, 0-9, -_.'
     }),
   password: yup.string().required('Password required'),
-  confirmPassword: yup.string().oneOf([ yup.ref('password') ], 'Passwords do not match')
+  confirmPassword: yup.string().oneOf([yup.ref('password')], 'Passwords do not match')
 })
 
 let schemaErrors = (values) => {
@@ -67,7 +67,7 @@ let schemaErrors = (values) => {
     schema.validateSync(values, {abortEarly: false})
   } catch (errs) {
     errs.inner.forEach((error) => {
-      errors[ error.path ] = error.message
+      errors[error.path] = error.message
     })
   }
   return errors
@@ -117,14 +117,14 @@ class SignUp extends React.Component {
                     setSubmitting(false)
                   }}
                   render={({
-                    values,
-                    errors,
-                    touched,
-                    handleChange,
-                    handleBlur,
-                    handleSubmit,
-                    isSubmitting
-                  }) => (
+                             values,
+                             errors,
+                             touched,
+                             handleChange,
+                             handleBlur,
+                             handleSubmit,
+                             isSubmitting
+                           }) => (
                     <Form onSubmit={handleSubmit} autoComplete="new-password">
                       <FormInput icon="user" placeholder="username" name="username"
                                  value={values.username}
@@ -138,7 +138,8 @@ class SignUp extends React.Component {
                                  onChange={handleChange}
                                  invalidError={errors.password}
                                  invalid={touched.password && !!errors.password} />
-                      <FormInput icon="lock" placeholder="confirm password" name="confirmPassword" type="password"
+                      <FormInput icon="lock" placeholder="confirm password" name="confirmPassword"
+                                 type="password"
                                  value={values.confirmPassword}
                                  onBlur={handleBlur}
                                  onChange={handleChange}

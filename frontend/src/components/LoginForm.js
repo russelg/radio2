@@ -1,7 +1,7 @@
 import React from 'react'
-import { Button, Form, FormGroup, Input } from 'reactstrap'
-import { auth } from '../store'
-import { view } from 'react-easy-state'
+import {Button, Form, FormGroup, Input} from 'reactstrap'
+import {auth} from '../store'
+import {view} from 'react-easy-state'
 
 class LoginForm extends React.Component {
   constructor() {
@@ -29,7 +29,7 @@ class LoginForm extends React.Component {
   }
 
   handleChange(event) {
-    this.setState({[ event.target.id ]: event.target.value})
+    this.setState({[event.target.id]: event.target.value})
   }
 
   render() {
@@ -40,7 +40,8 @@ class LoginForm extends React.Component {
                  onChange={this.handleChange} required autoComplete="username" />
         </FormGroup>
         <FormGroup>
-          <Input type="password" name="password" id="password" placeholder="Password" value={this.state.password}
+          <Input type="password" name="password" id="password" placeholder="Password"
+                 value={this.state.password}
                  onChange={this.handleChange} required autoComplete="current-password" />
         </FormGroup>
         <Button color="success" block disabled={!this.validateForm()}>Login</Button>

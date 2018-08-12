@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
-import { Col, Container, Row } from 'reactstrap'
+import {Col, Container, Row} from 'reactstrap'
 
 import FontAwesome from 'react-fontawesome'
 
@@ -19,8 +19,8 @@ class Loader extends React.Component {
   }
 
   render() {
-    const {isLoading = true, error = false} = this.props
-    if (isLoading) {
+    const {postDelay = true, error = false, retry} = this.props
+    if (postDelay) {
       return (
         <Container className='h-100 fixed-top loader'>
           <Row className='h-100'>
@@ -31,10 +31,15 @@ class Loader extends React.Component {
         </Container>
       )
     } else if (error) {
-      return <div>Sorry, there was a problem loading the page.</div>
+      return (
+        <div>
+          Sorry, there was a problem loading the page.
+          <button onClick={retry}>Retry</button>
+        </div>
+      )
     }
     else {
-      return null
+      return <span />
     }
   }
 }
