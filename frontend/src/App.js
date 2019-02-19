@@ -1,8 +1,8 @@
 import React from 'react'
-import {BrowserRouter as Router, Route} from 'react-router-dom'
-import {AnimatedSwitch} from 'react-router-transition'
-import {API_BASE, playingState, settings} from './store'
-import {view} from 'react-easy-state'
+import { BrowserRouter as Router, Route } from 'react-router-dom'
+import { AnimatedSwitch } from 'react-router-transition'
+import { API_BASE, playingState, settings } from './store'
+import { view } from 'react-easy-state'
 import ReactHowler from 'react-howler'
 import Loadable from 'react-loadable'
 
@@ -18,45 +18,46 @@ const AsyncHome = Loadable({
   render(loaded, props) {
     let Component = loaded.default
     return <Component {...props} />
-  }
+  },
 })
 
 const AsyncSongs = Loadable({
   loader: () => import('./pages/Songs'),
-  loading: Loader
+  loading: Loader,
 })
 
 class App extends React.Component {
   constructor(props) {
     super(props)
     this.state = {
-      loaded: false
+      loaded: false,
     }
 
     this.intervalId = null
 
     if (localStorage.getItem('css'))
-      document.querySelector('#change_stylesheet').href = localStorage.getItem('css')
+      document.querySelector('#change_stylesheet').href = localStorage.getItem(
+        'css'
+      )
   }
 
   fetchSettings() {
     fetch(`${API_BASE}/settings`)
       .then(res => res.json())
-      .then((result) => {
+      .then(result => {
         settings.updateSettings(result)
-        this.setState({loaded: true})
-        if (!playingState.playing)
-          document.title = settings.title
+        this.setState({ loaded: true })
+        if (!playingState.playing) document.title = settings.title
       })
   }
 
   updateState() {
     fetch(`${API_BASE}/np`)
       .then(res => res.json())
-      .then((result) => {
+      .then(result => {
         playingState.update(result)
         playingState.progressParse()
-        this.setState({loaded: true})
+        this.setState({ loaded: true })
       })
   }
 
@@ -83,7 +84,7 @@ class App extends React.Component {
   }
 
   togglePlaying() {
-    const {howler} = App.player
+    const { howler } = App.player
 
     // Force howler to unload and reload the song
     // if we don't do this sometimes the radio will just not resume playback
@@ -98,14 +99,15 @@ class App extends React.Component {
   }
 
   render() {
-    if (settings.title === '')
-      return <Loader />
+    if (settings.title === '') return <Loader />
 
     return (
       <Router>
-        <div className='h-100'>
+        <div className="h-100">
           <Navbar title={settings.title} styles={settings.styles}>
-            {!(playingState.info.title === '' || !playingState.playing) && <MiniPlayer />}
+            {!(playingState.info.title === '' || !playingState.playing) && (
+              <MiniPlayer />
+            )}
           </Navbar>
 
           <ReactHowler
@@ -115,24 +117,31 @@ class App extends React.Component {
             html5={true}
             playing={playingState.playing}
             volume={playingState.volume / 100}
-            ref={(ref) => (App.player = ref)}
+            ref={ref => (App.player = ref)}
           />
 
           <AnimatedSwitch
-            atEnter={{opacity: 0}}
-            atLeave={{opacity: 0}}
-            atActive={{opacity: 1}}
-            className='switch-wrapper h-100'
-          >
-            <Route exact path='/'
-                   render={() => <AsyncHome togglePlaying={this.togglePlaying} />}
+            atEnter={{ opacity: 0 }}
+            atLeave={{ opacity: 0 }}
+            atActive={{ opacity: 1 }}
+            className="switch-wrapper h-100">
+            <Route
+              exact
+              path="/"
+              render={() => <AsyncHome togglePlaying={this.togglePlaying} />}
             />
-            <Route path='/songs' exact
-                   render={(props) => <AsyncSongs {...props} favourites={false} />} />
-            <Route path='/favourites' exact
-                   render={(props) => <AsyncSongs {...props} favourites={true} />} />
-            <Route path='/sign-up' component={SignUp} exact />
-            <Route path='/sign-in' component={SignIn} exact />
+            <Route
+              path="/songs"
+              exact
+              render={props => <AsyncSongs {...props} favourites={false} />}
+            />
+            <Route
+              path="/favourites"
+              exact
+              render={props => <AsyncSongs {...props} favourites={true} />}
+            />
+            <Route path="/sign-up" component={SignUp} exact />
+            <Route path="/sign-in" component={SignIn} exact />
           </AnimatedSwitch>
         </div>
       </Router>

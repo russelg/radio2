@@ -2566,6 +2566,16 @@ filename-regex@^2.0.0:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/filename-regex/-/filename-regex-2.0.1.tgz#c1c4b9bee3e09725ddb106b75c1e301fe2f18b26"
 
+filepond-plugin-file-validate-type@^1.2.2:
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/filepond-plugin-file-validate-type/-/filepond-plugin-file-validate-type-1.2.2.tgz#8ac215b893b6beef28d82874cddcff6cd3069451"
+  integrity sha512-ZBVU9a18EWhfk3kkqULp7GX3KcSSAlZbLFqlquJ5VTerecL1BkUlQ/cpFJ5EucAdJ1Qdi1zEyPQ+e7JLxL+5Rg==
+
+filepond@^4.1.4:
+  version "4.1.4"
+  resolved "https://registry.yarnpkg.com/filepond/-/filepond-4.1.4.tgz#1def80459bfa4f29d4191b9ce22c34a487aaed8b"
+  integrity sha512-B3r/mIAoFZWznkgstL+QXmatQLgZN9T5Njtt5/Y97a/pDs3VSG6WxbL5nsGXB7f8fR44pGYhjPp6mJjtLnjmQA==
+
 fileset@^2.0.2:
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/fileset/-/fileset-2.0.3.tgz#8e7548a96d3cc2327ee5e674168723a333bba2a0"
@@ -5425,6 +5435,11 @@ react-error-overlay@^4.0.0:
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/react-error-overlay/-/react-error-overlay-4.0.0.tgz#d198408a85b4070937a98667f500c832f86bd5d4"
 
+react-filepond@^7.0.1:
+  version "7.0.1"
+  resolved "https://registry.yarnpkg.com/react-filepond/-/react-filepond-7.0.1.tgz#caf96526287140884a31a1476b8328d9d6ecdee2"
+  integrity sha512-PitNM44JP0K5hXnkSYV3HRlkObsWbhqaJRWizMrdHpS3pPz9/iyiOGmRpc+4T4ST3vblmiUTLRYq/+1bDcSqQw==
+
 react-fontawesome@^1.6.1:
   version "1.6.1"
   resolved "https://registry.yarnpkg.com/react-fontawesome/-/react-fontawesome-1.6.1.tgz#eddce17e7dc731aa09fd4a186688a61793a16c5c"
@@ -5596,12 +5611,6 @@ react-transition-group@^2.3.1:
     loose-envify "^1.1.0"
     object-assign "^4.1.1"
     prop-types "^15.6.0"
-
-reactstrap-validation@^1.0.0-beta.9:
-  version "1.0.0-beta.9"
-  resolved "https://registry.yarnpkg.com/reactstrap-validation/-/reactstrap-validation-1.0.0-beta.9.tgz#d51c0bc7bb0126a8aec3eb70482a2475ca6b66c6"
-  dependencies:
-    lodash "^4.17.4"
 
 reactstrap@^6.1.0:
   version "6.1.0"

@@ -1,7 +1,7 @@
 import argparse
 import concurrent.futures
 
-from radio.common.utils import encode_file, reload_songs, next_song
+from radio.common.utils import encode_file, next_song, reload_songs
 
 parser = argparse.ArgumentParser()
 parser.add_argument('paths', nargs='*')

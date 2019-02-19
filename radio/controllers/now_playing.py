@@ -3,7 +3,7 @@ from urllib.parse import unquote
 
 import arrow
 import flask_restful as rest
-from flask import Blueprint, request, jsonify, Response
+from flask import Blueprint, Response, jsonify, request
 from munch import DefaultMunch, Munch
 
 from radio.common.utils import get_folder_metadata, parse_status
@@ -98,7 +98,8 @@ def settings() -> dict:
             'url': app.config['ICECAST_URL']
         },
         'title': app.config['TITLE'],
-        'downloads_enabled': app.config['PUBLIC_DOWNLOADS']
+        'downloads_enabled': app.config['PUBLIC_DOWNLOADS'],
+        'uploads_enabled': app.config['PUBLIC_UPLOADS']
     }
 
 

@@ -1,16 +1,16 @@
 .disabled-button-wrapper {
-    display: inline-block;
-    cursor: not-allowed;
+  display: inline-block;
+  cursor: not-allowed;
 }
 
 .disabled-button-wrapper .btn[disabled] {
-    pointer-events: none;
+  pointer-events: none;
 }
 
 .rbt {
-    flex: 1 1 auto;
+  flex: 1 1 auto;
 }
 
 .close {
-    display: none
+  display: none;
 }

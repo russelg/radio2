@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
-import {Col, Container, Row} from 'reactstrap'
+import { Col, Container, Row } from 'reactstrap'
 
 import FontAwesome from 'react-fontawesome'
 
@@ -19,13 +19,13 @@ class Loader extends React.Component {
   }
 
   render() {
-    const {postDelay = true, error = false, retry} = this.props
+    const { postDelay = true, error = false, retry } = this.props
     if (postDelay) {
       return (
-        <Container className='h-100 fixed-top loader'>
-          <Row className='h-100'>
-            <Col sm='12' className='my-auto text-center fa-3x'>
-              <FontAwesome name='spinner' spin size='3x' />
+        <Container className="h-100 fixed-top loader">
+          <Row className="h-100">
+            <Col sm="12" className="my-auto text-center fa-3x">
+              <FontAwesome name="spinner" spin size="3x" />
             </Col>
           </Row>
         </Container>
@@ -37,8 +37,7 @@ class Loader extends React.Component {
           <button onClick={retry}>Retry</button>
         </div>
       )
-    }
-    else {
+    } else {
       return <span />
     }
   }

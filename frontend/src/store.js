@@ -1,5 +1,5 @@
-import {store} from 'react-easy-state'
-import {authorize, clear, configure} from '@shoutem/fetch-token-intercept'
+import { store } from 'react-easy-state'
+import { authorize, clear, configure } from '@shoutem/fetch-token-intercept'
 
 if (!localStorage.getItem('volume')) {
   localStorage.setItem('volume', '80')
@@ -8,28 +8,32 @@ if (!localStorage.getItem('volume')) {
 export const API_BASE = '/api/v1'
 
 let config = {
-  shouldIntercept: (request) => true,
-  shouldInvalidateAccessToken: (request) => false,
+  shouldIntercept: request => true,
+  shouldInvalidateAccessToken: request => false,
   shouldWaitForTokenRenewal: true,
   authorizeRequest: (request, accessToken) => {
     request.headers.set('Authorization', `Bearer ${accessToken}`)
     return request
   },
-  createAccessTokenRequest: (refreshToken) => new Request(`${API_BASE}/auth/refresh`, {
-    headers: {Authorization: `Bearer ${refreshToken}`},
-    method: 'POST'
-  }),
-  parseAccessToken: (response) => {
-    return response.clone().json().then(json => {
-      auth.username = json.username
-      auth.access_token = json.access_token
-      auth.logged_in = true
+  createAccessTokenRequest: refreshToken =>
+    new Request(`${API_BASE}/auth/refresh`, {
+      headers: { Authorization: `Bearer ${refreshToken}` },
+      method: 'POST',
+    }),
+  parseAccessToken: response => {
+    return response
+      .clone()
+      .json()
+      .then(json => {
+        auth.username = json.username
+        auth.access_token = json.access_token
+        auth.logged_in = true
+        auth.admin = json.admin || false
 
-      return json.access_token
-    })
-  }
+        return json.access_token
+      })
+  },
 }
-
 
 export const auth = store({
   username: '',
@@ -55,20 +59,23 @@ export const auth = store({
   async login(username, password) {
     await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
-      body: JSON.stringify({username, password}),
+      body: JSON.stringify({ username, password }),
       headers: new Headers({
-        'Content-Type': 'application/json'
-      })
+        'Content-Type': 'application/json',
+      }),
     })
       .then(response => {
-        response.clone().json().then((r) => {
-          if ('access_token' in r && 'refresh_token' in r) {
-            this.refresh_token = r.refresh_token
-            config.parseAccessToken(response)
+        response
+          .clone()
+          .json()
+          .then(r => {
+            if ('access_token' in r && 'refresh_token' in r) {
+              this.refresh_token = r.refresh_token
+              config.parseAccessToken(response)
 
-            authorize(this.refresh_token, this.access_token)
-          }
-        })
+              authorize(this.refresh_token, this.access_token)
+            }
+          })
       })
       .catch(error => {
         throw error
@@ -78,10 +85,10 @@ export const auth = store({
   async register(username, password) {
     let resp = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
-      body: JSON.stringify({username, password}),
+      body: JSON.stringify({ username, password }),
       headers: new Headers({
-        'Content-Type': 'application/json'
-      })
+        'Content-Type': 'application/json',
+      }),
     })
 
     let r = await resp.clone().json()
@@ -99,31 +106,31 @@ export const auth = store({
     clear()
     this.access_token = ''
     this.refresh_token = ''
-  }
+  },
 })
 
 configure(config)
-if (auth.refresh_token)
-  authorize(auth.refresh_token)
+if (auth.refresh_token) authorize(auth.refresh_token)
 
 export const settings = store({
   css: '',
   styles: {},
   icecast: {
     mount: '',
-    url: ''
+    url: '',
   },
   title: '',
   downloads_enabled: false,
+  uploads_enabled: false,
 
   updateSettings(settings) {
     Object.assign(this, settings)
   },
 
   get stream_url() {
-    let noproto = this.icecast.url.replace('https:', '').replace('http:', '')
+    let noproto = this.icecast.url
     return noproto + this.icecast.mount
-  }
+  },
 })
 
 export const playingState = store({
@@ -141,7 +148,7 @@ export const playingState = store({
     queue: [],
     lp: [],
     total_size: 0,
-    listeners: 0
+    listeners: 0,
   },
 
   radio: {
@@ -154,7 +161,7 @@ export const playingState = store({
     current_len: 0,
     afk: 'init',
     current_title: '',
-    current_artist: ''
+    current_artist: '',
   },
 
   get volume() {
@@ -177,11 +184,15 @@ export const playingState = store({
   },
 
   progressParse() {
-    this.radioUpdate(this.info.start_time + this.sync_offset, this.info.end_time + this.sync_offset, this.info.current)
+    this.radioUpdate(
+      this.info.start_time + this.sync_offset,
+      this.info.end_time + this.sync_offset,
+      this.info.current
+    )
   },
 
   radioUpdate(start, end, cur) {
-    let {radio} = this
+    let { radio } = this
 
     if (end !== 0) {
       radio.cur_time = Math.round(new Date().getTime() / 1000.0)
@@ -191,8 +202,8 @@ export const playingState = store({
       radio.temp_update_progress = 0
       radio.duration = end - start
       radio.position = radio.cur_time - start
-      radio.update_progress = 100 / radio.duration * radio.position
-      radio.update_progress_inc = 100 / radio.duration * 0.5
+      radio.update_progress = (100 / radio.duration) * radio.position
+      radio.update_progress_inc = (100 / radio.duration) * 0.5
       radio.current_pos = radio.position
       radio.current_len = radio.duration
     } else {
@@ -201,12 +212,12 @@ export const playingState = store({
   },
 
   get progress() {
-    let {radio} = this
+    let { radio } = this
     return radio.update_progress + radio.update_progress_inc
   },
 
   applyProgress() {
-    let {radio} = this
+    let { radio } = this
 
     if (radio.update_progress > 0) {
       radio.update_progress = radio.update_progress + radio.update_progress_inc
@@ -216,7 +227,7 @@ export const playingState = store({
   },
 
   periodicUpdate(func) {
-    let {info, radio} = this
+    let { info, radio } = this
 
     if (this.playing) {
       document.title = `▶ ${info.title} - ${info.artist} | ${settings.title}`
@@ -228,7 +239,7 @@ export const playingState = store({
     radio.counter = radio.counter + 0.5
     radio.current_pos = radio.current_pos + 0.5
 
-    if (radio.counter >= 3.5 || (radio.current_pos >= radio.current_len)) {
+    if (radio.counter >= 3.5 || radio.current_pos >= radio.current_len) {
       radio.counter = 0.0
       func()
     }
@@ -236,5 +247,5 @@ export const playingState = store({
 
   togglePlaying() {
     this.playing = !this.playing
-  }
+  },
 })

@@ -1,17 +1,32 @@
 class Config(object):
     # Server configuration
-    DEBUG = False  # Print/display debug info while running
-    SERVER_NAME = 'localhost:5000'  # URL the site is running at
-    PREFERRED_URL_SCHEME = 'http'  # Protocol to prefer for URLs (http/s)
-    SERVER_API_PREFIX = '/api/v1'  # Prefix to use for API URLs
-    SECRET_KEY = 'secret-key-goes-here'  # Replace with a long, random string
-    JWT_SECRET_KEY = 'secret-key-goes-here'  # Replace with a long, random string
-    SERVER_USE_XACCEL = False  # Use nginx's xaccel to serve music files for download
+
+    # Print/display debug info while running
+    DEBUG = False
+    PROPAGATE_EXCEPTIONS = False
+
+    # URL the site is running at
+    SERVER_NAME = 'localhost:5000'
+    # Protocol to prefer for URLs (http/s)
+    PREFERRED_URL_SCHEME = 'http'
+    # Prefix to use for API URLs
+    SERVER_API_PREFIX = '/api/v1'
+    # Replace with a long, random string
+    SECRET_KEY = 'secret-key-goes-here'
+    # Replace with a long, random string
+    JWT_SECRET_KEY = 'secret-key-goes-here'
+    # Use nginx's xaccel to serve music files for download
+    SERVER_USE_XACCEL = False
 
     # Paths (prefer full paths, relative cannot be guaranteed)
-    PATH_MUSIC = '/full/path/to/radio/music/'  # Path to store all songs at
-    PATH_ENCODE = '/full/path/to/radio/encode/'  # Path to store temporary files for encoding
-    PATH_FFMPEG_BINARY = '/usr/local/bin/ffmpeg'  # Path to an ffmpeg binary to use for encoding (this MUST exist)
+    # Path to store all songs at
+    PATH_MUSIC = '/full/path/to/radio/music/'
+    # Path to store temporary files for encoding
+    PATH_ENCODE = '/full/path/to/radio/encode/'
+    # Path to an ffmpeg binary to use for encoding (this MUST exist)
+    PATH_FFMPEG_BINARY = '/usr/local/bin/ffmpeg'
+    # Allowed music upload extensions
+    ALLOWED_EXTENSIONS = ['mp3', 'ogg', 'flac', 'wav', 'm4a']
 
     # Database configuration for PonyORM (postgres preferred)
     DB_BINDING = 'postgres'
@@ -22,7 +37,7 @@ class Config(object):
 
     # Icecast server configuration
     # Icecast auth
-    ICECAST_HOST = 'localhost'
+    ICECAST_HOST = '127.0.0.1'
     ICECAST_PORT = 8067
     ICECAST_USER = 'source'
     ICECAST_PASSWORD = 'source-password-goes-here'
@@ -34,18 +49,23 @@ class Config(object):
     ICECAST_DESCRIPTION = 'A short description about your stream'
     ICECAST_GENRE = 'Genre of the music being streamed'
     ICECAST_URL = 'http://url-to-use-for-icecast-links.org'
-    ICECAST_TRANSCODE = False  # Transcode stream to mp3 for browser compatibility
+    # Transcode stream to MP3 for browser compatibility
+    ICECAST_TRANSCODE = False
 
     # General app configuration
-    ADMIN = ('user', 'password')  # Admin login details, in the form ('user', 'password') (tuple)
-    FILE_SIZE_LIMIT = 524288000  # Largest allowed size for music uploads, in bytes (if PUBLIC_UPLOADS is True)
-    PUBLIC_UPLOADS = False  # Allow anyone to upload (only logged-in admins otherwise)
-    PUBLIC_DOWNLOADS = False  # Displays a download button next to songs in the song listing
-    TITLE = 'SGFC Radio'  # Title of the site to show in headings and the browser title
-    SONGS_PER_PAGE = 50  # Amount of songs to show on the songs page
+    # Largest allowed size for music uploads, in bytes (if PUBLIC_UPLOADS is True)
+    FILE_SIZE_LIMIT = 524288000
+    # Allow anyone to upload (only logged-in admins otherwise)
+    PUBLIC_UPLOADS = False
+    # Displays a download button next to songs in the song listing
+    PUBLIC_DOWNLOADS = False
+    # Title of the site to show in headings and the browser title
+    TITLE = 'SGFC Radio'
+    # Number of songs to return per page
+    SONGS_PER_PAGE = 25
 
     # CSS options for website
-    # these must be bootstrap 4
+    # These must be for Bootstrap 4
     DEFAULT_CSS = 'Pulse'
     CSS = {
         'Cerulean': 'https://bootswatch.com/4/cerulean/bootstrap.min.css',

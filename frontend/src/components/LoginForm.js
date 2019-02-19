@@ -1,7 +1,7 @@
 import React from 'react'
-import {Button, Form, FormGroup, Input} from 'reactstrap'
-import {auth} from '../store'
-import {view} from 'react-easy-state'
+import { Button, Form, FormGroup, Input } from 'reactstrap'
+import { auth } from '../store'
+import { view } from 'react-easy-state'
 
 class LoginForm extends React.Component {
   constructor() {
@@ -9,7 +9,7 @@ class LoginForm extends React.Component {
 
     this.state = {
       username: 'username',
-      password: 'password'
+      password: 'password',
     }
 
     this.handleLogin = this.handleLogin.bind(this)
@@ -22,29 +22,45 @@ class LoginForm extends React.Component {
   }
 
   async handleLogin(event) {
-    const {username, password} = this.state
+    const { username, password } = this.state
     event.preventDefault()
     console.log(this.state)
     await auth.login(username, password)
   }
 
   handleChange(event) {
-    this.setState({[event.target.id]: event.target.value})
+    this.setState({ [event.target.id]: event.target.value })
   }
 
   render() {
     return (
       <Form className="px-4 py-3" onSubmit={this.handleLogin}>
         <FormGroup>
-          <Input name="username" id="username" placeholder="Username" value={this.state.username}
-                 onChange={this.handleChange} required autoComplete="username" />
+          <Input
+            name="username"
+            id="username"
+            placeholder="Username"
+            value={this.state.username}
+            onChange={this.handleChange}
+            required
+            autoComplete="username"
+          />
         </FormGroup>
         <FormGroup>
-          <Input type="password" name="password" id="password" placeholder="Password"
-                 value={this.state.password}
-                 onChange={this.handleChange} required autoComplete="current-password" />
+          <Input
+            type="password"
+            name="password"
+            id="password"
+            placeholder="Password"
+            value={this.state.password}
+            onChange={this.handleChange}
+            required
+            autoComplete="current-password"
+          />
         </FormGroup>
-        <Button color="success" block disabled={!this.validateForm()}>Login</Button>
+        <Button color="success" block disabled={!this.validateForm()}>
+          Login
+        </Button>
       </Form>
     )
   }

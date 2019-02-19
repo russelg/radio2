@@ -3,13 +3,11 @@ from flask_jwt_extended import JWTManager
 from werkzeug.exceptions import HTTPException
 
 from radio import app
-from radio.common.utils import make_error
+from radio.common.utils import make_api_response
 
 jwt = JWTManager(app)
 
 
-def webargs_error(error, req, schema):
-    resp = make_error(error.status_code,
-                      'Unprocessable Entity', error.messages)
+def webargs_error(error, req, schema, error_status_code, error_headers):
+    resp = make_api_response(422, 'Unprocessable Entity', error.messages)
     raise HTTPException(description=resp.response, response=resp)
-

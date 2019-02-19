@@ -1,16 +1,24 @@
 import os
 from functools import partial
-from typing import Optional as _Optional, List, Dict
+from threading import Thread
+from typing import Dict, List
+from typing import Optional as _Optional
 from urllib.parse import quote
 
 import flask_restful as rest
-from flask import Blueprint, jsonify, send_from_directory, make_response, Response
-from flask_jwt_extended import jwt_required, current_user, jwt_optional
+from flask import (Blueprint, Response, jsonify, make_response, request,
+                   send_from_directory)
+from flask_jwt_extended import (current_user, decode_token, jwt_optional,
+                                jwt_required)
 from munch import Munch
-from webargs import fields, validate, ValidationError
-from webargs.flaskparser import use_kwargs, use_args
+from webargs import ValidationError, fields, validate
+from webargs.flaskparser import use_args, use_kwargs
+from werkzeug.utils import secure_filename
 
-from radio.common.utils import request_status, Pagination, filter_default_webargs, make_error
+from radio.common.utils import (Pagination, allowed_file, encode_file,
+                                filter_default_webargs, insert_song,
+                                make_api_response, request_status,
+                                split_extension)
 from radio.models import *
 
 blueprint = Blueprint('songs', __name__)
@@ -28,7 +36,8 @@ songs_args = {
 def song_queries(page: int, query: _Optional[str], limit: int,
                  user: _Optional[User] = None) -> dict:
     if query and user:
-        songs = user.favourites.select(lambda s: query in s.artist or query in s.title)
+        songs = user.favourites.select(
+            lambda s: query in s.artist or query in s.title)
     elif query:
         songs = Song.select(lambda s: query in s.artist or query in s.title)
     elif user:
@@ -51,7 +60,8 @@ def song_queries(page: int, query: _Optional[str], limit: int,
 
 
 def songs_links(context, page, query, limit, pagi):
-    args = partial(filter_default_webargs, args=songs_args, query=query, limit=limit)
+    args = partial(filter_default_webargs, args=songs_args,
+                   query=query, limit=limit)
 
     links = {'_self': api.url_for(context, **args(page=page), _external=True),
              '_next': api.url_for(context, **args(page=page + 1),
@@ -73,6 +83,17 @@ def songs_stub(context, page: int, query: _Optional[str], limit: int):
     })
 
 
+def get_processed_song(song: Song) -> Dict:
+    processed = Munch(song.to_dict(exclude='filename', with_lazy=True))
+    processed.meta = request_status(song)
+    processed.meta.favourited = False
+    processed.size = os.path.getsize(os.path.join(
+        app.config["PATH_MUSIC"], song.filename))
+    if current_user:
+        processed.meta.favourited = song in current_user.favourites
+    return processed
+
+
 def process_songs(context, page: int, query: _Optional[str], limit: int,
                   favourites: _Optional[User] = None) -> Response:
     processed_songs = []
@@ -80,12 +101,7 @@ def process_songs(context, page: int, query: _Optional[str], limit: int,
     songs = info.songs.page(page, limit)
 
     for song in songs:
-        processed = Munch(song.to_dict(exclude='filename', with_lazy=True))
-        processed.meta = request_status(song)
-        processed.meta.favourited = False
-        processed.size = os.path.getsize(os.path.join(app.config["PATH_MUSIC"], song.filename))
-        if current_user:
-            processed.meta.favourited = song in current_user.favourites
+        processed = get_processed_song(song)
         processed_songs.append(processed)
 
     return jsonify({
@@ -128,6 +144,7 @@ def validate_song(args: Dict[str, UUID]) -> None:
 
 class RequestController(rest.Resource):
     @db_session
+    @jwt_optional
     @use_args(request_args, locations=('json',), validate=validate_song)
     def put(self, args: Dict[str, UUID]) -> Response:
         song = Song[args['id']]
@@ -135,13 +152,16 @@ class RequestController(rest.Resource):
 
         if status.requestable:
             Queue(song=song, requested=True)
+            meta = request_status(song)
+            if current_user:
+                meta.favourited = song in current_user.favourites
             return {
                 'message': f'Requested "{song.title}" successfully',
-                'meta': request_status(song)
+                'meta': meta
             }
 
-        return make_error(400, 'Bad Request',
-                          f'"{song.title}" is not requestable at this moment ({status.reason})')
+        return make_api_response(400, 'Bad Request',
+                                 f'"{song.title}" is not requestable at this moment ({status.reason})')
 
 
 class AutocompleteController(rest.Resource):
@@ -149,8 +169,10 @@ class AutocompleteController(rest.Resource):
     @use_kwargs({'query': fields.Str(required=True, validate=validate.Length(min=1))})
     def get(self, query: _Optional[str]) -> Response:
         data = []
-        artists = select(s.artist for s in Song if query.lower() in s.artist.lower()).limit(5)
-        titles = select(s.title for s in Song if query.lower() in s.title.lower()).limit(5)
+        artists = select(s.artist for s in Song if query.lower()
+                         in s.artist.lower()).limit(5)
+        titles = select(s.title for s in Song if query.lower()
+                        in s.title.lower()).limit(5)
 
         for artist in artists:
             data.append({
@@ -170,25 +192,95 @@ class AutocompleteController(rest.Resource):
         }
 
 
-class DownloadController(rest.Resource):
+class SongController(rest.Resource):
     @db_session
     @use_kwargs(request_args, validate=validate_song, locations=('view_args',))
     def get(self, id: UUID) -> Response:
-        if not app.config['PUBLIC_DOWNLOADS']:
-            return make_error(403, 'Forbidden', f'Downloading is not enabled')
-
         if not Song.exists(id=id):
-            return make_error(404, 'Not Found', f'Song was not found')
+            return make_api_response(404, 'Not Found', 'Song was not found')
 
         song = Song[id]
+        processed = get_processed_song(song)
+        return jsonify(processed)
+
+
+@db_session
+def validate_token(args: Dict[str, UUID]) -> None:
+    token = args['token']
+
+    try:
+        decoded = decode_token(token)
+        print(decoded)
+        if 'id' in decoded['identity']:
+            return True
+    except:
+        # work around jwt bug (app context not being set)
+        raise ValidationError('Token has expired')
+
+    raise ValidationError('Token is invalid')
+
+
+class DownloadController(rest.Resource):
+    @db_session
+    @use_args({'token': fields.Str(required=True)}, locations=('querystring', 'json'), validate=validate_token)
+    def get(self, args: Dict[str, str], id: UUID) -> Response:
+        decoded = decode_token(args['token'])
+        token_song_id = str(decoded['identity']['id'])
+        song_id = id
+
+        if token_song_id != str(song_id):
+            return make_api_response(409, 'Conflict', 'Token Song ID and provided Song ID are not the same')
+
+        if not Song.exists(id=song_id):
+            return make_api_response(404, 'Not Found', 'Song was not found')
+
+        song = Song[song_id]
         serve_filename = f'{song.artist} - {song.title}.ogg'
 
-        response = make_response(send_from_directory(app.config['PATH_MUSIC'], song.filename))
-        response.headers["Content-Disposition"] = \
-            "attachment;" \
-            f"filename*=UTF-8''{quote(serve_filename)}"
+        response = make_response(send_from_directory(
+            app.config['PATH_MUSIC'], song.filename))
+        response.headers[
+            "Content-Disposition"] = f"attachment;filename*=UTF-8''{quote(serve_filename)}"
 
         return response
+
+
+class UploadController(rest.Resource):
+    @db_session
+    def post(self) -> Response:
+        if not app.config['PUBLIC_UPLOADS']:
+            if not current_user or not current_user.admin:
+                return make_api_response(403, 'Forbidden', 'Uploading is not enabled')
+
+        if 'song' not in request.files:
+            app.logger.warning('No file part')
+            return make_api_response(422, 'Unprocessable Entity', 'No `song` file field in request')
+
+        song = request.files['song']
+        if song.filename == '':
+            app.logger.warning('No selected file')
+            return make_api_response(422, 'Unprocessable Entity', 'No file selected')
+
+        if allowed_file(song.filename):
+            filename = secure_filename(song.filename)
+            song.save(os.path.join(app.config['PATH_ENCODE'], filename))
+
+            child = Thread(target=encode_file, args=(filename, ))
+            child.daemon = True
+            child.start()
+            child.join()
+            # reload_songs()
+
+            name, _ = split_extension(filename)
+            name_ogg = f'{name}.ogg'
+
+            song = insert_song(name_ogg)
+            app.logger.info(f'File "{filename}" uploaded')
+            if song:
+                return make_api_response(200, None, f'File "{filename}" uploaded', {'id': song.id})
+                # return jsonify({'id': song.id})
+
+        return make_api_response(422, 'Unprocessable Entity', f'File could not be processed')
 
 
 favourite_args = {
@@ -223,14 +315,14 @@ class FavouriteController(rest.Resource):
     @db_session
     @jwt_required
     @use_args(request_args, locations=('json',), validate=validate_song)
-    def post(self, args: List[UUID]) -> Response:
+    def put(self, args: List[UUID]) -> Response:
         song = Song[args['id']]
         if song not in current_user.favourites:
             current_user.favourites.add(song)
-            return make_error(200, None, f'Added "{song.title}" to your favourites')
+            return make_api_response(200, None, f'Added "{song.title}" to your favourites')
 
-        return make_error(400, 'Bad Request',
-                          f'"{song.title}" is already in your favourites')
+        return make_api_response(400, 'Bad Request',
+                                 f'"{song.title}" is already in your favourites')
 
     @db_session
     @jwt_required
@@ -239,15 +331,17 @@ class FavouriteController(rest.Resource):
         song = Song[args['id']]
         if song in current_user.favourites:
             current_user.favourites.remove(song)
-            return make_error(200, None,
-                              f'Removed "{song.title}" from your favourites')
+            return make_api_response(200, None,
+                                     f'Removed "{song.title}" from your favourites')
 
-        return make_error(400, 'Bad Request',
-                          f'"{song.title}" is not in your favourites')
+        return make_api_response(400, 'Bad Request',
+                                 f'"{song.title}" is not in your favourites')
 
 
+api.add_resource(SongController, '/song/<id>')
 api.add_resource(SongsController, '/songs')
 api.add_resource(RequestController, '/request')
 api.add_resource(FavouriteController, '/favourites')
 api.add_resource(AutocompleteController, '/autocomplete')
 api.add_resource(DownloadController, '/download/<id>')
+api.add_resource(UploadController, '/upload')

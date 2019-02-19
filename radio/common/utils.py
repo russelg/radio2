@@ -4,18 +4,21 @@ import re
 import shutil
 import string
 import subprocess
+import uuid
 from collections import namedtuple
 from enum import Enum
 from functools import partial
-from random import choice, sample, choices
-from typing import List, Dict, Optional as _Optional, Union
+from random import choice, choices, sample
+from typing import Dict, List
+from typing import Optional as _Optional
+from typing import Tuple, Union
 from urllib.request import urlopen
 
 import arrow
 import marshmallow
 import mutagen as mutagen
 import xmltodict as xmltodict
-from flask import jsonify, Response
+from flask import Response, jsonify
 from munch import Munch
 
 from radio.models import *
@@ -33,19 +36,25 @@ class QueueType(Enum):
     USER = 2
 
 
-def make_error(status_code: int, error: Union[str, bool, None], description: str) -> Response:
+def make_api_response(status_code: int, error: Union[str, bool, None],
+                      description: str, content: Dict = None) -> Response:
     """
     Generates a standard error response to use for API responses
 
-    :param status_code: HTTP status code for
+    :param status_code: HTTP status code for error
     :param error: short name for error
     :param description: full description of error
+    :param content: any other content to include
     :return: a prepared response
     """
+    if content is None:
+        content = {}
+
     response = jsonify({
         "status_code": status_code,
         "error": error,
-        "description": description
+        "description": description,
+        **content
     })
 
     response.status_code = status_code
@@ -72,6 +81,23 @@ def get_file_size(path: str) -> int:
     return os.path.getsize(path)
 
 
+def split_extension(filename: str) -> Tuple[str, str]:
+    return filename.rsplit('.', 1)
+
+
+def allowed_file(filename: str) -> bool:
+    """Check if the given filename is an allowed extension for upload
+
+    :param filename: Filename to validate
+    :type filename: str
+    :return: True if filename is valid
+    :rtype: str
+    """
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower(
+           ) in app.config["ALLOWED_EXTENSIONS"]
+
+
 def encode_file(filename: str) -> str:
     """
     Encodes a given file and moves it to the correct output directory
@@ -79,23 +105,25 @@ def encode_file(filename: str) -> str:
     :param filename: path of file to encode
     :return: full path to encoded file
     """
-    folder = app.config["PATH_ENCODE"]
-    randomstring = ''.join(choice(string.ascii_letters) for _ in range(16))
+    encode_folder = app.config["PATH_ENCODE"]
+    # randomstring = str(uuid.uuid4())
+    name, _ = split_extension(filename)
+    name_ogg = f'{name}.ogg'
 
     subprocess.call(
         [app.config["PATH_FFMPEG_BINARY"], '-i', filename, '-map_metadata', '0', '-acodec',
-         'libvorbis', '-q:a', '6', '-vn', randomstring + '.ogg'],
-        cwd=folder)
+         'libvorbis', '-q:a', '6', '-vn', name_ogg],
+        cwd=encode_folder)
 
-    full_path = os.path.join(folder, f'{randomstring}.ogg')
-    new_path = os.path.join(app.config["PATH_MUSIC"], f'{randomstring}.ogg')
+    full_path = os.path.join(encode_folder, name_ogg)
+    new_path = os.path.join(app.config["PATH_MUSIC"], name_ogg)
     shutil.move(full_path, new_path)
     print(f'{full_path} => {new_path}')
 
-    # if os.path.isfile(os.path.join(folder, filename)):
-    #     os.remove(os.path.join(folder, filename))
+    original_file = os.path.join(encode_folder, filename)
+    if os.path.isfile(original_file):
+        os.remove(original_file)
 
-    # insert the song to the database
     return new_path
 
 
@@ -172,7 +200,7 @@ def get_metadata(filename: str) -> _Optional[Dict[str, int]]:
 
 
 @db_session
-def insert_song(filename: str) -> None:
+def insert_song(filename: str) -> Song:
     """
     Adds a song to the database
 
@@ -188,8 +216,11 @@ def insert_song(filename: str) -> None:
             print(full_path, 'is a dupe, removing...')
             os.remove(full_path)
         else:
-            Song(filename=filename, artist=meta['artist'], title=meta['title'], length=int(meta['length']))
+            song = Song(filename=filename, artist=meta['artist'], title=meta['title'], length=int(
+                meta['length']))
             commit()
+        return song
+    return None
 
 
 @db_session
@@ -246,7 +277,8 @@ def reload_songs() -> str:
     This is done by removing songs that exist in the database, but not on the filesystem.
     Also adds any songs found in the filesystem that are not present in the database.
     """
-    os_songs = [f for f in os.listdir(app.config["PATH_MUSIC"]) if not f.startswith('.')]
+    os_songs = [f for f in os.listdir(
+        app.config["PATH_MUSIC"]) if not f.startswith('.')]
     if count(s for s in Song) <= 0:
         for filename in os_songs:
             insert_song(filename)
@@ -456,7 +488,8 @@ def parse_status(url: str) -> dict:
         for annotation in annotations:
             tmp = annotation.split(":", 1)
             if len(tmp) > 1:
-                result[tmp[0]] = tmp[1].strip()  # no need whatsoever to decode anything here. It's not needed by NP()
+                # no need whatsoever to decode anything here. It's not needed by NP()
+                result[tmp[0]] = tmp[1].strip()
         result["Online"] = True
         if xml_dict["title"] is None:
             result["Current Song"] = ""  # /shrug
