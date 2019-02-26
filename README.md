@@ -13,7 +13,7 @@ Uses icecast as the streaming server.
   - Mac and Ubuntu : . venv/bin/activate
 - Install dependencies : pip install -r requirements.txt
 
-# Running the radio
+## Running the radio
 
 First, copy `radio/config.sample.py` to `radio/config.py`, then edit the values. The PostgreSQL database must exist prior to running the server.
 
@@ -23,8 +23,6 @@ A Caddy config is included to get started quickly.
 
 ### Stream
 
----
-
 ```sh
 python generate_icecast_xml.py
 icecast -b -c icecast.xml
@@ -32,8 +30,6 @@ python stream.py
 ```
 
 ### API Server
-
----
 
 Production:
 
@@ -51,8 +47,6 @@ flask run
 ```
 
 ### Frontend
-
----
 
 Production:
 
