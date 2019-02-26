@@ -5,13 +5,13 @@ Uses icecast as the streaming server.
 
 ## Installation Instructions
 
-- Install icecast (2.4.1 or above)
-- Make sure you have working installation of python 3 if not get it installed
-- Create a virtualenv with command : python -m venv venv
+- Install `icecast` (2.4.1 or above).
+- Make sure you have working installation of Python 3.6 or higher, if not install it.
+- Create a virtualenv: `python -m venv venv`.
 - Activate virtualenv
-  - Windows : venv\Scripts\activate
-  - Mac and Ubuntu : . venv/bin/activate
-- Install dependencies : pip install -r requirements.txt
+  - Windows : `venv\Scripts\activate`
+  - Mac and Ubuntu : `. venv/bin/activate`
+- Install dependencies: `pip install -r requirements.txt`
 
 ## Running the radio
 
@@ -20,6 +20,8 @@ First, copy `radio/config.sample.py` to `radio/config.py`, then edit the values.
 Also make sure your virtualenv is activated before running the server.
 
 A Caddy config is included to get started quickly.
+
+:warning: **By default the first user to register becomes an admin, so please register an account to use for admin purposes before you expose the website to the public internet.** :warning:
 
 ### Stream
 
