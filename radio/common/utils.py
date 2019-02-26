@@ -39,7 +39,7 @@ class QueueType(Enum):
 
 
 def make_api_response(status_code: int, error: Union[str, bool, None],
-                      description: str, content: Dict = None) -> Response:
+                      description: str = None, content: Dict = None) -> Response:
     """
     Generates a standard error response to use for API responses
 
@@ -52,12 +52,17 @@ def make_api_response(status_code: int, error: Union[str, bool, None],
     if content is None:
         content = {}
 
-    response = jsonify({
-        "status_code": status_code,
-        "error": error,
-        "description": description,
-        **content
-    })
+    data = {
+        'status_code': status_code,
+        'error': error
+    }
+
+    if description:
+        data['description'] = description
+
+    data.update(content)
+
+    response = jsonify(data)
 
     response.status_code = status_code
     return response
@@ -71,11 +76,11 @@ def get_folder_metadata(path: str = '.') -> Dict[str, int]:
     :return: dict containing the number of files in the given folder, and the total size of all files
     """
     total = 0
-    count = 0
+    files = 0
     for entry in os.scandir(path):
         total += entry.stat().st_size
-        count += 1
-    return Munch({'files': count, 'size': total})
+        files += 1
+    return Munch({'files': files, 'size': total})
 
 
 def get_file_size(path: str) -> int:

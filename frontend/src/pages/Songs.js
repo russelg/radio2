@@ -9,6 +9,7 @@ import { AlertList } from 'react-bs-notifier'
 import { view } from 'react-easy-state'
 import { FilePond, registerPlugin } from 'react-filepond'
 import Pagination from 'react-js-pagination'
+import { withRouter } from 'react-router-dom'
 import {
   Button,
   Col,
@@ -55,6 +56,7 @@ class Songs extends React.Component {
       username: null,
       files: [],
       show_admin: true,
+      location: new URL(window.location.href),
     }
 
     this.handleAdminChange = this.handleAdminChange.bind(this)
@@ -99,14 +101,21 @@ class Songs extends React.Component {
     this.getPage(page, query, username)
   }
 
-  componentDidMount() {
-    this.firePageChange()
+  componentWillMount() {
+    this.unlisten = this.props.history.listen((location, action) => {
+      if (location.pathname === this.state.location.pathname) {
+        this.setState({ location })
+        this.firePageChange(location.search)
+      }
+    })
   }
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.location !== this.props.location) {
-      this.firePageChange(nextProps.location.search)
-    }
+  componentWillUnmount() {
+    this.unlisten()
+  }
+
+  componentDidMount() {
+    this.firePageChange()
   }
 
   reloadPage() {
@@ -130,16 +139,13 @@ class Songs extends React.Component {
       history = true,
       username = undefined,
       force_refresh = true,
-    },
-    favourites = false
+      favourites = false,
+    }
   ) {
     this.setState({ loaded: !force_refresh, page, search: query, username })
 
     const url = this.getUrl({ page, query, user: username }, favourites)
     if (history) this.props.history.push(`/${url}`)
-
-    // we don't need to explicitly getPage here as componentWillReceiveProps
-    // will do that in reaction to the location changing
   }
 
   getPage(page, query = undefined, username = undefined) {
@@ -192,15 +198,12 @@ class Songs extends React.Component {
   }
 
   handlePage(i, favourites = false) {
-    this.handlePageChange(
-      i,
-      {
-        query: this.state.search,
-        history: true,
-        username: this.state.username,
-      },
-      favourites
-    )
+    this.handlePageChange(i, {
+      query: this.state.search,
+      history: true,
+      username: this.state.username,
+      favourites,
+    })
   }
 
   requestSong(song) {
@@ -321,6 +324,41 @@ class Songs extends React.Component {
           console.log(stateSong, song, meta)
           meta.favourited = !meta.favourited
           songs[stateSong] = { ...song, meta }
+        }
+
+        this.setState({ songs })
+      })
+  }
+
+  updateSongMetadata(song, options) {
+    console.log(song, options)
+    const { id } = song
+    const { songs } = this.state
+
+    fetch(`${API_BASE}/song/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(options),
+      headers: new Headers({
+        'Content-Type': 'application/json',
+      }),
+    })
+      .then(res => res.json())
+      .then(result => {
+        console.log(result)
+
+        const error = result.error !== null
+        let msg = 'description' in result ? result.description : result.message
+        this.sendAlert(msg, error)
+
+        if (!error) {
+          const stateSong = songs.indexOf(song)
+
+          // remove non-song keys
+          delete result.status_code
+          delete result.error
+          delete result.description
+
+          songs[stateSong] = { ...song, ...result }
         }
 
         this.setState({ songs })
@@ -537,6 +575,7 @@ class Songs extends React.Component {
                   requestSong={this.requestSong.bind(this)}
                   favouriteSong={this.favouriteSong.bind(this)}
                   deleteSong={this.deleteSong.bind(this)}
+                  updateSongMetadata={this.updateSongMetadata.bind(this)}
                   downloads={
                     settings.downloads_enabled ||
                     (auth.admin && this.state.show_admin)
@@ -559,4 +598,4 @@ class Songs extends React.Component {
   }
 }
 
-export default view(Songs)
+export default view(withRouter(props => <Songs {...props} />))

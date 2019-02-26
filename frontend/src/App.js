@@ -70,11 +70,6 @@ class App extends React.Component {
     this.intervalId = setInterval(this.periodicUpdate.bind(this), 500)
   }
 
-  componentWillReceiveProps() {
-    this.fetchSettings()
-    this.updateState()
-  }
-
   periodicUpdate() {
     // only continue to update nowplaying if the radio is playing
     // and we aren't on the homepage (i.e. miniplayer is showing)

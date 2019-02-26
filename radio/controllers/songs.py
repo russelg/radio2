@@ -200,7 +200,30 @@ class SongController(rest.Resource):
 
         song = Song[id]
         processed = get_processed_song(song)
-        return jsonify(processed)
+        return make_api_response(200, None, content=processed)
+
+    @db_session
+    @admin_required
+    @use_kwargs(request_args, validate=validate_song, locations=('view_args',))
+    def put(self, id: UUID) -> Response:
+        if not Song.exists(id=id):
+            return make_api_response(404, 'Not Found', 'Song does not exist')
+
+        if not request.json:
+            return make_api_response(400, 'Bad Request', 'No data provided')
+
+        values = {}
+        accepted_fields = ['artist', 'title']
+        for field, val in request.json.items():
+            if field in accepted_fields:
+                values[field] = val
+
+        song = Song[id]
+        song.set(**values)
+        commit()
+
+        processed = get_processed_song(song)
+        return make_api_response(200, None, 'Successfully updated song metadata', content=processed)
 
     @db_session
     @admin_required

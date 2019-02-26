@@ -1,7 +1,7 @@
 import React from 'react'
 import { view } from 'react-easy-state'
-import EdiText from 'react-editext'
 import FontAwesome from 'react-fontawesome'
+import Editable from 'react-x-editable'
 import { Button, Form, Table, UncontrolledTooltip } from 'reactstrap'
 import { readableFilesize } from '../utils'
 
@@ -45,21 +45,17 @@ class SongsTable extends React.Component {
             <tr key={song.id} className="d-flex">
               <td className="col-3">
                 {this.props.isAdmin ? (
-                  // <Editable
-                  //   name="artist"
-                  //   dataType="text"
-                  //   mode="inline"
-                  //   value={song.artist}
-                  //   bootstrap4
-                  //   handleSubmit={val =>
-                  //     this.props.updateSongMetadata(song.id, {
-                  //       artist: val.value,
-                  //     })
-                  //   }
-                  // />
-                  <EdiText
+                  <Editable
+                    name="artist"
+                    dataType="text"
+                    mode="inline"
                     value={song.artist}
-                    onSave={val => console.log(val)}
+                    bootstrap4
+                    handleSubmit={val =>
+                      this.props.updateSongMetadata(song, {
+                        artist: val.value,
+                      })
+                    }
                   />
                 ) : (
                   song.artist
@@ -67,21 +63,17 @@ class SongsTable extends React.Component {
               </td>
               <td className="col-5">
                 {this.props.isAdmin ? (
-                  // <Editable
-                  //   name="title"
-                  //   dataType="text"
-                  //   mode="inline"
-                  //   value={song.title}
-                  //   bootstrap4
-                  //   handleSubmit={val =>
-                  //     this.props.updateSongMetadata(song.id, {
-                  //       title: val.value,
-                  //     })
-                  //   }
-                  // />
-                  <EdiText
+                  <Editable
+                    name="title"
+                    dataType="text"
+                    mode="inline"
                     value={song.title}
-                    onSave={val => console.log(val)}
+                    bootstrap4
+                    handleSubmit={val =>
+                      this.props.updateSongMetadata(song, {
+                        title: val.value,
+                      })
+                    }
                   />
                 ) : (
                   song.title

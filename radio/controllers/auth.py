@@ -96,7 +96,7 @@ def do_signin(username: str, password: str) -> Response:
                 'username': user.username,
                 'admin': user.admin
             }
-            return ret, 200
+            return make_api_response(200, None, content=ret)
 
     return make_api_response(401, 'Unauthorized', 'Invalid credentials')
 
@@ -118,7 +118,7 @@ class RefreshController(rest.Resource):
             ret = {'access_token': new_token,
                    'username': current_user.username,
                    'admin': current_user.admin}
-            return ret, 200
+            return make_api_response(200, None, content=ret)
 
         return make_api_response(500, 'Server Error', 'Issue loading user')
 
@@ -139,7 +139,11 @@ class DownloadController(rest.Resource):
 
         new_token = create_access_token(
             {'id': str(song_id)}, expires_delta=timedelta(seconds=10))
-        return jsonify({'download_token': new_token, 'id': song_id})
+
+        return make_api_response(200, None, content={
+            'download_token': new_token,
+            'id': song_id
+        })
 
 
 class RegisterController(rest.Resource):

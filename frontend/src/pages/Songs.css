@@ -14,3 +14,7 @@
 .close {
   display: none;
 }
+
+.editable-container > a {
+  border-bottom: 1px dashed;
+}
