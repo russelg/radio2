@@ -305,3 +305,5 @@ radio/config.py
 icecast.xml
 .vscode/
 todo.md
+
+*.sh

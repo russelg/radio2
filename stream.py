@@ -8,7 +8,7 @@ from typing import List, NamedTuple
 
 import mutagen
 
-import pylibshout
+from radio.pylibshout import pylibshout
 from radio.api import app
 from radio.common.utils import get_metadata, next_song
 

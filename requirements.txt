@@ -8,7 +8,6 @@ werkzeug
 arrow
 bcrypt
 flask
-flask_debugtoolbar
 flask-jwt-extended
 flask-restful
 gunicorn

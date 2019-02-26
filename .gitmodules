@@ -1,0 +1,3 @@
+[submodule "radio/pylibshout"]
+	path = radio/pylibshout
+	url = https://github.com/russelg/pylibshout
