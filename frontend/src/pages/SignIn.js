@@ -1,11 +1,10 @@
 import React from 'react'
-import { Card, CardBody, CardTitle, Col, Container, Row } from 'reactstrap'
-
-import './Home.css'
-import LoginForm from '../components/LoginForm'
 import { view } from 'react-easy-state'
-import { auth } from '../store'
 import { Redirect } from 'react-router-dom'
+import { Card, CardBody, CardTitle, Col, Container, Row } from 'reactstrap'
+import LoginForm from '../components/LoginForm'
+import { auth } from '../store'
+import './Home.css'
 
 class SignIn extends React.Component {
   render() {

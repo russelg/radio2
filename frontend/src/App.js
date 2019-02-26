@@ -1,16 +1,15 @@
 import React from 'react'
-import { BrowserRouter as Router, Route } from 'react-router-dom'
-import { AnimatedSwitch } from 'react-router-transition'
-import { API_BASE, playingState, settings } from './store'
 import { view } from 'react-easy-state'
 import ReactHowler from 'react-howler'
 import Loadable from 'react-loadable'
-
-import Navbar from './components/Navbar'
+import { BrowserRouter as Router, Route } from 'react-router-dom'
+import { AnimatedSwitch } from 'react-router-transition'
 import Loader from './components/Loader'
 import MiniPlayer from './components/MiniPlayer'
-import SignUp from './pages/SignUp'
+import Navbar from './components/Navbar'
 import SignIn from './pages/SignIn'
+import SignUp from './pages/SignUp'
+import { API_BASE, playingState, settings } from './store'
 
 const AsyncHome = Loadable({
   loader: () => import('./pages/Home'),
@@ -111,8 +110,8 @@ class App extends React.Component {
           </Navbar>
 
           <ReactHowler
-            src={settings.stream_url}
-            format={['ogg']}
+            src={[settings.stream_url + '.ogg', settings.stream_url + '.mp3']}
+            format={['ogg', 'mp3']}
             preload={false}
             html5={true}
             playing={playingState.playing}

@@ -24,6 +24,8 @@ def np() -> dict:
     lastplayed_rows = Song.select(lambda c: c.lastplayed is not None).sort_by(desc(Song.lastplayed)).prefetch(
         Song.artist, Song.title, Song.length).limit(6)
 
+    num_songs = Song.select().count()
+
     times = Munch({})
     if lastplayed_rows:
         top_row = lastplayed_rows[0]
@@ -80,7 +82,7 @@ def np() -> dict:
         'title': top_row.title,
         'id': current_id,
         'requested': False,
-        'total_songs': folder_stats.files,
+        'total_songs': num_songs,
         'total_plays': total_playcount,
         'queue': queue,
         'lp': lastplayed,

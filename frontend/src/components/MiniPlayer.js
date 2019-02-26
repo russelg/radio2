@@ -1,9 +1,8 @@
 import React from 'react'
 import { view } from 'react-easy-state'
-import { playingState } from '../store'
 import { Progress } from 'reactstrap'
+import { playingState } from '../store'
 import { readableSeconds } from '../utils'
-
 import './MiniPlayer.css'
 
 class MiniPlayer extends React.Component {

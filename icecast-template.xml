@@ -14,8 +14,8 @@
     <authentication>
         <source-password>{{ Config.ICECAST_PASSWORD }}</source-password>
         <relay-password>{{ Config.ICECAST_PASSWORD }}</relay-password>
-        <admin-user>{{ Config.ADMIN[0] }}</admin-user>
-        <admin-password>{{ Config.ADMIN[1] }}</admin-password>
+        <admin-user>{{ Config.ICECAST_USER }}</admin-user>
+        <admin-password>{{ Config.ICECAST_PASSWORD }}</admin-password>
     </authentication>
     <hostname>{{ Config.SERVER_NAME }}</hostname>
     <listen-socket>
@@ -25,9 +25,15 @@
         <header name="Access-Control-Allow-Origin" value="*"/>
     </http-headers>
     <mount type="normal">
-        <mount-name>{{ Config.ICECAST_MOUNT }}</mount-name>
+        <mount-name>{{ Config.ICECAST_MOUNT }}.ogg</mount-name>
         <charset>UTF-8</charset>
     </mount>
+    {% if Config.ICECAST_TRANSCODE %}
+    <mount type="normal">
+        <mount-name>{{ Config.ICECAST_MOUNT }}.mp3</mount-name>
+        <charset>UTF-8</charset>
+    </mount>
+    {% endif %}
     <fileserve>1</fileserve>
     <paths>
         <basedir>/usr/local/share/icecast</basedir>

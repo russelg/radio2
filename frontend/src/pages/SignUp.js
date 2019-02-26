@@ -1,4 +1,8 @@
+import { Formik } from 'formik'
 import React from 'react'
+import { view } from 'react-easy-state'
+import FontAwesome from 'react-fontawesome'
+import { Link, Redirect } from 'react-router-dom'
 import {
   Button,
   Card,
@@ -14,14 +18,9 @@ import {
   InputGroupAddon,
   Row,
 } from 'reactstrap'
-import { view } from 'react-easy-state'
-
-import './Home.css'
-import { auth } from '../store'
-import { Formik } from 'formik'
-import FontAwesome from 'react-fontawesome'
 import * as yup from 'yup'
-import { Link, Redirect } from 'react-router-dom'
+import { auth } from '../store'
+import './Home.css'
 
 class FormInput extends React.Component {
   render() {

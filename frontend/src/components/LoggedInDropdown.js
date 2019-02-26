@@ -1,4 +1,7 @@
 import React from 'react'
+import { view } from 'react-easy-state'
+import FontAwesome from 'react-fontawesome'
+import { Link } from 'react-router-dom'
 import {
   Badge,
   DropdownItem,
@@ -6,9 +9,7 @@ import {
   DropdownToggle,
   UncontrolledDropdown,
 } from 'reactstrap'
-import { view } from 'react-easy-state'
 import { auth } from '../store'
-import { Link } from 'react-router-dom'
 
 class LoggedInDropdown extends React.Component {
   constructor() {
@@ -24,7 +25,7 @@ class LoggedInDropdown extends React.Component {
     return (
       <UncontrolledDropdown nav inNavbar>
         <DropdownToggle nav caret>
-          Signed in as {auth.username + ' '}
+          <FontAwesome fixedWidth name="user" /> {auth.username + ' '}
           {auth.admin && (
             <Badge pill variant="info" className="align-middle badge-admin">
               Admin

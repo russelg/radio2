@@ -14,6 +14,7 @@
     "react-bs-notifier": "^4.4.6",
     "react-dom": "^16.2.0",
     "react-easy-state": "^5.1.0",
+    "react-editext": "^2.1.2",
     "react-filepond": "^7.0.1",
     "react-fontawesome": "^1.6.1",
     "react-howler": "^3.7.1",
@@ -22,7 +23,8 @@
     "react-router": "^4.2.0",
     "react-router-dom": "^4.2.2",
     "react-router-transition": "^1.2.1",
-    "react-scripts": "1.1.4",
+    "react-scripts": "2.1.5",
+    "react-x-editable": "https://github.com/YassienW/react-x-editable",
     "reactstrap": "^6.1.0",
     "yup": "^0.25.1"
   },
@@ -36,5 +38,11 @@
   "devDependencies": {
     "babel-core": "^6.26.0",
     "flow-bin": "^0.65.0"
-  }
+  },
+  "browserslist": [
+    ">0.2%",
+    "not dead",
+    "not ie <= 11",
+    "not op_mini all"
+  ]
 }

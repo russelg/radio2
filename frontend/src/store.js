@@ -1,5 +1,5 @@
-import { store } from 'react-easy-state'
 import { authorize, clear, configure } from '@shoutem/fetch-token-intercept'
+import { store } from 'react-easy-state'
 
 if (!localStorage.getItem('volume')) {
   localStorage.setItem('volume', '80')
@@ -128,8 +128,7 @@ export const settings = store({
   },
 
   get stream_url() {
-    let noproto = this.icecast.url
-    return noproto + this.icecast.mount
+    return this.icecast.url + this.icecast.mount
   },
 })
 

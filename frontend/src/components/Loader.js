@@ -1,10 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
-import { Col, Container, Row } from 'reactstrap'
-
-import FontAwesome from 'react-fontawesome'
-
+import { Container, Row } from 'reactstrap'
 import './Loader.css'
+import LoaderSpinner from './LoaderSpinner'
 
 class Loader extends React.Component {
   componentDidMount() {
@@ -24,9 +22,7 @@ class Loader extends React.Component {
       return (
         <Container className="h-100 fixed-top loader">
           <Row className="h-100">
-            <Col sm="12" className="my-auto text-center fa-3x">
-              <FontAwesome name="spinner" spin size="3x" />
-            </Col>
+            <LoaderSpinner />
           </Row>
         </Container>
       )

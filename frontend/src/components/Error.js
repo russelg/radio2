@@ -1,6 +1,13 @@
 import React from 'react'
-import { Col, Container, Row } from 'reactstrap'
 import { withRouter } from 'react-router-dom'
+import {
+  Button,
+  Col,
+  Container,
+  ListGroup,
+  ListGroupItem,
+  Row,
+} from 'reactstrap'
 
 class Error extends React.Component {
   handleBack() {
@@ -8,13 +15,27 @@ class Error extends React.Component {
   }
 
   render() {
+    console.log('children', this.props.children)
     return (
-      <Container className="h-100 fixed-top loader">
+      <Container className="h-100 fixed-top loader error">
         <Row className="h-100">
-          <Col sm="12" className="my-auto text-center">
-            In the process of loading this page, the following error occured:
-            <h3>{this.props.children}</h3>
-            <a onClick={this.handleBack.bind(this)}>Go back</a>
+          <Col sm="6" className="my-auto text-center mx-auto">
+            <h3>
+              In the process of loading this page, the following error(s)
+              occured:
+            </h3>
+            <br />
+            <ListGroup>
+              {Object.entries(this.props.children).map((entry, idx) => {
+                return (
+                  <ListGroupItem key={idx}>
+                    {entry[1]} ({entry[0]})
+                  </ListGroupItem>
+                )
+              })}
+            </ListGroup>
+            <br />
+            <Button onClick={this.handleBack.bind(this)}>Go back</Button>
           </Col>
         </Row>
       </Container>

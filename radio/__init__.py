@@ -3,7 +3,6 @@ import datetime
 import arrow
 from flask import Flask
 from flask.json import JSONEncoder
-# from flask_debugtoolbar import DebugToolbarExtension
 from flask_jwt_extended import JWTManager
 
 from .config import Config

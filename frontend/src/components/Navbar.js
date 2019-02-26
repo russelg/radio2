@@ -1,4 +1,6 @@
 import React from 'react'
+import { view } from 'react-easy-state'
+import { NavLink as RRNavLink, withRouter } from 'react-router-dom'
 import {
   Collapse,
   Container,
@@ -10,14 +12,11 @@ import {
   NavItem,
   NavLink,
 } from 'reactstrap'
-import './Navbar.css'
-
-import ThemeChooser from './ThemeChooser'
-import { NavLink as RRNavLink, withRouter } from 'react-router-dom'
-import LoginDropdown from './LoginDropdown'
 import { auth } from '../store'
 import LoggedInDropdown from './LoggedInDropdown'
-import { view } from 'react-easy-state'
+import LoginDropdown from './LoginDropdown'
+import './Navbar.css'
+import ThemeChooser from './ThemeChooser'
 
 class Navbar extends React.Component {
   constructor(props) {

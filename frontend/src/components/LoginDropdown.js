@@ -1,4 +1,5 @@
 import React from 'react'
+import { view } from 'react-easy-state'
 import { Link } from 'react-router-dom'
 import {
   DropdownItem,
@@ -6,7 +7,6 @@ import {
   DropdownToggle,
   UncontrolledDropdown,
 } from 'reactstrap'
-import { view } from 'react-easy-state'
 import LoginForm from './LoginForm'
 
 class LoginDropdown extends React.Component {

@@ -1,4 +1,5 @@
 import os
+import queue
 from functools import partial
 from threading import Thread
 from typing import Dict, List
@@ -10,15 +11,16 @@ from flask import (Blueprint, Response, jsonify, make_response, request,
                    send_from_directory)
 from flask_jwt_extended import (current_user, decode_token, jwt_optional,
                                 jwt_required)
+from jwt import ExpiredSignatureError
 from munch import Munch
 from webargs import ValidationError, fields, validate
 from webargs.flaskparser import use_args, use_kwargs
 from werkzeug.utils import secure_filename
 
-from radio.common.utils import (Pagination, allowed_file, encode_file,
-                                filter_default_webargs, insert_song,
-                                make_api_response, request_status,
-                                split_extension)
+from radio.common.utils import (Pagination, admin_required, allowed_file,
+                                encode_file, filter_default_webargs,
+                                insert_song, make_api_response, request_status,
+                                split_extension, user_is_admin)
 from radio.models import *
 
 blueprint = Blueprint('songs', __name__)
@@ -145,7 +147,7 @@ def validate_song(args: Dict[str, UUID]) -> None:
 class RequestController(rest.Resource):
     @db_session
     @jwt_optional
-    @use_args(request_args, locations=('json',), validate=validate_song)
+    @use_args(request_args, validate=validate_song)
     def put(self, args: Dict[str, UUID]) -> Response:
         song = Song[args['id']]
         status = request_status(song)
@@ -155,10 +157,7 @@ class RequestController(rest.Resource):
             meta = request_status(song)
             if current_user:
                 meta.favourited = song in current_user.favourites
-            return {
-                'message': f'Requested "{song.title}" successfully',
-                'meta': meta
-            }
+            return make_api_response(200, None, f'Requested "{song.title}" successfully', {'meta': meta})
 
         return make_api_response(400, 'Bad Request',
                                  f'"{song.title}" is not requestable at this moment ({status.reason})')
@@ -197,42 +196,60 @@ class SongController(rest.Resource):
     @use_kwargs(request_args, validate=validate_song, locations=('view_args',))
     def get(self, id: UUID) -> Response:
         if not Song.exists(id=id):
-            return make_api_response(404, 'Not Found', 'Song was not found')
+            return make_api_response(404, 'Not Found', 'Song does not exist')
 
         song = Song[id]
         processed = get_processed_song(song)
         return jsonify(processed)
 
+    @db_session
+    @admin_required
+    @use_kwargs(request_args, validate=validate_song, locations=('view_args',))
+    def delete(self, id: UUID) -> Response:
+        if not Song.exists(id=id):
+            return make_api_response(404, 'Not Found', 'Song does not exist')
+
+        song = Song[id]
+        song_path = os.path.join(app.config['PATH_MUSIC'], song.filename)
+        if os.path.exists(song_path):
+            os.remove(song_path)
+
+        song.delete()
+
+        app.logger.info(f'Deleted song "{song.filename}"')
+        return make_api_response(200, None, f'Successfully deleted song "{song.filename}"')
+
 
 @db_session
 def validate_token(args: Dict[str, UUID]) -> None:
     token = args['token']
+    error = 'Token is invalid'
 
     try:
         decoded = decode_token(token)
-        print(decoded)
         if 'id' in decoded['identity']:
             return True
     except:
-        # work around jwt bug (app context not being set)
-        raise ValidationError('Token has expired')
+        raise ValidationError(error)
 
-    raise ValidationError('Token is invalid')
+    raise ValidationError(error)
 
 
 class DownloadController(rest.Resource):
     @db_session
-    @use_args({'token': fields.Str(required=True)}, locations=('querystring', 'json'), validate=validate_token)
-    def get(self, args: Dict[str, str], id: UUID) -> Response:
+    @jwt_optional
+    @use_args({'token': fields.Str(required=True)},
+              validate=lambda args: validate_token(args))
+    def get(self, args: Dict[str, str]) -> Response:
         decoded = decode_token(args['token'])
-        token_song_id = str(decoded['identity']['id'])
-        song_id = id
+        song_id = UUID(decoded['identity']['id'])
+        # song_id = args['id']
 
-        if token_song_id != str(song_id):
-            return make_api_response(409, 'Conflict', 'Token Song ID and provided Song ID are not the same')
+        # if token_song_id != song_id:
+        #     return make_api_response(409, 'Conflict', 'Token Song ID and provided Song ID are not the same')
 
         if not Song.exists(id=song_id):
-            return make_api_response(404, 'Not Found', 'Song was not found')
+            return make_api_response(404, 'Not Found', 'Song does not exist')
 
         song = Song[song_id]
         serve_filename = f'{song.artist} - {song.title}.ogg'
@@ -247,9 +264,10 @@ class DownloadController(rest.Resource):
 
 class UploadController(rest.Resource):
     @db_session
+    @jwt_optional
     def post(self) -> Response:
         if not app.config['PUBLIC_UPLOADS']:
-            if not current_user or not current_user.admin:
+            if not user_is_admin():
                 return make_api_response(403, 'Forbidden', 'Uploading is not enabled')
 
         if 'song' not in request.files:
@@ -265,27 +283,32 @@ class UploadController(rest.Resource):
             filename = secure_filename(song.filename)
             song.save(os.path.join(app.config['PATH_ENCODE'], filename))
 
-            child = Thread(target=encode_file, args=(filename, ))
+            que = queue.Queue()
+            child = Thread(target=lambda q, arg: q.put(
+                encode_file(arg)), args=(que, filename))
             child.daemon = True
             child.start()
             child.join()
             # reload_songs()
 
-            name, _ = split_extension(filename)
-            name_ogg = f'{name}.ogg'
+            if not que.empty():
+                final_path = que.get()
 
-            song = insert_song(name_ogg)
-            app.logger.info(f'File "{filename}" uploaded')
-            if song:
-                return make_api_response(200, None, f'File "{filename}" uploaded', {'id': song.id})
-                # return jsonify({'id': song.id})
+                name, _ = split_extension(os.path.basename(final_path))
+                name_ogg = f'{name}.ogg'
+
+                song = insert_song(name_ogg)
+                app.logger.info(f'File "{filename}" uploaded')
+                if song:
+                    return make_api_response(200, None, f'File "{filename}" uploaded', {'id': song.id})
+                    # return jsonify({'id': song.id})
 
         return make_api_response(422, 'Unprocessable Entity', f'File could not be processed')
 
 
 favourite_args = {
     **songs_args,
-    'user': fields.Str()
+    'user': fields.Str(required=True)
 }
 
 
@@ -314,7 +337,7 @@ class FavouriteController(rest.Resource):
 
     @db_session
     @jwt_required
-    @use_args(request_args, locations=('json',), validate=validate_song)
+    @use_args(request_args, validate=validate_song)
     def put(self, args: List[UUID]) -> Response:
         song = Song[args['id']]
         if song not in current_user.favourites:
@@ -326,7 +349,7 @@ class FavouriteController(rest.Resource):
 
     @db_session
     @jwt_required
-    @use_args(request_args, locations=('json',), validate=validate_song)
+    @use_args(request_args, validate=validate_song)
     def delete(self, args: List[UUID]) -> Response:
         song = Song[args['id']]
         if song in current_user.favourites:
@@ -343,5 +366,5 @@ api.add_resource(SongsController, '/songs')
 api.add_resource(RequestController, '/request')
 api.add_resource(FavouriteController, '/favourites')
 api.add_resource(AutocompleteController, '/autocomplete')
-api.add_resource(DownloadController, '/download/<id>')
+api.add_resource(DownloadController, '/download')
 api.add_resource(UploadController, '/upload')

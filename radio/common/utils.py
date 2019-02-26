@@ -7,11 +7,12 @@ import subprocess
 import uuid
 from collections import namedtuple
 from enum import Enum
-from functools import partial
+from functools import partial, wraps
 from random import choice, choices, sample
 from typing import Dict, List
 from typing import Optional as _Optional
 from typing import Tuple, Union
+from urllib.error import URLError
 from urllib.request import urlopen
 
 import arrow
@@ -19,6 +20,7 @@ import marshmallow
 import mutagen as mutagen
 import xmltodict as xmltodict
 from flask import Response, jsonify
+from flask_jwt_extended import get_jwt_claims, verify_jwt_in_request
 from munch import Munch
 
 from radio.models import *
@@ -70,7 +72,6 @@ def get_folder_metadata(path: str = '.') -> Dict[str, int]:
     """
     total = 0
     count = 0
-    # py >= 3.5 only
     for entry in os.scandir(path):
         total += entry.stat().st_size
         count += 1
@@ -112,11 +113,12 @@ def encode_file(filename: str) -> str:
 
     subprocess.call(
         [app.config["PATH_FFMPEG_BINARY"], '-i', filename, '-map_metadata', '0', '-acodec',
-         'libvorbis', '-q:a', '6', '-vn', name_ogg],
+         'libvorbis', '-q:a', str(app.config['SONG_QUALITY_LVL']), '-vn', name_ogg],
         cwd=encode_folder)
 
     full_path = os.path.join(encode_folder, name_ogg)
-    new_path = os.path.join(app.config["PATH_MUSIC"], name_ogg)
+    new_path = get_nonexistant_path(os.path.join(
+        app.config["PATH_MUSIC"], name_ogg))
     shutil.move(full_path, new_path)
     print(f'{full_path} => {new_path}')
 
@@ -188,15 +190,15 @@ def get_metadata(filename: str) -> _Optional[Dict[str, int]]:
     if 'title' not in metadata or 'artist' not in metadata:
         os.remove(filename)
         return None
-    else:
-        title = metadata['title'][0]
-        artist = metadata['artist'][0]
-        return {
-            "title": title,
-            "artist": artist,
-            "path": filename,
-            "length": metadata.info.length
-        }
+
+    title = metadata['title'][0]
+    artist = metadata['artist'][0]
+    return {
+        "title": title,
+        "artist": artist,
+        "path": filename,
+        "length": metadata.info.length
+    }
 
 
 @db_session
@@ -462,49 +464,49 @@ def parse_status(url: str) -> dict:
 
     Logic behind returning an explicit "Online" key is readability
     """
-    result = {"Online": False}  # Assume False by default
-    xml = urlopen(url).read()
+    result = {'Online': False}  # Assume False by default
     try:
+        xml = urlopen(url).read()
+    except URLError:
+        return result
+
+    try:
+        # CDATA required
         xml_dict = xmltodict.parse(
-            xml,
-            xml_attribs=False,
-            cdata_separator="\n")  # CDATA required
+            xml, xml_attribs=False, cdata_separator="\n")
+
         try:
-            xml_dict = xml_dict.get(
-                'playlist',
-                {}).get('trackList',
-                        {}).get('track',
-                                None)
-        # No mountpoint it seems, just ditch an empty result
+            xml_dict = xml_dict.get('playlist', {}).get(
+                'trackList', {}).get('track', None)
         except AttributeError:
+            # No mountpoint it seems, just ditch an empty result
             return result
         else:
-            if xml_dict is None:  # We got none returned from the get anyway
+            if xml_dict is None:
+                # We got none returned from the get anyway
                 return result
-        annotations = xml_dict.get("annotation", False)
-        if not annotations:  # edge case for having nothing...
+
+        annotations = xml_dict.get('annotation', False)
+        if not annotations:
+            # edge case for having nothing...
             return result
         annotations = annotations.split("\n")
         for annotation in annotations:
-            tmp = annotation.split(":", 1)
+            tmp = annotation.split(':', 1)
             if len(tmp) > 1:
-                # no need whatsoever to decode anything here. It's not needed by NP()
                 result[tmp[0]] = tmp[1].strip()
-        result["Online"] = True
-        if xml_dict["title"] is None:
-            result["Current Song"] = ""  # /shrug
-        else:
-            result["Current Song"] = xml_dict.get("title", "")
-    # we have runes, but we know we are online. This should not even be
-    # possible (requests.get.content)
+
+        result['Online'] = True
+        result['Current Song'] = xml_dict.get('title', '') or ''
     except UnicodeDecodeError:
-        result["Online"] = True
+        # we have runes, but we know we are online. This should not even be
+        # possible (requests.get.content)
+        result['Online'] = True
         # Erase the bad stuff. However, keep in mind stream title can do this (anything user input...)
-        result["Current Song"] = ""
+        result['Current Song'] = ''
     except:
         print("Failed to parse XML Status data.")
-    # cleaner and easier to read falling back to original function scope
-    # (instead of 5 returns)
+
     return result
 
 
@@ -529,6 +531,49 @@ def filter_default_webargs(args: dict, **kwargs: dict) -> dict:
                 res[kwarg] = val
 
     return res
+
+
+def user_is_admin():
+    """Check if current user is an admin
+
+    :return: True if current user is an admin
+    :rtype: bool
+    """
+    verify_jwt_in_request()
+    claims = get_jwt_claims() or {'roles': []}
+    return 'admin' in claims['roles']
+
+
+def admin_required(fn):
+    """Decorator to enforce admin requirement for a response """
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not user_is_admin():
+            return make_api_response(403, 'Forbidden', 'Admin role required to utilize endpoint')
+        return fn(*args, **kwargs)
+    return wrapper
+
+
+def get_nonexistant_path(fname_path):
+    """
+    Get the path to a filename which does not exist by incrementing path.
+
+    Examples
+    --------
+    >>> get_nonexistant_path('/etc/issue')
+    '/etc/issue-1'
+    >>> get_nonexistant_path('whatever/1337bla.py')
+    'whatever/1337bla.py'
+    """
+    if not os.path.exists(fname_path):
+        return fname_path
+    filename, file_extension = os.path.splitext(fname_path)
+    i = 1
+    new_fname = "{}-{}{}".format(filename, i, file_extension)
+    while os.path.exists(new_fname):
+        i += 1
+        new_fname = "{}-{}{}".format(filename, i, file_extension)
+    return new_fname
 
 
 class Pagination(object):

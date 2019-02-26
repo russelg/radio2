@@ -1,4 +1,5 @@
 import React from 'react'
+import { view } from 'react-easy-state'
 import {
   Button,
   ButtonGroup,
@@ -20,11 +21,8 @@ import {
   Progress,
   Row,
 } from 'reactstrap'
-import { view } from 'react-easy-state'
 import { playingState, settings } from '../store'
 import { fuzzyTime, readableFilesize, readableSeconds } from '../utils'
-import Loader from '../components/Loader'
-
 import './Home.css'
 
 class Home extends React.Component {
@@ -53,21 +51,21 @@ class Home extends React.Component {
   render() {
     const { info, radio } = playingState
 
-    if (info.title === '') return <Loader />
+    // if (info.title === '') return <Loader />
 
     return (
       <Container className="content-panel">
         <Row>
           <Col>
             <Row className="align-items-center">
-              <Col xs={false} lg="6">
+              <Col xs={false} lg="6" className="pb-3">
                 <h2>{settings.title}</h2>
-                <h5 className="text-muted">
-                  We have <b>{info.total_songs}</b> songs in total, with a total
-                  playcount of <b>{info.total_plays}</b>.
+                <h5 className="text-muted mb-0">
+                  Currently spinning <b>{info.total_songs}</b> songs, with{' '}
+                  <b>{info.total_plays}</b> total plays.
                 </h5>
                 <small className="text-muted">
-                  We've wasted <b>{readableFilesize(info.total_size)}</b>!
+                  That's <b>{readableFilesize(info.total_size)}</b> of music!
                 </small>
               </Col>
               <Col xs={false} lg="6" className="pb-3">
@@ -87,7 +85,7 @@ class Home extends React.Component {
                       More Options
                     </DropdownToggle>
                     <DropdownMenu className="btn-block">
-                      <DropdownItem tag="a" href={settings.stream_url}>
+                      <DropdownItem tag="a" href={settings.stream_url + '.ogg'}>
                         Direct Stream Link
                       </DropdownItem>
                       <DropdownItem tag="a" href={settings.stream_url + '.m3u'}>
@@ -144,7 +142,9 @@ class Home extends React.Component {
                   </p>
                   <ul>
                     <li>
-                      <a href={settings.stream_url}>Direct Stream Link</a>
+                      <a href={settings.stream_url + '.ogg'}>
+                        Direct Stream Link
+                      </a>
                     </li>
                     <li>
                       <a href={settings.stream_url + '.m3u'}>
@@ -178,10 +178,18 @@ class Home extends React.Component {
                 </ModalFooter>
               </Modal>
             </Row>
-            <Row className="pt-3">
+            <Row className="py-5">
               <Col>
                 <h2 className="pb-2 text-center">
-                  {info.artist} - {info.title}
+                  {info.title ? (
+                    <span>
+                      {info.artist} - {info.title}
+                    </span>
+                  ) : (
+                    <span className="text-muted">
+                      No song currently playing
+                    </span>
+                  )}
                 </h2>
                 <Progress value={playingState.progress} />
                 <Row className="pt-3">
@@ -206,39 +214,49 @@ class Home extends React.Component {
         <Row>
           <Col xs={false} lg="6" className="pt-3">
             <h4 className="text-center">Last Played</h4>
-            <ListGroup>
-              {info.lp.map(item => (
-                <ListGroupItem
-                  key={item.time}
-                  className="clearfix p-4"
-                  active={item.requested}>
-                  <Col xs="4" className="float-left">
-                    <span title={item.time}>{fuzzyTime(item.time)}</span>
-                  </Col>
-                  <Col xs="8" className="float-right text-right">
-                    {item.artist} - {item.title}
-                  </Col>
-                </ListGroupItem>
-              ))}
-            </ListGroup>
+            {info.lp.length > 0 ? (
+              <ListGroup>
+                {info.lp.map(item => (
+                  <ListGroupItem
+                    key={item.time}
+                    className="clearfix p-4"
+                    active={item.requested}>
+                    <Col xs="4" className="float-left">
+                      <span title={item.time}>{fuzzyTime(item.time)}</span>
+                    </Col>
+                    <Col xs="8" className="float-right text-right">
+                      {item.artist} - {item.title}
+                    </Col>
+                  </ListGroupItem>
+                ))}
+              </ListGroup>
+            ) : (
+              <p className="text-center text-muted">No songs played recently</p>
+            )}
           </Col>
           <Col xs={false} lg="6" className="pt-3">
             <h4 className="text-center">Queue</h4>
-            <ListGroup>
-              {info.queue.map(item => (
-                <ListGroupItem
-                  key={item.time}
-                  className="clearfix p-4"
-                  active={item.requested}>
-                  <Col xs="8" className="float-left">
-                    {item.artist} - {item.title}
-                  </Col>
-                  <Col xs="4" className="float-right text-right">
-                    <span title={item.time}>{fuzzyTime(item.time)}</span>
-                  </Col>
-                </ListGroupItem>
-              ))}
-            </ListGroup>
+            {info.queue.length > 0 ? (
+              <ListGroup>
+                {info.queue.map(item => (
+                  <ListGroupItem
+                    key={item.time}
+                    className="clearfix p-4"
+                    active={item.requested}>
+                    <Col xs="8" className="float-left">
+                      {item.artist} - {item.title}
+                    </Col>
+                    <Col xs="4" className="float-right text-right">
+                      <span title={item.time}>{fuzzyTime(item.time)}</span>
+                    </Col>
+                  </ListGroupItem>
+                ))}
+              </ListGroup>
+            ) : (
+              <p className="text-center text-muted">
+                No songs currently queued
+              </p>
+            )}
           </Col>
         </Row>
       </Container>

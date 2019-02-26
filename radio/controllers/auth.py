@@ -6,8 +6,9 @@ import flask_restful as rest
 from flask import Blueprint, Response, jsonify
 from flask_jwt_extended import (JWTManager, create_access_token,
                                 create_refresh_token, current_user,
-                                jwt_optional, jwt_refresh_token_required,
-                                jwt_required)
+                                get_jwt_claims, jwt_optional,
+                                jwt_refresh_token_required, jwt_required,
+                                verify_jwt_in_request)
 from webargs import fields
 from webargs.flaskparser import parser, use_args, use_kwargs
 
@@ -52,6 +53,28 @@ def unauthorized_loader(error: str) -> Response:
 @jwt.user_loader_error_loader
 def user_loader(identity: str):
     return make_api_response(404, 'Not Found', f"User {identity} not found")
+
+
+@jwt.user_claims_loader
+def add_claims_to_access_token(identity: str):
+    if isinstance(identity, str):
+        user = user_loader_callback(identity)
+        if user.admin:
+            return {'roles': ['admin']}
+
+        return {'roles': []}
+    return {}
+
+
+def admin_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        verify_jwt_in_request()
+        claims = get_jwt_claims()
+        if 'admin' not in claims['roles']:
+            return make_api_response(403, 'Forbidden', 'This endpoint can only be accessed by admnins')
+        return fn(*args, **kwargs)
+    return wrapper
 
 
 auth_args = {
@@ -103,19 +126,20 @@ class RefreshController(rest.Resource):
 class DownloadController(rest.Resource):
     @db_session
     @jwt_optional
-    @use_kwargs(request_args, locations=('view_args', 'json', 'querystring'), validate=validate_song)
-    def post(self, id: UUID) -> Response:
-        print(app.config['PUBLIC_DOWNLOADS'], current_user)
+    @use_args(request_args, locations=('view_args', 'json', 'querystring'), validate=validate_song)
+    def post(self, args: Dict[str, UUID]) -> Response:
         if not app.config['PUBLIC_DOWNLOADS']:
             if not current_user or not current_user.admin:
                 return make_api_response(403, 'Forbidden', 'Downloading is not enabled')
 
-        if not Song.exists(id=id):
+        song_id = args['id']
+
+        if not Song.exists(id=song_id):
             return make_api_response(404, 'Not Found', 'Song was not found')
 
         new_token = create_access_token(
-            {'id': str(id)}, expires_delta=timedelta(seconds=10))
-        return jsonify({'download_token': new_token, 'id': id})
+            {'id': str(song_id)}, expires_delta=timedelta(seconds=10))
+        return jsonify({'download_token': new_token, 'id': song_id})
 
 
 class RegisterController(rest.Resource):

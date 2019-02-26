@@ -1,6 +1,12 @@
 http://radio.local {
     # tls self_signed
-    proxy /         localhost:3000 { transparent }
+    proxy /         localhost:3000 {
+        transparent
+        websocket
+    }
     proxy /api      localhost:5000 { transparent }
     proxy /radio    127.0.0.1:8067 { transparent }
+    proxy /admin    127.0.0.1:8067 { transparent }
+    proxy /style.css    127.0.0.1:8067 { transparent }
+    proxy /tunein.png    127.0.0.1:8067 { transparent }
 }

@@ -22,7 +22,7 @@ import {
   Row,
 } from 'reactstrap'
 import Error from '../components/Error'
-import Loader from '../components/Loader'
+import LoaderSpinner from '../components/LoaderSpinner'
 import SongsTable from '../components/SongsTable'
 import { API_BASE, auth, settings } from '../store'
 import './Home.css'
@@ -117,7 +117,7 @@ class Songs extends React.Component {
     // remove page from the query should it be 1 (the default)
     if (params.page === 1) delete params.page
 
-    if (this.props.favourites || favourites)
+    if ((this.props.favourites || favourites) && params.user)
       return `favourites?${queryString.stringify(params)}`
 
     return `songs?${queryString.stringify(params)}`
@@ -229,10 +229,26 @@ class Songs extends React.Component {
       })
   }
 
+  deleteSong(song) {
+    const { id } = song
+    fetch(`${API_BASE}/song/${id}`, { method: 'DELETE' })
+      .then(res => res.json())
+      .then(result => {
+        console.log(result)
+
+        const error = result.error !== null
+        let msg = 'description' in result ? result.description : result.message
+        this.sendAlert(msg, error)
+
+        if (!error) {
+          const { songs } = this.state
+          this.setState({ songs: songs.filter(item => item !== song) })
+        }
+      })
+  }
+
   refreshSong(song) {
-    fetch(`${API_BASE}/song/${song}`, {
-      method: 'GET',
-    })
+    fetch(`${API_BASE}/song/${song}`, { method: 'GET' })
       .then(res => res.json())
       .then(result => {
         console.log(result)
@@ -263,7 +279,7 @@ class Songs extends React.Component {
               const token = resp.download_token
               const link = document.createElement('a')
               document.body.appendChild(link)
-              link.href = `${API_BASE}/download/${id}?token=${token}`
+              link.href = `${API_BASE}/download?token=${token}`
               link.setAttribute('type', 'hidden')
               link.click()
             } else {
@@ -330,8 +346,6 @@ class Songs extends React.Component {
   render() {
     if (this.state.error !== '') return <Error>{this.state.error}</Error>
 
-    if (!this.state.loaded) return <Loader />
-
     const pagination = (
       <Pagination
         activePage={this.state.page}
@@ -393,6 +407,9 @@ class Songs extends React.Component {
                     onload: response => {
                       const json = JSON.parse(response)
                       return json.id
+                    },
+                    headers: {
+                      Authorization: `Bearer ${auth.access_token}`,
                     },
                   },
                   fetch: null,
@@ -503,28 +520,37 @@ class Songs extends React.Component {
             <hr />
           </Col>
         </Row>
-        <Row>
-          <Col>
-            {this.state.songs.length === 0 && (
-              <h2 className="mx-auto text-center">No results</h2>
-            )}
-            {this.state.songs.length !== 0 && (
-              <SongsTable
-                songs={this.state.songs}
-                requestSong={this.requestSong.bind(this)}
-                favouriteSong={this.favouriteSong.bind(this)}
-                downloads={
-                  settings.downloads_enabled ||
-                  (auth.admin && this.state.show_admin)
-                }
-                downloadSong={this.downloadSong.bind(this)}
-                loggedIn={auth.logged_in}
-                reloadPage={this.reloadPage.bind(this)}
-              />
-            )}
-            <hr />
-          </Col>
-        </Row>
+        {!this.state.loaded && (
+          <Row>
+            <LoaderSpinner />
+          </Row>
+        )}
+        {this.state.loaded && (
+          <Row>
+            <Col>
+              {this.state.songs.length === 0 && (
+                <h2 className="mx-auto text-center">No results</h2>
+              )}
+              {this.state.songs.length !== 0 && (
+                <SongsTable
+                  songs={this.state.songs}
+                  requestSong={this.requestSong.bind(this)}
+                  favouriteSong={this.favouriteSong.bind(this)}
+                  deleteSong={this.deleteSong.bind(this)}
+                  downloads={
+                    settings.downloads_enabled ||
+                    (auth.admin && this.state.show_admin)
+                  }
+                  isAdmin={auth.admin && this.state.show_admin}
+                  downloadSong={this.downloadSong.bind(this)}
+                  loggedIn={auth.logged_in}
+                  reloadPage={this.reloadPage.bind(this)}
+                />
+              )}
+            </Col>
+          </Row>
+        )}
+        <hr />
         <Row>
           <Col className="justify-content-center">{pagination}</Col>
         </Row>

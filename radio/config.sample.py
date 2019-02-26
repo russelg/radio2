@@ -1,5 +1,5 @@
-class Config(object):
-    # Server configuration
+class Config:
+    ''' Server configuration '''
 
     # Print/display debug info while running
     DEBUG = False
@@ -17,6 +17,11 @@ class Config(object):
     JWT_SECRET_KEY = 'secret-key-goes-here'
     # Use nginx's xaccel to serve music files for download
     SERVER_USE_XACCEL = False
+
+    # Desired vorbis quality level for encoding uploaded files
+    SONG_QUALITY_LVL = 8
+    # Desired bitrate to use for streaming (transcoding)
+    TRANSCODE_BITRATE = 192
 
     # Paths (prefer full paths, relative cannot be guaranteed)
     # Path to store all songs at

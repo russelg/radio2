@@ -1,7 +1,7 @@
 import React from 'react'
+import { view } from 'react-easy-state'
 import { Button, Form, FormGroup, Input } from 'reactstrap'
 import { auth } from '../store'
-import { view } from 'react-easy-state'
 
 class LoginForm extends React.Component {
   constructor() {

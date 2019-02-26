@@ -26,7 +26,7 @@ class Song(db.Entity):
     length: int = Required(int, unsigned=True)
     lastplayed: datetime = Optional(datetime)
     playcount: int = Required(int, default=0, unsigned=True)
-    added: datetime = Required(datetime, default=lambda: datetime.utcnow())
+    added: datetime = Required(datetime, default=datetime.utcnow)
     favored_by: _Set['User'] = Set(User)
     queue = Set('Queue', hidden=True)
 
@@ -35,10 +35,10 @@ class Queue(db.Entity):
     id: UUID = PrimaryKey(int, auto=True)
     song: 'Song' = Required(Song)
     requested: bool = Required(bool, default=False)
-    added: datetime = Required(datetime, default=lambda: datetime.utcnow())
+    added: datetime = Required(datetime, default=datetime.utcnow)
 
 
-set_sql_debug(app.config['DEBUG'])
+set_sql_debug(False)
 db.bind(provider=app.config['DB_BINDING'], user=app.config['DB_USER'], password=app.config['DB_PASSWORD'],
         host=app.config['DB_HOST'], database=app.config['DB_DATABASE'])
 db.generate_mapping(create_tables=True)
