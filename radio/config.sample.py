@@ -15,8 +15,6 @@ class Config:
     SECRET_KEY = 'secret-key-goes-here'
     # Replace with a long, random string
     JWT_SECRET_KEY = 'secret-key-goes-here'
-    # Use nginx's xaccel to serve music files for download
-    SERVER_USE_XACCEL = False
 
     # Desired vorbis quality level for encoding uploaded files
     SONG_QUALITY_LVL = 8
