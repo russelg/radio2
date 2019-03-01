@@ -17,9 +17,18 @@ api = rest.Api(blueprint)
 def np() -> dict:
     folder_stats = get_folder_metadata(path=app.config['PATH_MUSIC'])
 
-    url = 'http://{host}:{port}{mount}.xspf'.format(host=app.config['ICECAST_HOST'],
-                                                    port=app.config['ICECAST_PORT'], mount=app.config['ICECAST_MOUNT'])
-    listeners_count = int(parse_status(url).get('Current Listeners', 0))
+    listeners_count = 0
+
+    mounts = ['.ogg']
+    if app.config['ICECAST_TRANSCODE']:
+        mounts.append('.mp3')
+
+    for mount in mounts:
+        url = 'http://{host}:{port}{mount}{format}.xspf'.format(host=app.config['ICECAST_HOST'],
+                                                                port=app.config['ICECAST_PORT'],
+                                                                mount=app.config['ICECAST_MOUNT'],
+                                                                format=mount)
+        listeners_count += int(parse_status(url).get('Current Listeners', 0))
 
     lastplayed_rows = Song.select(lambda c: c.lastplayed is not None).sort_by(desc(Song.lastplayed)).prefetch(
         Song.artist, Song.title, Song.length).limit(6)

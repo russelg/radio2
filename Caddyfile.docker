@@ -1,12 +1,14 @@
 http://radio.local {
-    # tls self_signed
-    proxy /         localhost:9555 {
-        transparent
-        websocket
-    }
-    # proxy /api      localhost:5000 { transparent }
-    proxy /radio    127.0.0.1:8067 { transparent }
-    proxy /admin    127.0.0.1:8067 { transparent }
-    proxy /style.css    127.0.0.1:8067 { transparent }
-    proxy /tunein.png    127.0.0.1:8067 { transparent }
+	root ./frontend/build
+	index index.html
+
+	# icecast proxy
+	proxy /radio.ogg	localhost:8067 { transparent }
+	proxy /radio.mp3	localhost:8067 { transparent }
+	proxy /admin		localhost:8067 { transparent }
+	proxy /style.css	localhost:8067 { transparent }
+	proxy /tunein.png	localhost:8067 { transparent }
+
+	# api proxy
+	proxy /api			localhost:9555 { transparent }
 }
