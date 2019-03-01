@@ -3,14 +3,23 @@
   height: 0.35rem;
 }
 
+.song-metadata {
+  width: 320px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
 @media (max-width: 576px) {
-  .mini-progress {
+  .mini-progress,
+  .song-metadata {
     width: 50vw;
   }
 }
 
 @media (max-width: 476px) {
-  .mini-progress {
+  .mini-progress,
+  .song-metadata {
     width: 40vw;
   }
 }

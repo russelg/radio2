@@ -11,7 +11,7 @@ class MiniPlayer extends React.Component {
 
     return (
       <div className="navbar-text text-center">
-        <div className="text-center">
+        <div className="text-center song-metadata">
           {info.artist} - {info.title}
         </div>
         <Progress
