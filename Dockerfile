@@ -24,8 +24,4 @@ WORKDIR /app
 RUN apk add --no-cache --virtual build-dependencies $PACKAGES \
     && pip install pipenv \
     && cd /app/radio \
-    && pipenv install --system --deploy \
-    # && cd /app/radio/pylibshout && python build.py
-    && python batch_add.py
-
-# fix pylibshout build not saving
+    && pipenv install --system --deploy
