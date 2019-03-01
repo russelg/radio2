@@ -36,10 +36,14 @@
     {% endif %}
     <fileserve>1</fileserve>
     <paths>
-        <basedir>/usr/local/share/icecast</basedir>
+        <!-- <basedir>/usr/local/share/icecast</basedir>
         <logdir>/var/log/icecast</logdir>
         <webroot>/usr/local/share/icecast/web</webroot>
-        <adminroot>/usr/local/share/icecast/admin</adminroot>
+        <adminroot>/usr/local/share/icecast/admin</adminroot> -->
+        <basedir>/usr/share/icecast2</basedir>
+        <logdir>/var/log/icecast2</logdir>
+        <webroot>/usr/share/icecast2/web</webroot>
+        <adminroot>/usr/share/icecast2/admin</adminroot>
         <alias source="/" destination="/status.xsl"/>
     </paths>
     <logging>
@@ -48,5 +52,8 @@
         <loglevel>3</loglevel>
         <logsize>10000</logsize>
     </logging>
+    <security>
+        <chroot>0</chroot>
+    </security>
 </icecast>
 

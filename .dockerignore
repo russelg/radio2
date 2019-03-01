@@ -1,4 +1,3 @@
-
 # Created by https://www.gitignore.io/api/osx,node,python,pycharm+all,webstorm+all
 
 ### Node ###
@@ -307,4 +306,3 @@ icecast.xml
 todo.md
 
 *.sh
-icecast.env

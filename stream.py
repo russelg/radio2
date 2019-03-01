@@ -5,6 +5,7 @@ import threading
 import time
 from collections import namedtuple
 from typing import List, NamedTuple
+from dataclasses import dataclass
 
 import mutagen
 
@@ -13,41 +14,59 @@ from radio.api import app
 from radio.common.utils import get_metadata, next_song
 
 
-class ShoutInstance(NamedTuple):
+@dataclass
+class ShoutInstance:
     shout: pylibshout.Shout
     src: io.BufferedReader
 
+    @property
+    def is_mp3(self) -> bool:
+        return self.shout.format == pylibshout.SHOUT_FORMAT_MP3
+
+    def connect(self):
+        try:
+            self.shout.open()
+        except pylibshout.ShoutException:
+            app.logger.exception("Failed to connect to Icecast server.")
+
+    @property
+    def connected(self) -> bool:
+        try:
+            return self._shout.connected() == -7
+        except AttributeError:
+            return False
+
     def reset(self):
-        new = initialize_shout(
-            app.config, self.shout.format == pylibshout.SHOUT_FORMAT_MP3)
-        return self._replace(shout=new.shout, src=self.src)
+        inst = ShoutInstance.initialize(app.config, self.is_mp3)
+        self.shout = inst.shout
+        self.connect()
+
+    @staticmethod
+    def initialize(config, mp3):
+        shout = pylibshout.Shout()
+
+        # Stream connection settings
+        shout.protocol = pylibshout.SHOUT_PROTOCOL_HTTP
+        shout.host = config['ICECAST_HOST']
+        shout.port = config['ICECAST_PORT']
+        shout.user = config['ICECAST_USER']
+        shout.password = config['ICECAST_PASSWORD']
+        shout.mount = config['ICECAST_MOUNT'] + ('.mp3' if mp3 else '.ogg')
+        shout.format = pylibshout.SHOUT_FORMAT_MP3 if mp3 else pylibshout.SHOUT_FORMAT_OGG
+        if mp3:
+            shout.audio_info = {
+                pylibshout.SHOUT_AI_BITRATE: config['TRANSCODE_BITRATE']}
+
+        # Stream metadata
+        shout.name = config['ICECAST_NAME']
+        shout.description = config['ICECAST_DESCRIPTION']
+        shout.genre = config['ICECAST_GENRE']
+        shout.url = config['ICECAST_URL']
+
+        return ShoutInstance(shout, None)
 
 
 shout_instances: List[ShoutInstance] = []
-
-
-def initialize_shout(config, mp3) -> ShoutInstance:
-    shout = pylibshout.Shout()
-
-    # Stream connection settings
-    shout.protocol = pylibshout.SHOUT_PROTOCOL_HTTP
-    shout.host = config['ICECAST_HOST']
-    shout.port = config['ICECAST_PORT']
-    shout.user = config['ICECAST_USER']
-    shout.password = config['ICECAST_PASSWORD']
-    shout.mount = config['ICECAST_MOUNT'] + ('.mp3' if mp3 else '.ogg')
-    shout.format = pylibshout.SHOUT_FORMAT_MP3 if mp3 else pylibshout.SHOUT_FORMAT_OGG
-    if mp3:
-        shout.audio_info = {
-            pylibshout.SHOUT_AI_BITRATE: config['TRANSCODE_BITRATE']}
-
-    # Stream metadata
-    shout.name = config['ICECAST_NAME']
-    shout.description = config['ICECAST_DESCRIPTION']
-    shout.genre = config['ICECAST_GENRE']
-    shout.url = config['ICECAST_URL']
-
-    return ShoutInstance(shout, None)
 
 
 class Worker(threading.Thread):
@@ -70,22 +89,33 @@ class Worker(threading.Thread):
 
         ffmpeg = None
         song = open(song_path, 'rb')
-        self.instance = self.instance._replace(src=song)
-        if self.instance.shout.format == pylibshout.SHOUT_FORMAT_MP3:
+        devnull = open(os.devnull, 'w')
+
+        self.instance.src = song
+        if self.instance.is_mp3:
             self.instance.shout.metadata = {'song': data.encode('utf-8')}
             ffmpeg = subprocess.Popen([app.config['PATH_FFMPEG_BINARY'], '-i', '-', '-f', 'mp3',
                                        '-ab', f'{app.config["TRANSCODE_BITRATE"]}k', '-'],
                                       stdin=song, stdout=subprocess.PIPE, stderr=devnull)
-            self.instance = self.instance._replace(src=ffmpeg.stdout)
+            self.instance.src = ffmpeg.stdout
 
-        bytes_sent = 0
+        sent_bytes = 0
         if self.instance.src:
             buffer = self.instance.src.read(4096)
-            bytes_sent = len(buffer)
+            sent_bytes = len(buffer)
             while buffer:
-                bytes_sent += len(buffer)
-                self.instance.shout.send(buffer)
-                self.instance.shout.sync()
+                sent_bytes += len(buffer)
+                while True:
+                    try:
+                        self.instance.shout.send(buffer)
+                        self.instance.shout.sync()
+                        break
+                    except pylibshout.ShoutException:
+                        app.logger.exception(
+                            'stream died, reset shout instance')
+                        self.instance.reset()
+                        time.sleep(3)
+                        continue
 
                 buffer = self.instance.src.read(512)
 
@@ -95,30 +125,19 @@ class Worker(threading.Thread):
         song.close()
 
         finish_time = time.time()
-        kbps = bytes_sent * 0.008 / (finish_time - start_time)
-        stream_format = 'MP3' if self.instance.shout.format == pylibshout.SHOUT_FORMAT_MP3 else 'OGG'
+        kbps = sent_bytes * 0.008 / (finish_time - start_time)
+        stream_format = 'MP3' if self.instance.is_mp3 else 'OGG'
         app.logger.info(
-            f"[{stream_format}] Sent {bytes_sent} bytes in {int(finish_time - start_time)} seconds ({int(kbps)} kbps)")
+            f"[{stream_format}] Sent {sent_bytes} bytes in {int(finish_time - start_time)} seconds ({int(kbps)} kbps)")
 
 
-shout_instances.append(initialize_shout(app.config, False))
+shout_instances.append(ShoutInstance.initialize(app.config, False))
 if app.config['ICECAST_TRANSCODE']:
-    shout_instances.append(initialize_shout(app.config, True))
+    shout_instances.append(ShoutInstance.initialize(app.config, True))
 
+for instance in shout_instances:
+    instance.connect()
 
-for idx, instance in enumerate(shout_instances):
-    while True:
-        try:
-            instance.shout.open()
-            break
-        except pylibshout.ShoutException as e:
-            app.logger.warning('Could not open instance, retrying...')
-            time.sleep(3)
-            shout_instances[idx] = instance.reset()
-            continue
-
-bytes_sent = 0
-devnull = open(os.devnull, "w")
 while True:
     jobs = []
     song_path = os.path.join(app.config['PATH_MUSIC'], next_song())

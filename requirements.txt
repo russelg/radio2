@@ -12,5 +12,5 @@ flask-jwt-extended
 flask-restful
 gunicorn
 pony
-psycopg2
+psycopg2-binary
 webargs

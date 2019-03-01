@@ -1,0 +1,65 @@
+version: "3"
+
+volumes:
+  db-data:
+  logs:
+
+services:
+  icecast:
+    image: moul/icecast
+    restart: always
+    volumes:
+      - ./icecast.xml:/etc/icecast2/icecast.xml
+      - logs:/var/log/icecast
+    # env_file:
+    #   - icecast.env
+    ports:
+      - 8067:8067
+
+  db:
+    image: postgres:alpine
+    restart: always
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    env_file:
+      - icecast.env
+    ports:
+      - 5432:5432
+
+  frontend:
+    build: ./frontend
+    image: frontend
+    working_dir: /app
+    command: yarn build
+    volumes:
+      - ./frontend:/app
+
+  server:
+    build: .
+    image: radio
+    working_dir: /app
+    command: gunicorn -b 0.0.0.0:9555 radio.api:app
+    volumes:
+      - ./:/app
+    ports:
+      - 9555:9555
+    links:
+      - db
+    depends_on:
+      # - frontend
+      - db
+      - icecast
+
+  stream:
+    image: radio
+    working_dir: /app
+    command: python stream.py
+    volumes:
+      - ./:/app
+    links:
+      - db
+      - icecast
+    depends_on:
+      # - frontend
+      - db
+      - icecast
