@@ -9,7 +9,12 @@ from dataclasses import dataclass
 
 import mutagen
 
-from radio.pylibshout import pylibshout
+# try import pylibshout from env first
+try:
+    import pylibshout
+except ImportError:
+    from radio.pylibshout import pylibshout
+
 from radio.api import app
 from radio.common.utils import get_metadata, next_song
 
