@@ -11,8 +11,6 @@ services:
     volumes:
       - ./icecast.xml:/etc/icecast2/icecast.xml
       - logs:/var/log/icecast
-    # env_file:
-    #   - icecast.env
     ports:
       - 8067:8067
 
@@ -31,11 +29,6 @@ services:
     image: frontend
     working_dir: /app
     command: yarn build
-    # entrypoint: ["sh", "-c"]
-    # command:
-    #   [
-    #     "cp /tmp/yarn.lock yarn.lock && yarn build & if [ '(tar -cf - /usr/local/share/.cache/yarn/v1 | crc32)' != '(tar -cf - .yarn_cache | crc32)' ]; then cp -r /usr/local/share/.cache/yarn/v1/. .yarn_cache/; fi",
-    #   ]
     volumes:
       - ./frontend:/app
 
@@ -51,20 +44,20 @@ services:
     links:
       - db
     depends_on:
-      # - frontend
+      - frontend
       - db
       - icecast
 
   stream:
     image: radio
     working_dir: /app
-    command: python stream.py
+    command: python -m tools.stream
     volumes:
       - ./:/app
     links:
       - db
       - icecast
     depends_on:
-      # - frontend
+      - frontend
       - db
       - icecast

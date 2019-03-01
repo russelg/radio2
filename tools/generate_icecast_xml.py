@@ -1,10 +1,12 @@
 import os
 import sys
+
 # do this to bypass importing __init__.py
 # this allows us to generate these config files in a very minimal py env
 sys.path.append('radio/')
 
 from config import Config
+
 
 icecast_xml = """
 <icecast>

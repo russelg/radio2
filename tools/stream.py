@@ -3,20 +3,19 @@ import os
 import subprocess
 import threading
 import time
-from collections import namedtuple
 from typing import List, NamedTuple
-from dataclasses import dataclass
 
 import mutagen
+
+from dataclasses import dataclass
+from radio.api import app
+from radio.common.utils import get_metadata, next_song
 
 # try import pylibshout from env first
 try:
     import pylibshout
 except ImportError:
     from radio.pylibshout import pylibshout
-
-from radio.api import app
-from radio.common.utils import get_metadata, next_song
 
 
 @dataclass
