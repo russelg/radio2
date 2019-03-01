@@ -21,7 +21,8 @@ ENV PACKAGES="\
 ADD . /app
 WORKDIR /app
 
-RUN apk add --no-cache --virtual build-dependencies $PACKAGES \
-    && pip install pipenv \
-    && cd /app/radio \
-    && pipenv install --system --deploy
+RUN apk add $PACKAGES \
+    && pip install pipenv
+RUN cd /app/radio \
+    && pipenv install --system --deploy \
+    && cd /app/radio/pylibshout && python setup.py install

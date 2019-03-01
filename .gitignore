@@ -308,3 +308,5 @@ todo.md
 
 *.sh
 icecast.env
+.yarn_cache/*
+!.yarn_cache/.gitkeep

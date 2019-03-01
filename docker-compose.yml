@@ -31,6 +31,11 @@ services:
     image: frontend
     working_dir: /app
     command: yarn build
+    # entrypoint: ["sh", "-c"]
+    # command:
+    #   [
+    #     "cp /tmp/yarn.lock yarn.lock && yarn build & if [ '(tar -cf - /usr/local/share/.cache/yarn/v1 | crc32)' != '(tar -cf - .yarn_cache | crc32)' ]; then cp -r /usr/local/share/.cache/yarn/v1/. .yarn_cache/; fi",
+    #   ]
     volumes:
       - ./frontend:/app
 
