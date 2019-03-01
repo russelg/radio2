@@ -15,7 +15,7 @@ I have included Docker configs which should allow you to get this running fairly
 
 - Install `docker` and `docker-compose`.
 - Copy `radio/config.sample-docker.py` to `radio/config.py`. This sample config is pre-configured with the correct URLs for the database and icecast.
-- Run `python generate_icecast_xml.py` to generate the necessary environment files. This should run with any recent version of python (without dependencies).
+- Run `python -m tools.generate_icecast_xml` to generate the necessary environment files. This should run with any recent version of python (without dependencies).
 - Run `docker-compose build`. This might take a while depending on internet speed.
 - Run `docker-compose run -w '/app' server python -m tools.batch_add` to populate the database with any songs that exist in the music directories.
 - Finally start the whole stack by running `docker-compose up`.
@@ -25,6 +25,7 @@ I have included Docker configs which should allow you to get this running fairly
 ### Manually
 
 - Install `icecast` (2.4.1 or above).
+- Install PostgreSQL for the database.
 - Make sure you have working installation of Python **3.6** or higher, if not install it.
 - Install `pipenv` (`pip install pipenv`)
 - Install dependencies using: `pipenv install`
@@ -35,9 +36,9 @@ A Caddy config is included to get started quickly.
 #### Stream
 
 ```sh
-python generate_icecast_xml.py
+python -m tools.generate_icecast_xml
 icecast -b -c icecast.xml
-pipenv run python stream.py
+pipenv run python -m tools.stream
 ```
 
 #### API Server

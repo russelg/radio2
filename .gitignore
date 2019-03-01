@@ -310,3 +310,4 @@ todo.md
 icecast.env
 .yarn_cache/*
 !.yarn_cache/.gitkeep
+.dockerignore
