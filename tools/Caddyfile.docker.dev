@@ -1,7 +1,9 @@
 http://radio.local {
 	# frontend
-	root /srv
-	index index.html
+    proxy / 			frontend:3000 	{ websocket }
+
+	# api
+	proxy /api			server:80	 	{ transparent }
 
 	# icecast
 	proxy /radio.ogg	icecast:8067 	{ transparent }
@@ -9,7 +11,4 @@ http://radio.local {
 	proxy /admin		icecast:8067 	{ transparent }
 	proxy /style.css	icecast:8067 	{ transparent }
 	proxy /tunein.png	icecast:8067 	{ transparent }
-
-	# api
-	proxy /api			server:80	 	{ transparent }
 }

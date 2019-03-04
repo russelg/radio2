@@ -1,0 +1,22 @@
+version: "3"
+
+services:
+  caddy:
+    volumes:
+      - ./tools/Caddyfile.docker.dev:/etc/Caddyfile
+
+  frontend:
+    command: yarn start
+    environment:
+      HOST: frontend
+    expose:
+      - 3000
+
+  server:
+    command: flask run
+    environment:
+      FLASK_APP: radio/api.py
+      FLASK_DEBUG: 1
+      FLASK_ENV: development
+      FLASK_RUN_PORT: 80
+      FLASK_RUN_HOST: server

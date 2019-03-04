@@ -3,16 +3,29 @@ version: "3"
 volumes:
   db-data:
   logs:
+  frontend_build:
 
 services:
+  caddy:
+    image: abiosoft/caddy
+    volumes:
+      - ./tools/Caddyfile.docker:/etc/Caddyfile
+      - frontend_build:/srv
+    ports:
+      - 80:80
+      - 443:443
+    depends_on:
+      - frontend
+      - icecast
+      - server
+
   icecast:
     image: moul/icecast
     restart: always
     volumes:
       - ./icecast.xml:/etc/icecast2/icecast.xml
-      - logs:/var/log/icecast
-    ports:
-      - 8067:8067
+    expose:
+      - 8067
 
   db:
     image: postgres:alpine
@@ -21,8 +34,8 @@ services:
       - db-data:/var/lib/postgresql/data
     env_file:
       - icecast.env
-    ports:
-      - 5432:5432
+    expose:
+      - 5432
 
   frontend:
     build: ./frontend
@@ -31,16 +44,18 @@ services:
     command: yarn build
     volumes:
       - ./frontend:/app
+      - frontend_build:/app/build
 
   server:
     build: .
     image: radio
     working_dir: /app
-    command: gunicorn -b 0.0.0.0:9555 radio.api:app
+    command: gunicorn -b 0.0.0.0:80 radio.api:app
     volumes:
       - ./:/app
-    ports:
-      - 9555:9555
+      - frontend_build:/app/frontend/build
+    expose:
+      - 80
     links:
       - db
     depends_on:
