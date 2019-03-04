@@ -4,19 +4,34 @@ from urllib.parse import unquote
 import arrow
 import flask_restful as rest
 from flask import Blueprint, Response, jsonify, request
-from munch import DefaultMunch, Munch
 
-from radio.common.utils import get_folder_metadata, parse_status
+from dataclasses import dataclass
+from radio.common.utils import (get_folder_size, get_self_links,
+                                make_api_response, parse_status)
 from radio.models import *
 
 blueprint = Blueprint('np', __name__)
 api = rest.Api(blueprint)
 
 
+@dataclass
+class SongTimes:
+    now: arrow.arrow.Arrow = arrow.now()
+    start: arrow.arrow.Arrow = now
+    current = 0
+    length = 0
+    end: arrow.arrow.Arrow = now
+
+
+@dataclass
+class DummySong:
+    length = 0
+    artist = ''
+    title = ''
+
+
 @db_session
 def np() -> dict:
-    folder_stats = get_folder_metadata(path=app.config['PATH_MUSIC'])
-
     listeners_count = 0
 
     mounts = ['.ogg']
@@ -35,7 +50,7 @@ def np() -> dict:
 
     num_songs = Song.select().count()
 
-    times = Munch({})
+    times = SongTimes()
     if lastplayed_rows:
         top_row = lastplayed_rows[0]
         times.now = arrow.now()
@@ -45,12 +60,7 @@ def np() -> dict:
         times.end = times.start.shift(seconds=times.length)
         current_id = top_row.id
     else:
-        top_row = DefaultMunch('', {'length': 0})
-        times.now = arrow.now()
-        times.start = arrow.now()
-        times.current = times.now - times.start
-        times.length = 0
-        times.end = times.start.shift(seconds=times.length)
+        top_row = DummySong()
         current_id = None
 
     queue = []
@@ -95,7 +105,7 @@ def np() -> dict:
         'total_plays': total_playcount,
         'queue': queue,
         'lp': lastplayed,
-        'total_size': folder_stats.size,
+        'total_size': get_folder_size(path=app.config['PATH_MUSIC']),
         'listeners': listeners_count
     }
 
@@ -116,18 +126,12 @@ def settings() -> dict:
 
 class NowPlayingController(rest.Resource):
     def get(self) -> Response:
-        links = {
-            '_self': api.url_for(self, _external=True)
-        }
-        return jsonify(dict(np(), _links=links))
+        return make_api_response(200, None, content=dict(_links=get_self_links(api, self), **np()))
 
 
 class SettingsController(rest.Resource):
     def get(self) -> Response:
-        links = {
-            '_self': api.url_for(self, _external=True)
-        }
-        return jsonify(dict(settings(), _links=links))
+        return make_api_response(200, None, content=dict(_links=get_self_links(api, self), **settings()))
 
 
 api.add_resource(NowPlayingController, '/np', '/nowplaying')

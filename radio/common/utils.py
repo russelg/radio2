@@ -2,14 +2,12 @@ import math
 import os
 import re
 import shutil
-import string
 import subprocess
-import uuid
 from collections import namedtuple
 from enum import Enum
-from functools import partial, wraps
-from random import choice, choices, sample
-from typing import Dict, List
+from functools import lru_cache, partial, wraps
+from random import choices, sample
+from typing import Dict, List, NamedTuple
 from typing import Optional as _Optional
 from typing import Tuple, Union
 from urllib.error import URLError
@@ -17,12 +15,12 @@ from urllib.request import urlopen
 
 import arrow
 import marshmallow
-import mutagen as mutagen
-import xmltodict as xmltodict
+import mutagen
+import xmltodict
 from flask import Response, jsonify
 from flask_jwt_extended import get_jwt_claims, verify_jwt_in_request
-from munch import Munch
 
+from dataclasses import dataclass
 from radio.models import *
 
 register_blueprint_prefixed = partial(
@@ -68,19 +66,18 @@ def make_api_response(status_code: int, error: Union[str, bool, None],
     return response
 
 
-def get_folder_metadata(path: str = '.') -> Dict[str, int]:
+@lru_cache(maxsize=32)
+def get_folder_size(path: str = '.') -> int:
     """
-    Returns a dict containing the number of files in a given folder, and the total size of all files
+    Calculate the total size of all files in the given path.
 
-    :param path: path of folder to get metadata of
-    :return: dict containing the number of files in the given folder, and the total size of all files
+    :param path: path of folder to get size of
+    :return: the total size of all files in the given path
     """
     total = 0
-    files = 0
     for entry in os.scandir(path):
         total += entry.stat().st_size
-        files += 1
-    return Munch({'files': files, 'size': total})
+    return total
 
 
 def get_file_size(path: str) -> int:
@@ -346,8 +343,14 @@ def next_song() -> str:
     return song.filename
 
 
+class QueueStatus(NamedTuple):
+    queued: bool
+    type: QueueType
+    time: _Optional[datetime]
+
+
 @db_session
-def queue_status(song: Song) -> dict:
+def queue_status(song: Song) -> QueueStatus:
     """
     Gets the queue status for a given song
 
@@ -358,24 +361,10 @@ def queue_status(song: Song) -> dict:
 
     if song_queue:
         song_queue = song_queue[-1]
-        if song_queue.requested:
-            return Munch({
-                "queued": True,
-                "type": QueueType.USER,
-                "time": song_queue.added
-            })
-        else:
-            return Munch({
-                "queued": True,
-                "type": QueueType.NORMAL,
-                "time": song_queue.added
-            })
+        req_type = QueueType.USER if song_queue.requested else QueueType.NORMAL
+        return QueueStatus(queued=True, type=req_type, time=song_queue.added)
 
-    return Munch({
-        "queued": False,
-        "type": QueueType.NONE,
-        "time": None
-    })
+    return QueueStatus(queued=False, type=QueueType.NONE, time=None)
 
 
 def humanize_lastplayed(seconds: Union[arrow.arrow.Arrow, int]) -> str:
@@ -394,24 +383,28 @@ def humanize_lastplayed(seconds: Union[arrow.arrow.Arrow, int]) -> str:
         return 'Never before'
 
 
+@dataclass
+class RequestStatus:
+    requestable: bool
+    humanized_lastplayed: str = humanize_lastplayed(0)
+    reason: _Optional[str] = None
+
+
 @db_session
-def request_status(song: Song) -> Dict[bool, str]:
+def request_status(song: Song) -> RequestStatus:
     """
     Gets the requestable status for a given song
 
     :param song: song to get status of
     :return: requestable status for given song
     """
-    info = Munch()
-    q_status = queue_status(song)
-    info.requestable = not q_status.queued
-    info.humanized_lastplayed = humanize_lastplayed(0)
-    info.reason = None
+    status = queue_status(song)
+    info = RequestStatus(requestable=not status.queued)
 
     if count(x for x in Queue) >= 10:
         info.reason = 'Queue is full, please wait until there are less than 10 entries'
         info.requestable = False
-    elif q_status.queued:
+    elif status.queued:
         info.reason = 'This song is currently queued and can be requested again 30 minutes after being played'
     elif song.lastplayed:
         lastplayed = arrow.get(song.lastplayed)
@@ -437,6 +430,11 @@ def when_requestable(lastplayed: int, length: int) -> arrow.arrow.Arrow:
     return arrow.get(lastplayed + (60 * 30) + length)
 
 
+class Validator(NamedTuple):
+    valid: bool
+    reason: str
+
+
 def valid_username(username: str) -> dict:
     """
     Validates the given username meets username requirements.
@@ -447,18 +445,18 @@ def valid_username(username: str) -> dict:
     :param username: username to validate
     :return: dict containing keys `valid` (`bool`) and `reason` (`str`)
     """
-    validator = namedtuple("validator", ["valid", "reason"])
+    # validator = namedtuple("validator", ["valid", "reason"])
 
     if len(username) < 3:
-        return validator(False, 'Username must be at least 3 characters')
+        return Validator(False, 'Username must be at least 3 characters')
 
     if len(username) >= 32:
-        return validator(False, 'Username must be shorter than 32 characters')
+        return Validator(False, 'Username must be shorter than 32 characters')
 
     if not re.match("^\w(?:\w*(?:[.-]\w+)?)*$", username):
-        return validator(False, 'Username may only contain the following: A-z, 0-9, -_.')
+        return Validator(False, 'Username may only contain the following: A-z, 0-9, -_.')
 
-    return validator(True, '')
+    return Validator(True, '')
 
 
 def parse_status(url: str) -> dict:
@@ -567,8 +565,8 @@ def get_nonexistant_path(fname_path):
     --------
     >>> get_nonexistant_path('/etc/issue')
     '/etc/issue-1'
-    >>> get_nonexistant_path('whatever/1337bla.py')
-    'whatever/1337bla.py'
+    >>> get_nonexistant_path('whatever/doesnt-exist-yet.py')
+    'whatever/doesnt-exist-yet.py'
     """
     if not os.path.exists(fname_path):
         return fname_path
@@ -579,6 +577,11 @@ def get_nonexistant_path(fname_path):
         i += 1
         new_fname = "{}-{}{}".format(filename, i, file_extension)
     return new_fname
+
+
+def get_self_links(api, obj):
+    """Generate `_links._self` for a request"""
+    return {'_self': api.url_for(obj, _external=True)}
 
 
 class Pagination(object):

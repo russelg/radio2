@@ -8,7 +8,6 @@ verify_ssl = true
 [packages]
 jinja2 = "*"
 marshmallow = "*"
-munch = "*"
 xmltodict = "*"
 mutagen = "*"
 cython = "*"

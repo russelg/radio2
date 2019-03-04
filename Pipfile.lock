@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "360b8b91b1dc30a9a2e0cc6640f9b6aba0835d5faecdb47482d512ec358671dc"
+            "sha256": "557438ad19121a48552166b7c89319d5c08e178d57133f85a4833960c588980f"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -18,10 +18,10 @@
     "default": {
         "aniso8601": {
             "hashes": [
-                "sha256:03c0ffeeb04edeca1ed59684cc6836dc377f58e52e315dc7be3af879909889f4",
-                "sha256:ac30cceff24aec920c37b8d74d7d8a5dd37b1f62a90b4f268a6234cabe147080"
+                "sha256:29ad6be3828ab6ac2a31fd2876fd84477cde11890ffca7e8a9434aad5d4acec8",
+                "sha256:a5c7595bb65d3919a9944a759d907b57c4d050abaa0e5cf845e84c26cdfd1218"
             ],
-            "version": "==4.1.0"
+            "version": "==5.1.0"
         },
         "arrow": {
             "hashes": [
@@ -140,10 +140,10 @@
         },
         "flask-jwt-extended": {
             "hashes": [
-                "sha256:97c66f197b4b175173bf955b9a845d03d62e521e512e88f6abff707e6859e7c3"
+                "sha256:68035dba637fd58c0f0b308e49103cba7f6977aa301d958ddbd7b811a91c6dec"
             ],
             "index": "pypi",
-            "version": "==3.17.0"
+            "version": "==3.18.0"
         },
         "flask-restful": {
             "hashes": [
@@ -216,13 +216,6 @@
             ],
             "index": "pypi",
             "version": "==2.18.1"
-        },
-        "munch": {
-            "hashes": [
-                "sha256:6ae3d26b837feacf732fb8aa5b842130da1daf221f5af9f9d4b2a0a6414b0d51"
-            ],
-            "index": "pypi",
-            "version": "==2.3.2"
         },
         "mutagen": {
             "hashes": [
@@ -300,6 +293,13 @@
                 "sha256:d5f05e487007e29e03409f9398d074e158d920d36eb82eaf66fb1136b0c5374c"
             ],
             "version": "==2018.9"
+        },
+        "relativetimebuilder": {
+            "hashes": [
+                "sha256:5cc415b539d18a20e09a600cf7ba7199eda7b365d13aaaf9ffbbaa26cfb8062a",
+                "sha256:8b11e6fa6d6d4a09c61cfa9dadae4ea640bf10818e0991874d33452c0aeff2d7"
+            ],
+            "version": "==0.2.0"
         },
         "six": {
             "hashes": [

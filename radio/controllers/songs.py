@@ -12,14 +12,15 @@ from flask import (Blueprint, Response, jsonify, make_response, request,
 from flask_jwt_extended import (current_user, decode_token, jwt_optional,
                                 jwt_required)
 from jwt import ExpiredSignatureError
-from munch import Munch
 from webargs import ValidationError, fields, validate
 from webargs.flaskparser import use_args, use_kwargs
 from werkzeug.utils import secure_filename
 
-from radio.common.utils import (Pagination, admin_required, allowed_file,
-                                encode_file, filter_default_webargs,
-                                insert_song, make_api_response, request_status,
+import dataclasses
+from radio.common.utils import (Pagination, RequestStatus, admin_required,
+                                allowed_file, encode_file,
+                                filter_default_webargs, insert_song,
+                                make_api_response, request_status,
                                 split_extension, user_is_admin)
 from radio.models import *
 
@@ -51,42 +52,44 @@ def song_queries(page: int, query: _Optional[str], limit: int,
         songs = songs.sort_by(desc(Song.added))
 
     total_songs = songs.count()
-    pagi = Pagination(page=page, per_page=limit, total_count=total_songs)
+    pagination = Pagination(page=page, per_page=limit, total_count=total_songs)
 
-    return Munch({
+    return {
         'limit': limit,
         'songs': songs,
         'total_songs': total_songs,
-        'pagi': pagi
-    })
+        'pagination': pagination
+    }
 
 
-def songs_links(context, page, query, limit, pagi):
+def songs_links(context, page, query, limit, pagination):
     args = partial(filter_default_webargs, args=songs_args,
                    query=query, limit=limit)
 
     links = {'_self': api.url_for(context, **args(page=page), _external=True),
              '_next': api.url_for(context, **args(page=page + 1),
-                                  _external=True) if pagi.has_next else None,
+                                  _external=True) if pagination.has_next else None,
              '_prev': api.url_for(context, **args(page=page - 1),
-                                  _external=True) if pagi.has_prev else None}
+                                  _external=True) if pagination.has_prev else None}
 
     return links
 
 
 def songs_stub(context, page: int, query: _Optional[str], limit: int):
-    pagi = Pagination(page=page, per_page=limit, total_count=0)
+    pagination = Pagination(page=page, per_page=limit, total_count=0)
 
     return jsonify({
-        '_links': songs_links(context, page, query, limit, pagi),
+        '_links': songs_links(context, page, query, limit, pagination),
         'query': query,
-        'pagination': pagi.to_json(),
+        'pagination': pagination.to_json(),
         'songs': []
     })
 
 
 def get_processed_song(song: Song) -> Dict:
-    processed = Munch(song.to_dict(exclude='filename', with_lazy=True))
+    SongData = dataclasses.make_dataclass('Song', [*filter(
+        lambda k: k not in ['filename', 'favored_by'], Song.__annotations__), ('meta', RequestStatus, None)])
+    processed = SongData(**song.to_dict(exclude='filename', with_lazy=True))
     processed.meta = request_status(song)
     processed.meta.favourited = False
     processed.size = os.path.getsize(os.path.join(
@@ -100,16 +103,16 @@ def process_songs(context, page: int, query: _Optional[str], limit: int,
                   favourites: _Optional[User] = None) -> Response:
     processed_songs = []
     info = song_queries(page, query, limit, favourites)
-    songs = info.songs.page(page, limit)
+    songs = info['songs'].page(page, limit)
 
     for song in songs:
         processed = get_processed_song(song)
         processed_songs.append(processed)
 
     return jsonify({
-        '_links': songs_links(context, page, query, limit, info.pagi),
+        '_links': songs_links(context, page, query, limit, info['pagination']),
         'query': query,
-        'pagination': info.pagi.to_json(),
+        'pagination': info['pagination'].to_json(),
         'songs': processed_songs
     })
 
@@ -119,7 +122,7 @@ def validate_page(args: Dict[str, any]) -> None:
     page = args['page']
     info = song_queries(page, args['query'], args['limit'])
 
-    if page <= 0 or page > info.pagi.pages:
+    if page <= 0 or page > info['pagination'].pages:
         raise ValidationError('Page does not exist')
 
 

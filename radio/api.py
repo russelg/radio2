@@ -28,4 +28,4 @@ def index(path: str):
 
 
 if __name__ == '__main__':
-    app.run(debug=app.config['DEBUG'])
+    app.run()

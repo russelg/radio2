@@ -3,9 +3,7 @@ import os
 import subprocess
 import threading
 import time
-from typing import List, NamedTuple
-
-import mutagen
+from typing import List
 
 from dataclasses import dataclass
 from radio.api import app
