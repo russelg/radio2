@@ -14,18 +14,14 @@ services:
     ports:
       - 80:80
       - 443:443
-    depends_on:
-      - frontend
-      - icecast
-      - server
 
   icecast:
     image: moul/icecast
     restart: always
     volumes:
       - ./icecast.xml:/etc/icecast2/icecast.xml
-    expose:
-      - 8067
+    ports:
+      - 8067:8067
 
   db:
     image: postgres:alpine
@@ -56,6 +52,8 @@ services:
       - frontend_build:/app/frontend/build
     expose:
       - 80
+    ports:
+      - 9555:80
     links:
       - db
     depends_on:
@@ -66,13 +64,12 @@ services:
   stream:
     image: radio
     working_dir: /app
-    command: python -m tools.stream
+    command: python -m radio.stream
     volumes:
       - ./:/app
     links:
       - db
       - icecast
     depends_on:
-      - frontend
       - db
       - icecast

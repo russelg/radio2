@@ -20,6 +20,12 @@ I have included Docker configs which should allow you to get this running fairly
 - Run `docker-compose run -w '/app' server python -m tools.batch_add` to populate the database with any songs that exist in the music directories.
 - Finally start the whole stack by running `docker-compose up`.
 
+This configuration includes a Caddy service, which will listen on port 80 or 443. If you would like to use your own HTTP server, run this command instead of the above one:
+`docker-compose up --scale caddy=0`
+
+Also included is a config for development, which can be used as so:
+`docker-compose -f docker-compose.yml -f docker-compose.dev.yml <command>`
+
 ---
 
 ### Manually
@@ -38,7 +44,7 @@ A Caddy config is included to get started quickly.
 ```sh
 python -m tools.generate_icecast_xml
 icecast -b -c icecast.xml
-pipenv run python -m tools.stream
+pipenv run python -m radio.stream
 ```
 
 #### API Server

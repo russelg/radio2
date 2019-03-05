@@ -5,8 +5,6 @@ class Config:
     DEBUG = False
     PROPAGATE_EXCEPTIONS = False
 
-    # URL the site is running at
-    SERVER_NAME = 'localhost:5000'
     # Protocol to prefer for URLs (http/s)
     PREFERRED_URL_SCHEME = 'http'
     # Prefix to use for API URLs
