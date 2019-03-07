@@ -1,6 +1,6 @@
 import React from 'react'
 import { view } from 'react-easy-state'
-import { Button, Form, FormGroup, Input } from 'reactstrap'
+import { Button, Form, FormFeedback, FormGroup, Input } from 'reactstrap'
 import { auth } from '../store'
 
 class LoginForm extends React.Component {
@@ -10,6 +10,7 @@ class LoginForm extends React.Component {
     this.state = {
       username: 'username',
       password: 'password',
+      error: null,
     }
 
     this.handleLogin = this.handleLogin.bind(this)
@@ -21,11 +22,12 @@ class LoginForm extends React.Component {
     return this.state.username.length > 0 && this.state.password.length > 0
   }
 
-  async handleLogin(event) {
+  handleLogin(event) {
     const { username, password } = this.state
     event.preventDefault()
-    console.log(this.state)
-    await auth.login(username, password)
+    auth.login(username, password).then(resp => {
+      if (resp.error !== null) this.setState({ error: resp.description })
+    })
   }
 
   handleChange(event) {
@@ -42,6 +44,7 @@ class LoginForm extends React.Component {
             placeholder="Username"
             value={this.state.username}
             onChange={this.handleChange}
+            invalid={this.state.error !== null}
             required
             autoComplete="username"
           />
@@ -54,9 +57,11 @@ class LoginForm extends React.Component {
             placeholder="Password"
             value={this.state.password}
             onChange={this.handleChange}
+            invalid={this.state.error !== null}
             required
             autoComplete="current-password"
           />
+          <FormFeedback>{this.state.error}</FormFeedback>
         </FormGroup>
         <Button color="success" block disabled={!this.validateForm()}>
           Login

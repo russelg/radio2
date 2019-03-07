@@ -56,30 +56,28 @@ export const auth = store({
     localStorage.setItem('refresh_token', token)
   },
 
-  async login(username, password) {
-    await fetch(`${API_BASE}/auth/login`, {
+  login(username, password) {
+    return fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       body: JSON.stringify({ username, password }),
       headers: new Headers({
         'Content-Type': 'application/json',
       }),
-    })
-      .then(response => {
-        response
-          .clone()
-          .json()
-          .then(r => {
-            if ('access_token' in r && 'refresh_token' in r) {
-              this.refresh_token = r.refresh_token
-              config.parseAccessToken(response)
+    }).then(response =>
+      response
+        .clone()
+        .json()
+        .then(r => {
+          if ('access_token' in r && 'refresh_token' in r) {
+            this.refresh_token = r.refresh_token
+            config.parseAccessToken(response)
 
-              authorize(this.refresh_token, this.access_token)
-            }
-          })
-      })
-      .catch(error => {
-        throw error
-      })
+            authorize(this.refresh_token, this.access_token)
+          }
+
+          return r
+        })
+    )
   },
 
   async register(username, password) {
