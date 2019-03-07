@@ -6,6 +6,7 @@ from typing import Dict, List
 from typing import Optional as _Optional
 from urllib.parse import quote
 
+import filetype
 import flask_restful as rest
 from flask import (Blueprint, Response, jsonify, make_response, request,
                    send_from_directory)
@@ -203,7 +204,7 @@ class SongController(rest.Resource):
 
         song = Song[id]
         processed = get_processed_song(song)
-        return make_api_response(200, None, content=processed)
+        return make_api_response(200, None, content=dataclasses.asdict(processed))
 
     @db_session
     @admin_required
@@ -226,7 +227,8 @@ class SongController(rest.Resource):
         commit()
 
         processed = get_processed_song(song)
-        return make_api_response(200, None, 'Successfully updated song metadata', content=processed)
+        return make_api_response(200, None, 'Successfully updated song metadata',
+                                 content=dataclasses.asdict(processed))
 
     @db_session
     @admin_required
@@ -307,27 +309,32 @@ class UploadController(rest.Resource):
 
         if allowed_file(song.filename):
             filename = secure_filename(song.filename)
-            song.save(os.path.join(app.config['PATH_ENCODE'], filename))
+            filepath = os.path.join(app.config['PATH_ENCODE'], filename)
+            song.save(filepath)
+            kind = filetype.guess(filepath)
 
-            que = queue.Queue()
-            child = Thread(target=lambda q, arg: q.put(
-                encode_file(arg)), args=(que, filename))
-            child.daemon = True
-            child.start()
-            child.join()
-            # reload_songs()
+            app.logger.debug(f'filetype: {kind}')
+            if kind and kind.mime.split('/')[0] == 'audio':
+                # use a queue to keep the thread return
+                que = queue.Queue()
+                child = Thread(target=lambda q, arg: q.put(
+                    encode_file(arg)), args=(que, filename))
+                child.daemon = True
+                child.start()
+                child.join()
+                # reload_songs()
 
-            if not que.empty():
-                final_path = que.get()
+                if not que.empty():
+                    final_path = que.get()
 
-                name, _ = split_extension(os.path.basename(final_path))
-                name_ogg = f'{name}.ogg'
+                    name, _ = os.path.splitext(os.path.basename(final_path))
+                    name_ogg = f'{name}.ogg'
 
-                song = insert_song(name_ogg)
-                app.logger.info(f'File "{filename}" uploaded')
-                if song:
-                    return make_api_response(200, None, f'File "{filename}" uploaded', {'id': song.id})
-                    # return jsonify({'id': song.id})
+                    song = insert_song(name_ogg)
+                    app.logger.info(f'File "{filename}" uploaded')
+                    if song:
+                        return make_api_response(200, None, f'File "{filename}" uploaded', {'id': song.id})
+                        # return jsonify({'id': song.id})
 
         return make_api_response(422, 'Unprocessable Entity', f'File could not be processed')
 

@@ -21,6 +21,7 @@ gunicorn = "*"
 pony = "*"
 psycopg2-binary = "*"
 webargs = "*"
+filetype = "*"
 
 [requires]
 python_version = "3.7"

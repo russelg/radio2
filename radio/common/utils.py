@@ -110,7 +110,7 @@ def encode_file(filename: str) -> str:
     """
     encode_folder = app.config["PATH_ENCODE"]
     # randomstring = str(uuid.uuid4())
-    name, _ = split_extension(filename)
+    name, _ = os.path.splitext(filename)
     name_ogg = f'{name}.ogg'
 
     subprocess.call(
