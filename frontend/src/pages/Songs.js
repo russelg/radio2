@@ -331,7 +331,6 @@ class Songs extends React.Component {
   }
 
   updateSongMetadata(song, options) {
-    console.log(song, options)
     const { id } = song
     const { songs } = this.state
 
@@ -344,14 +343,12 @@ class Songs extends React.Component {
     })
       .then(res => res.json())
       .then(result => {
-        console.log(result)
-
         const error = result.error !== null
         let msg = 'description' in result ? result.description : result.message
         this.sendAlert(msg, error)
 
         if (!error) {
-          const stateSong = songs.indexOf(song)
+          const stateSong = songs.findIndex(element => element.id === id)
 
           // remove non-song keys
           delete result.status_code
@@ -376,8 +373,6 @@ class Songs extends React.Component {
         // remove the alert from the array
         alerts: [...alerts.slice(0, idx), ...alerts.slice(idx + 1)],
       })
-
-      console.log(this.state.alerts)
     }
   }
 
@@ -459,19 +454,17 @@ class Songs extends React.Component {
                   })
                 }}
                 onprocessfile={(err, file) => {
-                  const uploadedId = String(file.serverId)
-                  console.log(uploadedId, file.getMetadata())
-                  this.setState({
-                    alerts: [
-                      ...this.state.alerts,
-                      {
-                        id: new Date().getTime(),
-                        message: 'Song uploaded!',
-                        type: 'success',
-                      },
-                    ],
-                  })
-                  this.refreshSong(uploadedId)
+                  if (!err) {
+                    const uploadedId = String(file.serverId)
+                    console.log(uploadedId, file.getMetadata())
+                    this.sendAlert('Song uploaded!', false)
+                    this.refreshSong(uploadedId)
+                  } else {
+                    console.log(err)
+                    let msg = 'Song upload failed'
+                    if (err.code === 413) msg += ' (file too large)'
+                    this.sendAlert(msg, true)
+                  }
                 }}
               />
               <hr />
