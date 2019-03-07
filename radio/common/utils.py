@@ -357,7 +357,7 @@ def queue_status(song: Song) -> QueueStatus:
     :param song: song to get status of
     :return: queue details for given song
     """
-    song_queue = Queue.select(lambda s: s.song == song)[:]
+    song_queue = Queue.select(lambda s: s.song.id == song.id)[:]
 
     if song_queue:
         song_queue = song_queue[-1]

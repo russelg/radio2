@@ -87,28 +87,28 @@ def songs_stub(context, page: int, query: _Optional[str], limit: int):
     })
 
 
-def get_processed_song(song: Song) -> Dict:
+def get_song_details(song: Song) -> Dict:
     SongData = dataclasses.make_dataclass('Song', [*filter(
-        lambda k: k not in ['filename', 'favored_by'], Song.__annotations__), ('meta', RequestStatus, None)])
-    processed = SongData(**song.to_dict(exclude='filename', with_lazy=True))
-    processed.meta = request_status(song)
-    processed.meta.favourited = False
-    processed.size = os.path.getsize(os.path.join(
-        app.config["PATH_MUSIC"], song.filename))
+        lambda k: k not in ['filename', 'favored_by'], Song.__annotations__),
+        ('meta', RequestStatus, None),
+        ('size', int, 0)])
+    original_song = song
+    song = SongData(**song.to_dict(exclude='filename', with_lazy=True))
+    song.meta = request_status(song)
+    song.meta.favourited = False
+    song.size = os.path.getsize(os.path.join(
+        app.config["PATH_MUSIC"], original_song.filename))
     if current_user:
-        processed.meta.favourited = song in current_user.favourites
-    return processed
+        song.meta.favourited = song in current_user.favourites
+    return song
 
 
 def process_songs(context, page: int, query: _Optional[str], limit: int,
                   favourites: _Optional[User] = None) -> Response:
-    processed_songs = []
     info = song_queries(page, query, limit, favourites)
     songs = info['songs'].page(page, limit)
 
-    for song in songs:
-        processed = get_processed_song(song)
-        processed_songs.append(processed)
+    processed_songs = list(map(get_song_details, songs))
 
     return jsonify({
         '_links': songs_links(context, page, query, limit, info['pagination']),
@@ -189,10 +189,10 @@ class AutocompleteController(rest.Resource):
                 'type': 'Title'
             })
 
-        return {
+        return make_api_response(200, None, content={
             'query': query,
             'suggestions': data
-        }
+        })
 
 
 class SongController(rest.Resource):
@@ -203,8 +203,7 @@ class SongController(rest.Resource):
             return make_api_response(404, 'Not Found', 'Song does not exist')
 
         song = Song[id]
-        processed = get_processed_song(song)
-        return make_api_response(200, None, content=dataclasses.asdict(processed))
+        return make_api_response(200, None, content=dataclasses.asdict(get_song_details(song)))
 
     @db_session
     @admin_required
@@ -226,9 +225,8 @@ class SongController(rest.Resource):
         song.set(**values)
         commit()
 
-        processed = get_processed_song(song)
         return make_api_response(200, None, 'Successfully updated song metadata',
-                                 content=dataclasses.asdict(processed))
+                                 content=dataclasses.asdict(get_song_details(song)))
 
     @db_session
     @admin_required
