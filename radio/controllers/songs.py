@@ -335,6 +335,13 @@ class UploadController(rest.Resource):
                     if song:
                         return make_api_response(200, None, f'File "{filename}" uploaded', {'id': song.id})
                         # return jsonify({'id': song.id})
+                    else:
+                        # delete upload as it failed due to no metadata
+                        song_path = os.path.join(
+                            app.config['PATH_MUSIC'], song.filename)
+                        if os.path.exists(song_path):
+                            os.remove(song_path)
+                        return make_api_response(422, 'Unprocessable Entity', f'File was missing metadata, discarded')
 
         return make_api_response(422, 'Unprocessable Entity', f'File could not be processed')
 
