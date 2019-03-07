@@ -25,7 +25,6 @@ class SongsTable extends React.Component {
 
   componentDidUpdate(prevProps) {
     if (this.props.loggedIn !== prevProps.loggedIn) {
-      console.log('refreshing...')
       this.props.reloadPage()
     }
   }
@@ -146,7 +145,6 @@ class SongsTable extends React.Component {
                           : 'warning'
                       }
                       onClick={e => {
-                        console.log(this.state.deleting.includes(song))
                         this.state.deleting.includes(song)
                           ? this.props.deleteSong(song)
                           : this.setState({

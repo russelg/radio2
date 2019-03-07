@@ -15,7 +15,6 @@ class Error extends React.Component {
   }
 
   render() {
-    console.log('children', this.props.children)
     return (
       <Container className="h-100 fixed-top loader error">
         <Row className="h-100">

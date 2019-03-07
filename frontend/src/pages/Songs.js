@@ -92,7 +92,6 @@ class Songs extends React.Component {
 
   firePageChange(search = null) {
     const propSearch = this.props.location.search
-    console.log('firePageChange:', search, propSearch)
     const { page, query, username } = this.getSearchComponents(
       search !== null ? search : propSearch
     )
@@ -154,7 +153,6 @@ class Songs extends React.Component {
       .then(async res => {
         if (res.status === 422 || res.status !== 200) {
           const json = await res.clone().json()
-          console.log(json)
           this.setState({ error: json.description, loaded: false })
           return
         }
@@ -174,7 +172,6 @@ class Songs extends React.Component {
   }
 
   handleAdminChange(event) {
-    console.log(event.target.checked)
     this.setState({ show_admin: event.target.checked })
   }
 
@@ -217,8 +214,6 @@ class Songs extends React.Component {
     })
       .then(res => res.json())
       .then(result => {
-        console.log(result)
-
         const error = result.error !== null
         let msg = 'description' in result ? result.description : result.message
         this.sendAlert(msg, error)
@@ -237,8 +232,6 @@ class Songs extends React.Component {
     fetch(`${API_BASE}/song/${id}`, { method: 'DELETE' })
       .then(res => res.json())
       .then(result => {
-        console.log(result)
-
         const error = result.error !== null
         let msg = 'description' in result ? result.description : result.message
         this.sendAlert(msg, error)
@@ -254,8 +247,6 @@ class Songs extends React.Component {
     fetch(`${API_BASE}/song/${song}`, { method: 'GET' })
       .then(res => res.json())
       .then(result => {
-        console.log(result)
-
         const { songs } = this.state
         const stateSong = songs.indexOf(song)
         if (stateSong > -1) songs[stateSong] = { ...song, ...result }
@@ -313,15 +304,12 @@ class Songs extends React.Component {
     })
       .then(res => res.json())
       .then(result => {
-        console.log(result)
-
         const error = result.error !== null
         let msg = 'description' in result ? result.description : result.message
         this.sendAlert(msg, error)
 
         if (!error) {
           const stateSong = songs.indexOf(song)
-          console.log(stateSong, song, meta)
           meta.favourited = !meta.favourited
           songs[stateSong] = { ...song, meta }
         }
@@ -456,11 +444,9 @@ class Songs extends React.Component {
                 onprocessfile={(err, file) => {
                   if (!err) {
                     const uploadedId = String(file.serverId)
-                    console.log(uploadedId, file.getMetadata())
                     this.sendAlert('Song uploaded!', false)
                     this.refreshSong(uploadedId)
                   } else {
-                    console.log(err)
                     let msg = 'Song upload failed'
                     if (err.code === 413) msg += ' (file too large)'
                     this.sendAlert(msg, true)

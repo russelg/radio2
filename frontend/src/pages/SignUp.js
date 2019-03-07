@@ -108,7 +108,6 @@ class SignUp extends React.Component {
                     }}
                     validate={schemaErrors}
                     onSubmit={(values, { setSubmitting, setErrors }) => {
-                      console.log(values)
                       auth
                         .register(values.username, values.password)
                         .then(msg => {
