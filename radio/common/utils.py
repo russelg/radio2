@@ -47,9 +47,6 @@ def make_api_response(status_code: int, error: Union[str, bool, None],
     :param content: any other content to include
     :return: a prepared response
     """
-    if content is None:
-        content = {}
-
     data = {
         'status_code': status_code,
         'error': error
@@ -58,11 +55,14 @@ def make_api_response(status_code: int, error: Union[str, bool, None],
     if description:
         data['description'] = description
 
+    if content is None:
+        content = {}
+
     data.update(content)
 
     response = jsonify(data)
-
     response.status_code = status_code
+
     return response
 
 
@@ -70,6 +70,7 @@ def make_api_response(status_code: int, error: Union[str, bool, None],
 def get_folder_size(path: str = '.') -> int:
     """
     Calculate the total size of all files in the given path.
+    This is cached for performance concerns.
 
     :param path: path of folder to get size of
     :return: the total size of all files in the given path
@@ -80,36 +81,24 @@ def get_folder_size(path: str = '.') -> int:
     return total
 
 
-def get_file_size(path: str) -> int:
-    return os.path.getsize(path)
-
-
-def split_extension(filename: str) -> Tuple[str, str]:
-    return filename.rsplit('.', 1)
-
-
 def allowed_file(filename: str) -> bool:
     """Check if the given filename is an allowed extension for upload
 
-    :param filename: Filename to validate
-    :type filename: str
+    :param str filename: Filename to validate
     :return: True if filename is valid
-    :rtype: str
     """
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower(
-           ) in app.config["ALLOWED_EXTENSIONS"]
+    _, file_extension = os.path.splitext(filename)
+    return file_extension.lower() in app.config["ALLOWED_EXTENSIONS"]
 
 
 def encode_file(filename: str) -> str:
     """
     Encodes a given file and moves it to the correct output directory
 
-    :param filename: path of file to encode
+    :param str filename: path of file to encode
     :return: full path to encoded file
     """
     encode_folder = app.config["PATH_ENCODE"]
-    # randomstring = str(uuid.uuid4())
     name, _ = os.path.splitext(filename)
     name_ogg = f'{name}.ogg'
 
@@ -131,42 +120,13 @@ def encode_file(filename: str) -> str:
     return new_path
 
 
-def sample_songs_os(num: int = 5) -> List[str]:
-    """
-    Samples a selection of songs from the music directory
-
-    :param num: number of songs to sample
-    :return: list of sampled songs from music directory
-    """
-    songs = os.listdir(app.config["PATH_MUSIC"])
-    if len(songs) < num:
-        return songs
-
-    return sample(songs, num)
-
-
-@db_session
-def sample_songs(num: int = 5) -> List[Song]:
-    """
-    Samples a selection of songs from the Songs table
-
-    :param num: number of songs to sample
-    :return: list of sampled songs from Songs table
-    """
-    songs = Song.select()[:]
-    if len(songs) < num:
-        return songs
-
-    return sample(songs, num)
-
-
 @db_session
 def sample_songs_weighted(num: int = 6) -> List[Song]:
     """
     Samples a selection of songs from the Songs table, weighted by playcount.
     This means songs that have been played less have a higher chance of being put in the queue.
 
-    :param num: number of songs to sample
+    :param int num: number of songs to sample
     :return: list of songs sampled from Songs table, weighted by playcount
     """
     songs = Song.select()[:]
@@ -183,9 +143,9 @@ def sample_songs_weighted(num: int = 6) -> List[Song]:
 
 def get_metadata(filename: str) -> _Optional[Dict[str, int]]:
     """
-    Returns the associated tags for a given music file
+    Returns the associated tags for a given music file.
 
-    :param filename: file to read tags from
+    :param str filename: file to read tags from
     :return: dict containing music file tags
     """
     metadata = mutagen.File(filename, easy=True)
@@ -208,7 +168,7 @@ def insert_song(filename: str) -> Song:
     """
     Adds a song to the database
 
-    :param filename: music file to add
+    :param str filename: music file to add
     """
     print("inserting song", filename)
     full_path = os.path.join(app.config["PATH_MUSIC"], filename)
@@ -236,6 +196,7 @@ def insert_queue(songs: List[Song]) -> None:
     """
     for song in songs:
         Queue(song=song)
+    commit()
 
 
 @db_session
@@ -260,22 +221,7 @@ def generate_queue() -> None:
 
 
 @db_session
-def generate_queue_simple() -> None:
-    """
-    Fills the queue with songs, using the weighted sample method
-    """
-    queue = Queue.select()[:]
-    if queue:
-        if len(queue) <= 5:
-            # fill queue to 5 songs
-            to_add = abs(6 - len(queue))
-            insert_queue(sample_songs_weighted(to_add))
-    else:
-        insert_queue(sample_songs_weighted())
-
-
-@db_session
-def reload_songs() -> str:
+def reload_songs() -> None:
     """
     Keeps music directory and database in sync.
     This is done by removing songs that exist in the database, but not on the filesystem.
@@ -320,8 +266,6 @@ def reload_songs() -> str:
 
     for filename in songs_to_add:
         insert_song(filename)
-
-    return 'reloaded: added ' + ', '.join(songs_to_add)
 
 
 @db_session
@@ -445,8 +389,6 @@ def valid_username(username: str) -> dict:
     :param username: username to validate
     :return: dict containing keys `valid` (`bool`) and `reason` (`str`)
     """
-    # validator = namedtuple("validator", ["valid", "reason"])
-
     if len(username) < 3:
         return Validator(False, 'Username must be at least 3 characters')
 

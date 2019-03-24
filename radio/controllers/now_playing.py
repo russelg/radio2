@@ -39,10 +39,8 @@ def np() -> dict:
         mounts.append('.mp3')
 
     for mount in mounts:
-        url = 'http://{host}:{port}{mount}{format}.xspf'.format(host=app.config['ICECAST_HOST'],
-                                                                port=app.config['ICECAST_PORT'],
-                                                                mount=app.config['ICECAST_MOUNT'],
-                                                                format=mount)
+        url = 'http://{ICECAST_HOST}:{ICECAST_PORT}{ICECAST_MOUNT}{ext}.xspf'.format(
+            **app.config, ext=mount)
         listeners_count += int(parse_status(url).get('Current Listeners', 0))
 
     lastplayed_rows = Song.select(lambda c: c.lastplayed is not None).sort_by(desc(Song.lastplayed)).prefetch(
@@ -101,19 +99,23 @@ def np() -> dict:
         'title': top_row.title,
         'id': current_id,
         'requested': False,
-        'total_songs': num_songs,
-        'total_plays': total_playcount,
         'queue': queue,
         'lp': lastplayed,
-        'total_size': get_folder_size(path=app.config['PATH_MUSIC']),
-        'listeners': listeners_count
+        'listeners': listeners_count,
+        'total_songs': num_songs,
+        'total_plays': total_playcount,
+        'total_size': get_folder_size(path=app.config['PATH_MUSIC'])
     }
+
+
+css = collections.OrderedDict(sorted(app.config['CSS'].items()))
+default_css = app.config['CSS'][app.config['DEFAULT_CSS']]
 
 
 def settings() -> dict:
     return {
-        'css': unquote(request.cookies.get('stylesheet') or app.config['CSS'][app.config['DEFAULT_CSS']]),
-        'styles': collections.OrderedDict(sorted(app.config['CSS'].items())),
+        'css': unquote(request.cookies.get('stylesheet') or default_css),
+        'styles': css,
         'icecast': {
             'mount': app.config['ICECAST_MOUNT'],
             'url': app.config['ICECAST_URL']

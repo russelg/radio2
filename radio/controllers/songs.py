@@ -3,7 +3,7 @@ import queue
 from functools import partial
 from threading import Thread
 from typing import Dict, List
-from typing import Optional as _Optional
+from typing import Optional as Optional_
 from urllib.parse import quote
 
 import filetype
@@ -12,7 +12,6 @@ from flask import (Blueprint, Response, jsonify, make_response, request,
                    send_from_directory)
 from flask_jwt_extended import (current_user, decode_token, jwt_optional,
                                 jwt_required)
-from jwt import ExpiredSignatureError
 from webargs import ValidationError, fields, validate
 from webargs.flaskparser import use_args, use_kwargs
 from werkzeug.utils import secure_filename
@@ -22,7 +21,7 @@ from radio.common.utils import (Pagination, RequestStatus, admin_required,
                                 allowed_file, encode_file,
                                 filter_default_webargs, insert_song,
                                 make_api_response, request_status,
-                                split_extension, user_is_admin)
+                                user_is_admin)
 from radio.models import *
 
 blueprint = Blueprint('songs', __name__)
@@ -37,8 +36,8 @@ songs_args = {
 
 
 @db_session
-def song_queries(page: int, query: _Optional[str], limit: int,
-                 user: _Optional[User] = None) -> dict:
+def song_queries(page: int, query: Optional_[str], limit: int,
+                 user: Optional_[User] = None) -> dict:
     if query and user:
         songs = user.favourites.select(
             lambda s: query in s.artist or query in s.title)
@@ -76,7 +75,7 @@ def songs_links(context, page, query, limit, pagination):
     return links
 
 
-def songs_stub(context, page: int, query: _Optional[str], limit: int):
+def songs_stub(context, page: int, query: Optional_[str], limit: int):
     pagination = Pagination(page=page, per_page=limit, total_count=0)
 
     return jsonify({
@@ -88,10 +87,13 @@ def songs_stub(context, page: int, query: _Optional[str], limit: int):
 
 
 def get_song_details(song: Song) -> Dict:
-    SongData = dataclasses.make_dataclass('Song', [*filter(
-        lambda k: k not in ['filename', 'favored_by'], Song.__annotations__),
+    keys = Song.__annotations__
+    SongData = dataclasses.make_dataclass('Song', [
+        *filter(lambda k: k not in ['filename', 'favored_by'], keys),
         ('meta', RequestStatus, None),
-        ('size', int, 0)])
+        ('size', int, 0)
+    ])
+
     original_song = song
     song = SongData(**song.to_dict(exclude='filename', with_lazy=True))
     song.meta = request_status(song)
@@ -103,8 +105,8 @@ def get_song_details(song: Song) -> Dict:
     return song
 
 
-def process_songs(context, page: int, query: _Optional[str], limit: int,
-                  favourites: _Optional[User] = None) -> Response:
+def process_songs(context, page: int, query: Optional_[str], limit: int,
+                  favourites: Optional_[User] = None) -> Response:
     info = song_queries(page, query, limit, favourites)
     songs = info['songs'].page(page, limit)
 
@@ -131,7 +133,7 @@ class SongsController(rest.Resource):
     @db_session
     @jwt_optional
     @use_kwargs(songs_args, validate=validate_page)
-    def get(self, page: int, query: _Optional[str], limit: int) -> Response:
+    def get(self, page: int, query: Optional_[str], limit: int) -> Response:
         return process_songs(self, page, query, limit)
 
 
@@ -170,7 +172,7 @@ class RequestController(rest.Resource):
 class AutocompleteController(rest.Resource):
     @db_session
     @use_kwargs({'query': fields.Str(required=True, validate=validate.Length(min=1))})
-    def get(self, query: _Optional[str]) -> Response:
+    def get(self, query: Optional_[str]) -> Response:
         data = []
         artists = select(s.artist for s in Song if query.lower()
                          in s.artist.lower()).limit(5)
@@ -269,10 +271,6 @@ class DownloadController(rest.Resource):
     def get(self, args: Dict[str, str]) -> Response:
         decoded = decode_token(args['token'])
         song_id = UUID(decoded['identity']['id'])
-        # song_id = args['id']
-
-        # if token_song_id != song_id:
-        #     return make_api_response(409, 'Conflict', 'Token Song ID and provided Song ID are not the same')
 
         if not Song.exists(id=song_id):
             return make_api_response(404, 'Not Found', 'Song does not exist')
@@ -320,7 +318,6 @@ class UploadController(rest.Resource):
                 child.daemon = True
                 child.start()
                 child.join()
-                # reload_songs()
 
                 if not que.empty():
                     final_path = que.get()
@@ -332,7 +329,6 @@ class UploadController(rest.Resource):
                     app.logger.info(f'File "{filename}" uploaded')
                     if song:
                         return make_api_response(200, None, f'File "{filename}" uploaded', {'id': song.id})
-                        # return jsonify({'id': song.id})
                     else:
                         # delete upload as it failed due to no metadata
                         song_path = os.path.join(
@@ -361,8 +357,8 @@ class FavouriteController(rest.Resource):
     @db_session
     @jwt_optional
     @use_kwargs(favourite_args, validate=lambda args: validate_page(args) and validate_user(args))
-    def get(self, page: int, query: _Optional[str], limit: int,
-            user: _Optional[str]) -> Response:
+    def get(self, page: int, query: Optional_[str], limit: int,
+            user: Optional_[str]) -> Response:
         if user:
             user = User.get(username=user)
         elif current_user:

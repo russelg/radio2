@@ -17,11 +17,11 @@ from radio.common.utils import make_api_response, valid_username
 from radio.controllers.songs import request_args, validate_song
 from radio.models import *
 
-parser.error_handler(webargs_error)
-
-jwt = JWTManager(app)
 blueprint = Blueprint('auth', __name__)
 api = rest.Api(blueprint)
+jwt = JWTManager(app)
+
+parser.error_handler(webargs_error)
 
 
 @jwt.user_loader_callback_loader

@@ -1,11 +1,8 @@
 from flask import Response
-from flask_jwt_extended import JWTManager
 from werkzeug.exceptions import HTTPException
 
 from radio import app
 from radio.common.utils import make_api_response
-
-jwt = JWTManager(app)
 
 
 def webargs_error(error, req, schema, error_status_code, error_headers):
