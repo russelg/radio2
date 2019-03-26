@@ -1,14 +1,15 @@
+from dataclasses import dataclass
 import collections
 from urllib.parse import unquote
 
 import arrow
 import flask_restful as rest
-from flask import Blueprint, Response, jsonify, request
+from flask import Blueprint, Response, request
 
-from dataclasses import dataclass
+from radio import app
+from radio import models as db
 from radio.common.utils import (get_folder_size, get_self_links,
                                 make_api_response, parse_status)
-from radio.models import *
 
 blueprint = Blueprint('np', __name__)
 api = rest.Api(blueprint)
@@ -30,7 +31,7 @@ class DummySong:
     title = ''
 
 
-@db_session
+@db.db_session
 def np() -> dict:
     listeners_count = 0
 
@@ -43,10 +44,10 @@ def np() -> dict:
             **app.config, ext=mount)
         listeners_count += int(parse_status(url).get('Current Listeners', 0))
 
-    lastplayed_rows = Song.select(lambda c: c.lastplayed is not None).sort_by(desc(Song.lastplayed)).prefetch(
-        Song.artist, Song.title, Song.length).limit(6)
+    lastplayed_rows = db.Song.select(lambda c: c.lastplayed is not None).sort_by(
+        db.desc(db.Song.lastplayed)).prefetch(db.Song.artist, db.Song.title, db.Song.length).limit(6)  # pylint: disable=no-member
 
-    num_songs = Song.select().count()
+    num_songs = db.Song.select().count()
 
     times = SongTimes()
     if lastplayed_rows:
@@ -64,7 +65,7 @@ def np() -> dict:
     queue = []
     time_str = times.end
 
-    for entry in Queue.select().prefetch(Queue.song).limit(10):
+    for entry in db.Queue.select().prefetch(db.Queue.song).limit(10):
         queue.append({
             'artist': entry.song.artist,
             'title': entry.song.title,
@@ -88,7 +89,7 @@ def np() -> dict:
         })
         time_str = time_str.shift(seconds=-song.length)
 
-    total_playcount = sum(song.playcount for song in Song)
+    total_playcount = db.sum(song.playcount for song in db.Song)
 
     return {
         'len': times.length,

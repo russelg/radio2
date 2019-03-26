@@ -1,15 +1,15 @@
 import math
 import os
-import re
 import shutil
 import subprocess
-from collections import namedtuple
+from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
-from functools import lru_cache, partial, wraps
-from random import choices, sample
+from functools import lru_cache, partial
+from random import choices
 from typing import Dict, List, NamedTuple
 from typing import Optional as _Optional
-from typing import Tuple, Union
+from typing import Union
 from urllib.error import URLError
 from urllib.request import urlopen
 
@@ -17,14 +17,25 @@ import arrow
 import marshmallow
 import mutagen
 import xmltodict
-from flask import Response, jsonify
-from flask_jwt_extended import get_jwt_claims, verify_jwt_in_request
+from flask import Response, jsonify, request
+from webargs import flaskparser
+from werkzeug.exceptions import HTTPException
 
-from dataclasses import dataclass
-from radio.models import *
+from radio import app
+from radio import models as db
 
 register_blueprint_prefixed = partial(
     app.register_blueprint, url_prefix=app.config['SERVER_API_PREFIX'])
+
+
+parser = flaskparser.FlaskParser()
+
+# I did not want to put this here, but since it uses make_api_response
+# there can be some tricky circular dependencies
+@parser.error_handler
+def webargs_error(error, req, schema, error_status_code, error_headers):
+    resp = make_api_response(422, 'Unprocessable Entity', error.messages)
+    raise HTTPException(description=resp.response, response=resp)
 
 
 class QueueType(Enum):
@@ -120,8 +131,8 @@ def encode_file(filename: str) -> str:
     return new_path
 
 
-@db_session
-def sample_songs_weighted(num: int = 6) -> List[Song]:
+@db.db_session
+def sample_songs_weighted(num: int = 6) -> List[db.Song]:
     """
     Samples a selection of songs from the Songs table, weighted by playcount.
     This means songs that have been played less have a higher chance of being put in the queue.
@@ -129,12 +140,12 @@ def sample_songs_weighted(num: int = 6) -> List[Song]:
     :param int num: number of songs to sample
     :return: list of songs sampled from Songs table, weighted by playcount
     """
-    songs = Song.select()[:]
+    songs = db.Song.select()[:]
     if len(songs) < num:
         return songs
 
     weights = []
-    max_plays = max(s.playcount for s in Song) + 1
+    max_plays = db.max(s.playcount for s in db.Song) + 1
     for song in songs:
         weights.append(abs(max_plays - song.playcount))
 
@@ -163,8 +174,8 @@ def get_metadata(filename: str) -> _Optional[Dict[str, int]]:
     }
 
 
-@db_session
-def insert_song(filename: str) -> Song:
+@db.db_session
+def insert_song(filename: str) -> db.Song:
     """
     Adds a song to the database
 
@@ -175,38 +186,38 @@ def insert_song(filename: str) -> Song:
     meta = get_metadata(full_path)
     if meta:
         # check dupe
-        song = Song.get(artist=meta['artist'], title=meta['title'])
+        song = db.Song.get(artist=meta['artist'], title=meta['title'])
         if song:
             print(full_path, 'is a dupe, removing...')
             os.remove(full_path)
         else:
-            song = Song(filename=filename, artist=meta['artist'], title=meta['title'], length=int(
+            song = db.Song(filename=filename, artist=meta['artist'], title=meta['title'], length=int(
                 meta['length']))
-            commit()
+            db.commit()
         return song
     return None
 
 
-@db_session
-def insert_queue(songs: List[Song]) -> None:
+@db.db_session
+def insert_queue(songs: List[db.Song]) -> None:
     """
     Adds the given songs to the queue
 
     :param songs: list of songs to add
     """
     for song in songs:
-        Queue(song=song)
-    commit()
+        db.Queue(song=song)
+    db.commit()
 
 
-@db_session
+@db.db_session
 def generate_queue() -> None:
     """
     Fills the queue with songs, using the weighted sample method
     """
-    queue = Queue.select()[:]
+    queue = db.Queue.select()[:]
     if queue:
-        randoms = sum(not entry.requested for entry in queue)
+        randoms = db.sum(not entry.requested for entry in queue)
         reqs = len(queue) - randoms
         threshold = math.ceil((10 - min(reqs, 10)) / 2)
 
@@ -220,7 +231,7 @@ def generate_queue() -> None:
         insert_queue(sample_songs_weighted())
 
 
-@db_session
+@db.db_session
 def reload_songs() -> None:
     """
     Keeps music directory and database in sync.
@@ -229,14 +240,14 @@ def reload_songs() -> None:
     """
     os_songs = [f for f in os.listdir(
         app.config["PATH_MUSIC"]) if not f.startswith('.')]
-    if count(s for s in Song) <= 0:
+    if db.count(s for s in db.Song) <= 0:
         for filename in os_songs:
             insert_song(filename)
 
-    if count(s for s in Queue) <= 0:
+    if db.count(s for s in db.Queue) <= 0:
         generate_queue()
 
-    db_songs = select(song.filename for song in Song)[:]
+    db_songs = db.select(song.filename for song in db.Song)[:]
 
     songs_to_add = []
     songs_to_remove = []
@@ -250,13 +261,13 @@ def reload_songs() -> None:
             songs_to_remove.append(song)
 
     for song in songs_to_remove:
-        db_song = Song.get(filename=song)
+        db_song = db.Song.get(filename=song)
         if db_song:
-            queue_song = Queue.get(song=db_song)
+            queue_song = db.Queue.get(song=db_song)
             if queue_song:
                 queue_song.delete()
 
-            for user in User.select():
+            for user in db.User.select():
                 user.favourites.remove(db_song)
 
             db_song.delete()
@@ -268,7 +279,7 @@ def reload_songs() -> None:
         insert_song(filename)
 
 
-@db_session
+@db.db_session
 def next_song() -> str:
     """
     Gets the song to play next from the queue
@@ -277,8 +288,8 @@ def next_song() -> str:
     """
     generate_queue()
 
-    queue_entry = Queue.select().sort_by(Queue.id)[:1][0]
-    song = Song[queue_entry.song.id]
+    queue_entry = db.Queue.select().sort_by(db.Queue.id)[:1][0]
+    song = db.Song[queue_entry.song.id]
     song.playcount += 1
     song.lastplayed = datetime.utcnow()
 
@@ -293,15 +304,15 @@ class QueueStatus(NamedTuple):
     time: _Optional[datetime]
 
 
-@db_session
-def queue_status(song: Song) -> QueueStatus:
+@db.db_session
+def queue_status(song: db.Song) -> QueueStatus:
     """
     Gets the queue status for a given song
 
     :param song: song to get status of
     :return: queue details for given song
     """
-    song_queue = Queue.select(lambda s: s.song.id == song.id)[:]
+    song_queue = db.Queue.select(lambda s: s.song.id == song.id)[:]
 
     if song_queue:
         song_queue = song_queue[-1]
@@ -321,8 +332,8 @@ def humanize_lastplayed(seconds: Union[arrow.arrow.Arrow, int]) -> str:
     if isinstance(seconds, arrow.arrow.Arrow) or seconds > 0:
         if isinstance(seconds, arrow.arrow.Arrow):
             return seconds.humanize()
-        else:
-            return arrow.get(seconds).humanize()
+
+        return arrow.get(seconds).humanize()
     else:
         return 'Never before'
 
@@ -334,8 +345,8 @@ class RequestStatus:
     reason: _Optional[str] = None
 
 
-@db_session
-def request_status(song: Song) -> RequestStatus:
+@db.db_session
+def request_status(song: db.Song) -> RequestStatus:
     """
     Gets the requestable status for a given song
 
@@ -345,11 +356,11 @@ def request_status(song: Song) -> RequestStatus:
     status = queue_status(song)
     info = RequestStatus(requestable=not status.queued)
 
-    if count(x for x in Queue) >= 10:
-        info.reason = 'Queue is full, please wait until there are less than 10 entries'
+    if db.count(x for x in db.Queue) >= 10:
+        info.reason = 'Queue is full. Please wait until there are less than 10 entries'
         info.requestable = False
     elif status.queued:
-        info.reason = 'This song is currently queued and can be requested again 30 minutes after being played'
+        info.reason = 'This song is currently queued. It can be requested again 30 minutes after being played'
     elif song.lastplayed:
         lastplayed = arrow.get(song.lastplayed)
         info.humanized_lastplayed = humanize_lastplayed(lastplayed)
@@ -372,33 +383,6 @@ def when_requestable(lastplayed: int, length: int) -> arrow.arrow.Arrow:
     :return: Arrow object of when song will be requestable
     """
     return arrow.get(lastplayed + (60 * 30) + length)
-
-
-class Validator(NamedTuple):
-    valid: bool
-    reason: str
-
-
-def valid_username(username: str) -> dict:
-    """
-    Validates the given username meets username requirements.
-    Requirements are as follows:
-        - Between 3 and 32 (inclusive) characters in length
-        - Only contains A-z, 0-9, -, _ and .
-
-    :param username: username to validate
-    :return: dict containing keys `valid` (`bool`) and `reason` (`str`)
-    """
-    if len(username) < 3:
-        return Validator(False, 'Username must be at least 3 characters')
-
-    if len(username) >= 32:
-        return Validator(False, 'Username must be shorter than 32 characters')
-
-    if not re.match("^\w(?:\w*(?:[.-]\w+)?)*$", username):
-        return Validator(False, 'Username may only contain the following: A-z, 0-9, -_.')
-
-    return Validator(True, '')
 
 
 def parse_status(url: str) -> dict:
@@ -449,8 +433,6 @@ def parse_status(url: str) -> dict:
         result['Online'] = True
         # Erase the bad stuff. However, keep in mind stream title can do this (anything user input...)
         result['Current Song'] = ''
-    except:
-        print("Failed to parse XML Status data.")
 
     return result
 
@@ -463,6 +445,9 @@ def filter_default_webargs(args: dict, **kwargs: dict) -> dict:
     :param kwargs: The arguments to filter
     :return: dict containing only arguments that have non-default values set
     """
+    if isinstance(args, marshmallow.Schema):
+        args = args.fields
+
     res = {}
     for kwarg, val in kwargs.items():
         if kwarg in args:
@@ -476,27 +461,6 @@ def filter_default_webargs(args: dict, **kwargs: dict) -> dict:
                 res[kwarg] = val
 
     return res
-
-
-def user_is_admin():
-    """Check if current user is an admin
-
-    :return: True if current user is an admin
-    :rtype: bool
-    """
-    verify_jwt_in_request()
-    claims = get_jwt_claims() or {'roles': []}
-    return 'admin' in claims['roles']
-
-
-def admin_required(fn):
-    """Decorator to enforce admin requirement for a response """
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        if not user_is_admin():
-            return make_api_response(403, 'Forbidden', 'Admin role required to utilize endpoint')
-        return fn(*args, **kwargs)
-    return wrapper
 
 
 def get_nonexistant_path(fname_path):
@@ -524,60 +488,3 @@ def get_nonexistant_path(fname_path):
 def get_self_links(api, obj):
     """Generate `_links._self` for a request"""
     return {'_self': api.url_for(obj, _external=True)}
-
-
-class Pagination(object):
-    """
-    Helper class to get pagination info
-    """
-
-    def __init__(self, page: int, per_page: int, total_count: int):
-        """
-        :param page: current page
-        :param per_page: items per page
-        :param total_count: total items
-        """
-        self.page = page
-        self.per_page = per_page
-        self.total_count = total_count
-
-    @property
-    def pages(self) -> int:
-        """
-        :returns: total pages
-        """
-        return max(int(math.ceil(self.total_count / float(self.per_page))), 1)
-
-    @property
-    def has_prev(self) -> bool:
-        """
-        :returns: True if the current page has a previous page, else False
-        """
-        return self.page > 1
-
-    @property
-    def has_next(self) -> bool:
-        """
-        :returns: True if the current page has a next page, else False
-        """
-        return self.page < self.pages
-
-    def to_json(self) -> Dict[int, bool]:
-        """
-        :returns: Pagination info as a dictionary
-        """
-        return dict(self.__dict__, pages=self.pages, has_prev=self.has_prev, has_next=self.has_next)
-
-    def iter_pages(self, left_edge=2, left_current=2,
-                   right_current=5, right_edge=2) -> int:
-        """
-        :returns: Iterator over all pages, with clipping when too many pages exist
-        """
-        last = 0
-        for num in range(1, self.pages + 1):
-            if num <= left_edge or \
-                    (self.page - left_current - 1 < num < self.page + right_current) or num > self.pages - right_edge:
-                if last + 1 != num:
-                    yield None
-            yield num
-            last = num

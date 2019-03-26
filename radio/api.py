@@ -2,9 +2,10 @@ from flask import send_from_directory
 
 from radio.common.utils import register_blueprint_prefixed
 from radio.controllers import auth, now_playing, songs
-from radio.models import *
+from radio import app
+from radio import models as db
 
-app.wsgi_app = db_session(app.wsgi_app)
+app.wsgi_app = db.db_session(app.wsgi_app)
 
 register_blueprint_prefixed(now_playing.blueprint)
 register_blueprint_prefixed(songs.blueprint)
@@ -22,8 +23,8 @@ def send_css(path: str):
     return send_from_directory('static/static/css', path)
 
 
-@app.route('/<path:path>')
-def index(path: str):
+@app.route('/<path:_>')
+def index(_: str):
     return app.send_static_file('index.html')
 
 

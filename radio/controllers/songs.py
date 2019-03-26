@@ -1,3 +1,4 @@
+import dataclasses
 import os
 import queue
 from functools import partial
@@ -5,6 +6,7 @@ from threading import Thread
 from typing import Dict, List
 from typing import Optional as Optional_
 from urllib.parse import quote
+from uuid import UUID
 
 import filetype
 import flask_restful as rest
@@ -12,44 +14,44 @@ from flask import (Blueprint, Response, jsonify, make_response, request,
                    send_from_directory)
 from flask_jwt_extended import (current_user, decode_token, jwt_optional,
                                 jwt_required)
-from webargs import ValidationError, fields, validate
-from webargs.flaskparser import use_args, use_kwargs
+from marshmallow import Schema, fields
+from webargs import ValidationError, validate
 from werkzeug.utils import secure_filename
 
-import dataclasses
-from radio.common.utils import (Pagination, RequestStatus, admin_required,
-                                allowed_file, encode_file,
+from radio import app
+from radio import models as db
+from radio.common.pagination import Pagination
+from radio.common.users import admin_required, user_is_admin, user_exists
+from radio.common.utils import (RequestStatus, allowed_file, encode_file,
                                 filter_default_webargs, insert_song,
-                                make_api_response, request_status,
-                                user_is_admin)
-from radio.models import *
+                                make_api_response, parser, request_status)
 
 blueprint = Blueprint('songs', __name__)
 api = rest.Api(blueprint)
 
-songs_args = {
-    'page': fields.Int(missing=1),
-    'query': fields.Str(missing=None, validate=validate.Length(min=1)),
-    'limit': fields.Int(missing=app.config.get('SONGS_PER_PAGE', 50),
-                        validate=lambda a: 0 < a <= app.config.get('SONGS_PER_PAGE', 50))
-}
+
+class SongQuerySchema(Schema):
+    page = fields.Int(missing=1)
+    query = fields.Str(missing=None, validate=validate.Length(min=1))
+    limit = fields.Int(missing=app.config.get('SONGS_PER_PAGE', 50),
+                       validate=lambda a: 0 < a <= app.config.get('SONGS_PER_PAGE', 50))
 
 
-@db_session
+@db.db_session
 def song_queries(page: int, query: Optional_[str], limit: int,
-                 user: Optional_[User] = None) -> dict:
+                 user: Optional_[db.User] = None) -> dict:
     if query and user:
         songs = user.favourites.select(
             lambda s: query in s.artist or query in s.title)
     elif query:
-        songs = Song.select(lambda s: query in s.artist or query in s.title)
+        songs = db.Song.select(lambda s: query in s.artist or query in s.title)
     elif user:
         songs = user.favourites.select()
     else:
-        songs = Song.select()
+        songs = db.Song.select()
 
     if not user:
-        songs = songs.sort_by(desc(Song.added))
+        songs = songs.sort_by(db.desc(db.Song.added))
 
     total_songs = songs.count()
     pagination = Pagination(page=page, per_page=limit, total_count=total_songs)
@@ -63,7 +65,7 @@ def song_queries(page: int, query: Optional_[str], limit: int,
 
 
 def songs_links(context, page, query, limit, pagination):
-    args = partial(filter_default_webargs, args=songs_args,
+    args = partial(filter_default_webargs, args=SongQuerySchema(),
                    query=query, limit=limit)
 
     links = {'_self': api.url_for(context, **args(page=page), _external=True),
@@ -75,19 +77,8 @@ def songs_links(context, page, query, limit, pagination):
     return links
 
 
-def songs_stub(context, page: int, query: Optional_[str], limit: int):
-    pagination = Pagination(page=page, per_page=limit, total_count=0)
-
-    return jsonify({
-        '_links': songs_links(context, page, query, limit, pagination),
-        'query': query,
-        'pagination': pagination.to_json(),
-        'songs': []
-    })
-
-
-def get_song_details(song: Song) -> Dict:
-    keys = Song.__annotations__
+def get_song_details(song: db.Song) -> Dict:
+    keys = db.Song.__annotations__  # pylint: disable=no-member
     SongData = dataclasses.make_dataclass('Song', [
         *filter(lambda k: k not in ['filename', 'favored_by'], keys),
         ('meta', RequestStatus, None),
@@ -106,7 +97,7 @@ def get_song_details(song: Song) -> Dict:
 
 
 def process_songs(context, page: int, query: Optional_[str], limit: int,
-                  favourites: Optional_[User] = None) -> Response:
+                  favourites: Optional_[db.User] = None) -> Response:
     info = song_queries(page, query, limit, favourites)
     songs = info['songs'].page(page, limit)
 
@@ -120,7 +111,7 @@ def process_songs(context, page: int, query: Optional_[str], limit: int,
     })
 
 
-@db_session
+@db.db_session
 def validate_page(args: Dict[str, any]) -> None:
     page = args['page']
     info = song_queries(page, args['query'], args['limit'])
@@ -130,36 +121,33 @@ def validate_page(args: Dict[str, any]) -> None:
 
 
 class SongsController(rest.Resource):
-    @db_session
     @jwt_optional
-    @use_kwargs(songs_args, validate=validate_page)
+    @parser.use_kwargs(SongQuerySchema, validate=validate_page)
     def get(self, page: int, query: Optional_[str], limit: int) -> Response:
         return process_songs(self, page, query, limit)
 
 
-request_args = {
-    'id': fields.UUID(required=True)
-}
+class SongBasicSchema(Schema):
+    id = fields.UUID(required=True)
 
 
-@db_session
+@db.db_session
 def validate_song(args: Dict[str, UUID]) -> None:
     song_id = args['id']
 
-    if not Song.exists(id=song_id):
+    if not db.Song.exists(id=song_id):
         raise ValidationError('Song does not exist')
 
 
 class RequestController(rest.Resource):
-    @db_session
     @jwt_optional
-    @use_args(request_args, validate=validate_song)
+    @parser.use_args(SongBasicSchema(), validate=validate_song)
     def put(self, args: Dict[str, UUID]) -> Response:
-        song = Song[args['id']]
+        song = db.Song[args['id']]
         status = request_status(song)
 
         if status.requestable:
-            Queue(song=song, requested=True)
+            db.Queue(song=song, requested=True)
             meta = request_status(song)
             if current_user:
                 meta.favourited = song in current_user.favourites
@@ -170,14 +158,13 @@ class RequestController(rest.Resource):
 
 
 class AutocompleteController(rest.Resource):
-    @db_session
-    @use_kwargs({'query': fields.Str(required=True, validate=validate.Length(min=1))})
+    @parser.use_kwargs({'query': fields.Str(required=True, validate=validate.Length(min=1))})
     def get(self, query: Optional_[str]) -> Response:
         data = []
-        artists = select(s.artist for s in Song if query.lower()
-                         in s.artist.lower()).limit(5)
-        titles = select(s.title for s in Song if query.lower()
-                        in s.title.lower()).limit(5)
+        artists = db.select(s.artist for s in db.Song if query.lower()
+                            in s.artist.lower()).limit(5)
+        titles = db.select(s.title for s in db.Song if query.lower()
+                           in s.title.lower()).limit(5)
 
         for artist in artists:
             data.append({
@@ -198,20 +185,18 @@ class AutocompleteController(rest.Resource):
 
 
 class SongController(rest.Resource):
-    @db_session
-    @use_kwargs(request_args, validate=validate_song, locations=('view_args',))
+    @parser.use_kwargs(SongBasicSchema(), validate=validate_song, locations=('view_args',))
     def get(self, id: UUID) -> Response:
-        if not Song.exists(id=id):
+        if not db.Song.exists(id=id):
             return make_api_response(404, 'Not Found', 'Song does not exist')
 
-        song = Song[id]
+        song = db.Song[id]
         return make_api_response(200, None, content=dataclasses.asdict(get_song_details(song)))
 
-    @db_session
     @admin_required
-    @use_kwargs(request_args, validate=validate_song, locations=('view_args',))
+    @parser.use_kwargs(SongBasicSchema(), validate=validate_song, locations=('view_args',))
     def put(self, id: UUID) -> Response:
-        if not Song.exists(id=id):
+        if not db.Song.exists(id=id):
             return make_api_response(404, 'Not Found', 'Song does not exist')
 
         if not request.json:
@@ -223,21 +208,20 @@ class SongController(rest.Resource):
             if field in accepted_fields:
                 values[field] = val
 
-        song = Song[id]
+        song = db.Song[id]
         song.set(**values)
-        commit()
+        db.commit()
 
         return make_api_response(200, None, 'Successfully updated song metadata',
                                  content=dataclasses.asdict(get_song_details(song)))
 
-    @db_session
     @admin_required
-    @use_kwargs(request_args, validate=validate_song, locations=('view_args',))
+    @parser.use_kwargs(SongBasicSchema(), validate=validate_song, locations=('view_args',))
     def delete(self, id: UUID) -> Response:
-        if not Song.exists(id=id):
+        if not db.Song.exists(id=id):
             return make_api_response(404, 'Not Found', 'Song does not exist')
 
-        song = Song[id]
+        song = db.Song[id]
         song_path = os.path.join(app.config['PATH_MUSIC'], song.filename)
         if os.path.exists(song_path):
             os.remove(song_path)
@@ -248,7 +232,7 @@ class SongController(rest.Resource):
         return make_api_response(200, None, f'Successfully deleted song "{song.filename}"')
 
 
-@db_session
+@db.db_session
 def validate_token(args: Dict[str, UUID]) -> None:
     token = args['token']
     error = 'Token is invalid'
@@ -263,19 +247,21 @@ def validate_token(args: Dict[str, UUID]) -> None:
     raise ValidationError(error)
 
 
+class DownloadSchema(SongQuerySchema):
+    token = fields.Str(required=True)
+
+
 class DownloadController(rest.Resource):
-    @db_session
     @jwt_optional
-    @use_args({'token': fields.Str(required=True)},
-              validate=lambda args: validate_token(args))
+    @parser.use_args(DownloadSchema(), validate=validate_token)
     def get(self, args: Dict[str, str]) -> Response:
         decoded = decode_token(args['token'])
         song_id = UUID(decoded['identity']['id'])
 
-        if not Song.exists(id=song_id):
+        if not db.Song.exists(id=song_id):
             return make_api_response(404, 'Not Found', 'Song does not exist')
 
-        song = Song[song_id]
+        song = db.Song[song_id]
         serve_filename = f'{song.artist} - {song.title}.ogg'
 
         response = make_response(send_from_directory(
@@ -287,7 +273,6 @@ class DownloadController(rest.Resource):
 
 
 class UploadController(rest.Resource):
-    @db_session
     @jwt_optional
     def post(self) -> Response:
         if not app.config['PUBLIC_UPLOADS']:
@@ -340,40 +325,41 @@ class UploadController(rest.Resource):
         return make_api_response(422, 'Unprocessable Entity', f'File could not be processed')
 
 
-favourite_args = {
-    **songs_args,
-    'user': fields.Str(required=True)
-}
+class FavouriteSchema(SongQuerySchema):
+    user = fields.Str(required=True)
 
 
-@db_session
+@db.db_session
 def validate_user(args: Dict[str, str]) -> None:
-    print(args)
-    if not User.exists(username=args['user']):
+    if not user_exists(username=args['user']):
         raise ValidationError('User does not exist')
 
 
 class FavouriteController(rest.Resource):
-    @db_session
     @jwt_optional
-    @use_kwargs(favourite_args, validate=lambda args: validate_page(args) and validate_user(args))
+    @parser.use_kwargs(FavouriteSchema(), validate=lambda args: validate_page(args) and validate_user(args))
     def get(self, page: int, query: Optional_[str], limit: int,
             user: Optional_[str]) -> Response:
         if user:
-            user = User.get(username=user)
+            user = db.User.get(username=user)
         elif current_user:
             user = current_user
 
         if user:
             return process_songs(self, page, query, limit, user)
 
-        return songs_stub(self, page, query, limit)
+        pagination = Pagination(page=page, per_page=limit, total_count=0)
+        return make_api_response(200, None, content={
+            '_links': songs_links(self, page, query, limit, pagination),
+            'query': query,
+            'pagination': pagination.to_json(),
+            'songs': []
+        })
 
-    @db_session
     @jwt_required
-    @use_args(request_args, validate=validate_song)
+    @parser.use_args(SongBasicSchema(), validate=validate_song)
     def put(self, args: List[UUID]) -> Response:
-        song = Song[args['id']]
+        song = db.Song[args['id']]
         if song not in current_user.favourites:
             current_user.favourites.add(song)
             return make_api_response(200, None, f'Added "{song.title}" to your favourites')
@@ -381,11 +367,10 @@ class FavouriteController(rest.Resource):
         return make_api_response(400, 'Bad Request',
                                  f'"{song.title}" is already in your favourites')
 
-    @db_session
     @jwt_required
-    @use_args(request_args, validate=validate_song)
+    @parser.use_args(SongBasicSchema(), validate=validate_song)
     def delete(self, args: List[UUID]) -> Response:
-        song = Song[args['id']]
+        song = db.Song[args['id']]
         if song in current_user.favourites:
             current_user.favourites.remove(song)
             return make_api_response(200, None,

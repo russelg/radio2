@@ -68,9 +68,6 @@ class ShoutInstance:
         return ShoutInstance(shout, None)
 
 
-shout_instances: List[ShoutInstance] = []
-
-
 class Worker(threading.Thread):
     def __init__(self, group=None, target=None, name=None,
                  args=(), kwargs=None, *, daemon=None):
@@ -127,27 +124,34 @@ class Worker(threading.Thread):
         song.close()
 
         finish_time = time.time()
-        kbps = sent_bytes * 0.008 / (finish_time - start_time)
-        stream_format = 'MP3' if self.instance.is_mp3 else 'OGG'
+        kbps = int(sent_bytes * 0.008 / (finish_time - start_time))
+        duration = int(finish_time - start_time)
+        ext = 'MP3' if self.instance.is_mp3 else 'OGG'
         app.logger.info(
-            f"[{stream_format}] Sent {sent_bytes} bytes in {int(finish_time - start_time)} seconds ({int(kbps)} kbps)")
+            f"[{ext}] Sent {sent_bytes} bytes in {duration} seconds ({kbps} kbps)")
 
 
-shout_instances.append(ShoutInstance.initialize(app.config, False))
-if app.config['ICECAST_TRANSCODE']:
-    shout_instances.append(ShoutInstance.initialize(app.config, True))
+def run():
+    shout_instances: List[ShoutInstance] = []
+    shout_instances.append(ShoutInstance.initialize(app.config, False))
+    if app.config['ICECAST_TRANSCODE']:
+        shout_instances.append(ShoutInstance.initialize(app.config, True))
 
-for instance in shout_instances:
-    instance.connect()
-
-while True:
-    jobs = []
-    song_path = os.path.join(app.config['PATH_MUSIC'], next_song())
-    app.logger.info(f'streaming file "{song_path}"')
     for instance in shout_instances:
-        worker = Worker(args=(instance, song_path))
-        jobs.append(worker)
-        worker.start()
+        instance.connect()
 
-    for job in jobs:
-        job.join()
+    while True:
+        jobs = []
+        song = os.path.join(app.config['PATH_MUSIC'], next_song())
+        app.logger.info(f'streaming file "{song}"')
+        for instance in shout_instances:
+            worker = Worker(args=(instance, song))
+            jobs.append(worker)
+            worker.start()
+
+        for job in jobs:
+            job.join()
+
+
+if __name__ == "__main__":
+    run()
