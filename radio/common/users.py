@@ -105,6 +105,7 @@ def register(username: str, password: str, admin: bool = False, validate: bool =
     hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
     new_user = db.User(username=username, hash=hashed.decode(
         'utf-8'), admin=admin)
+    db.commit()
 
     return new_user is not None
 

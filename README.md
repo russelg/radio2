@@ -7,6 +7,15 @@ There is included functionality to request, favourite, upload and download songs
 
 :warning: **By default the first user to register becomes an admin, so please register an account to use for admin purposes before you expose the website to the public internet.** :warning:
 
+I have included a script which can create users. This can be used before going live to make sure the above point is not an issue.
+Please use these scripts after all dependencies have been set up (i.e. after docker images are built or pipenv packages are installed).
+
+If you are using docker, run `docker-compose run -w '/app' server python -m tools.create_user <username> -p <password> --admin`.
+
+If you are using the manual method, run `pipenv run python -m tools.create_user <username> -p <password> --admin`.
+
+Replace `<username>` and `<password>` with the desired user details.
+
 ---
 
 ### Using Docker
