@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 import collections
+from dataclasses import dataclass
 from urllib.parse import unquote
 
 import arrow
@@ -44,8 +44,8 @@ def np() -> dict:
             **app.config, ext=mount)
         listeners_count += int(parse_status(url).get('Current Listeners', 0))
 
-    lastplayed_rows = db.Song.select(lambda c: c.lastplayed is not None).sort_by(
-        db.desc(db.Song.lastplayed)).prefetch(db.Song.artist, db.Song.title, db.Song.length).limit(6)  # pylint: disable=no-member
+    lastplayed_rows = db.Song.select(lambda c: c.lastplayed).sort_by(
+        db.desc(db.Song.lastplayed)).limit(6)  # pylint: disable=no-member
 
     num_songs = db.Song.select().count()
 

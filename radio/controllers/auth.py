@@ -10,10 +10,11 @@ from flask_jwt_extended import (create_access_token, current_user,
 
 from radio import app
 from radio import models as db
-from radio.common.users import (UserSchema, refresh_token, register, sign_in,
+from radio.common.schemas import SongBasicSchema, UserSchema
+from radio.common.users import (refresh_token, register, sign_in,
                                 valid_registration)
-from radio.common.utils import make_api_response, parser
-from radio.controllers.songs import validate_song, SongBasicSchema
+from radio.common.utils import make_api_response, parser, get_song_or_abort
+from radio.controllers.songs import validate_song
 
 blueprint = Blueprint('auth', __name__)
 api = rest.Api(blueprint)
@@ -48,9 +49,7 @@ class DownloadController(rest.Resource):
                 return make_api_response(403, 'Forbidden', 'Downloading is not enabled')
 
         song_id = args['id']
-
-        if not db.Song.exists(id=song_id):
-            return make_api_response(404, 'Not Found', 'Song was not found')
+        get_song_or_abort(song_id)
 
         new_token = create_access_token(
             {'id': str(song_id)}, expires_delta=timedelta(seconds=10))

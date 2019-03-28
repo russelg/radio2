@@ -7,17 +7,16 @@ from datetime import datetime
 from enum import Enum
 from functools import lru_cache, partial
 from random import choices
-from typing import Dict, List, NamedTuple
-from typing import Optional as _Optional
-from typing import Union
+from typing import Dict, List, NamedTuple, Optional, Union
 from urllib.error import URLError
 from urllib.request import urlopen
+from uuid import UUID
 
 import arrow
 import marshmallow
 import mutagen
 import xmltodict
-from flask import Response, jsonify, request
+from flask import Response, jsonify
 from webargs import flaskparser
 from werkzeug.exceptions import HTTPException
 
@@ -50,7 +49,7 @@ class QueueType(Enum):
 def make_api_response(status_code: int, error: Union[str, bool, None],
                       description: str = None, content: Dict = None) -> Response:
     """
-    Generates a standard error response to use for API responses
+    Generates a standard response format to use for API responses
 
     :param status_code: HTTP status code for error
     :param error: short name for error
@@ -152,7 +151,7 @@ def sample_songs_weighted(num: int = 6) -> List[db.Song]:
     return choices(songs, weights=weights, k=num)
 
 
-def get_metadata(filename: str) -> _Optional[Dict[str, int]]:
+def get_metadata(filename: str) -> Optional[Dict[str, int]]:
     """
     Returns the associated tags for a given music file.
 
@@ -172,6 +171,15 @@ def get_metadata(filename: str) -> _Optional[Dict[str, int]]:
         "path": filename,
         "length": metadata.info.length
     }
+
+
+def get_song_or_abort(song_id: UUID) -> db.Song:
+    song = db.Song.get(id=song_id)
+    if not song:
+        resp = make_api_response(404, 'Not Found', 'Song does not exist')
+        raise HTTPException(description=resp.response, response=resp)
+    else:
+        return song
 
 
 @db.db_session
@@ -301,7 +309,7 @@ def next_song() -> str:
 class QueueStatus(NamedTuple):
     queued: bool
     type: QueueType
-    time: _Optional[datetime]
+    time: Optional[datetime]
 
 
 @db.db_session
@@ -342,7 +350,7 @@ def humanize_lastplayed(seconds: Union[arrow.arrow.Arrow, int]) -> str:
 class RequestStatus:
     requestable: bool
     humanized_lastplayed: str = humanize_lastplayed(0)
-    reason: _Optional[str] = None
+    reason: Optional[str] = None
 
 
 @db.db_session

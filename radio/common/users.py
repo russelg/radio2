@@ -1,24 +1,16 @@
 import re
 from functools import wraps
-from typing import Dict
-from typing import Optional as Optional_
-from typing import Union
+from typing import Dict, Optional, Union
 
 import bcrypt
 from flask import Response
 from flask_jwt_extended import (create_access_token, create_refresh_token,
                                 get_jwt_claims, verify_jwt_in_request)
-from marshmallow import Schema, fields
 
 from radio import jwt
 from radio import models as db
 from radio.common.errors import Validator
 from radio.common.utils import make_api_response
-
-
-class UserSchema(Schema):
-    username = fields.Str(required=True)
-    password = fields.Str(required=True)
 
 
 @jwt.user_loader_callback_loader
@@ -43,7 +35,7 @@ def add_claims_to_access_token(identity: str):
 
 
 @db.db_session
-def sign_in(username: str, password: str) -> Optional_[Dict]:
+def sign_in(username: str, password: str) -> Optional[Dict]:
     """Authenticate user details, returning authorization tokens and user metadata
 
     :param str username: username to authenticate
@@ -65,7 +57,7 @@ def sign_in(username: str, password: str) -> Optional_[Dict]:
 
 
 @db.db_session
-def refresh_token(user) -> Optional_[Dict]:
+def refresh_token(user) -> Optional[Dict]:
     if user:
         new_token = create_access_token(identity=str(user.id), fresh=False)
         return {'access_token': new_token,
