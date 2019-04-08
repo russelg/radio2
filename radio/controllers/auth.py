@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Dict
+from typing import Dict, Union
 from uuid import UUID
 
 import flask_restful as rest
@@ -13,7 +13,7 @@ from radio import models as db
 from radio.common.schemas import SongBasicSchema, UserSchema
 from radio.common.users import (refresh_token, register, sign_in,
                                 valid_registration)
-from radio.common.utils import make_api_response, parser, get_song_or_abort
+from radio.common.utils import get_song_or_abort, make_api_response, parser
 from radio.controllers.songs import validate_song
 
 blueprint = Blueprint('auth', __name__)
@@ -63,7 +63,8 @@ class DownloadController(rest.Resource):
 class RegisterController(rest.Resource):
     @parser.use_kwargs(UserSchema())
     def post(self, username: str, password: str) -> Response:
-        valid_resp = valid_registration(username, response=True)
+        valid_resp: Union[bool, Response] = valid_registration(
+            username, response=True)
         if valid_resp is not True:
             return valid_resp
 

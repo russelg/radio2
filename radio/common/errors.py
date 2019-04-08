@@ -12,7 +12,7 @@ class Validator(NamedTuple):
 
 
 @jwt.expired_token_loader
-def expired_token_loader(token: str) -> Response:
+def expired_token_loader(token: dict) -> Response:
     token_type = token['type']
     return make_api_response(401, 'Unauthorized', f'The {token_type} token has expired')
 

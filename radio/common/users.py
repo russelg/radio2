@@ -142,7 +142,7 @@ def admin_required(fn):
     return wrapper
 
 
-def valid_username(username: str) -> dict:
+def valid_username(username: str) -> Validator:
     """
     Validates the given username meets username requirements.
     Requirements are as follows:

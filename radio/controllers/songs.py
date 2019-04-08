@@ -3,8 +3,7 @@ import os
 import queue
 from functools import partial
 from threading import Thread
-from typing import Dict, List
-from typing import Optional as Optional_
+from typing import Any, Dict, List, Optional
 from urllib.parse import quote
 from uuid import UUID
 
@@ -21,11 +20,11 @@ from radio import app
 from radio import models as db
 from radio.common.pagination import Pagination
 from radio.common.schemas import (DownloadSchema, FavouriteSchema,
-                                  SongBasicSchema, SongData, SongQuerySchema)
+                                  SongBasicSchema, SongData, SongQuerySchema, SongMeta)
 from radio.common.users import admin_required, user_exists, user_is_admin
 from radio.common.utils import (allowed_file, encode_file,
-                                filter_default_webargs, insert_song,
-                                get_song_or_abort, make_api_response, parser,
+                                filter_default_webargs, get_song_or_abort,
+                                insert_song, make_api_response, parser,
                                 request_status)
 
 blueprint = Blueprint('songs', __name__)
@@ -33,8 +32,8 @@ api = rest.Api(blueprint)
 
 
 @db.db_session
-def song_queries(page: int, query: Optional_[str], limit: int,
-                 user: Optional_[db.User] = None) -> dict:
+def song_queries(page: int, query: Optional[str], limit: int,
+                 user: Optional[db.User] = None) -> dict:
     if query and user:
         songs = user.favourites.select(
             lambda s: query in s.artist or query in s.title)
@@ -75,17 +74,16 @@ def songs_links(context, page, query, limit, pagination):
 def get_song_details(song: db.Song) -> Dict:
     original_song = song
     song = SongData(**song.to_dict(exclude='filename', with_lazy=True))
-    song.meta = request_status(song)
-    song.meta.favourited = False
     song.size = os.path.getsize(os.path.join(
         app.config["PATH_MUSIC"], original_song.filename))
+    song.meta = SongMeta(request_status(song), favourited=False)
     if current_user:
-        song.meta.favourited = song in current_user.favourites
+        song.meta.favourited = original_song in current_user.favourites
     return song
 
 
-def process_songs(context, page: int, query: Optional_[str], limit: int,
-                  favourites: Optional_[db.User] = None) -> Response:
+def process_songs(context, page: int, query: Optional[str], limit: int,
+                  favourites: Optional[db.User] = None) -> Response:
     info = song_queries(page, query, limit, favourites)
     songs = info['songs'].page(page, limit)
 
@@ -100,7 +98,7 @@ def process_songs(context, page: int, query: Optional_[str], limit: int,
 
 
 @db.db_session
-def validate_page(args: Dict[str, any]) -> None:
+def validate_page(args: Dict[str, Any]) -> None:
     page = args['page']
     info = song_queries(page, args['query'], args['limit'])
 
@@ -111,7 +109,7 @@ def validate_page(args: Dict[str, any]) -> None:
 class SongsController(rest.Resource):
     @jwt_optional
     @parser.use_kwargs(SongQuerySchema(), validate=validate_page)
-    def get(self, page: int, query: Optional_[str], limit: int) -> Response:
+    def get(self, page: int, query: Optional[str], limit: int) -> Response:
         return process_songs(self, page, query, limit)
 
 
@@ -132,7 +130,7 @@ class RequestController(rest.Resource):
 
         if status.requestable:
             db.Queue(song=song, requested=True)
-            meta = request_status(song)
+            meta = SongMeta(request_status(song))
             if current_user:
                 meta.favourited = song in current_user.favourites
             return make_api_response(200, None, f'Requested "{song.title}" successfully', {'meta': meta})
@@ -143,7 +141,7 @@ class RequestController(rest.Resource):
 
 class AutocompleteController(rest.Resource):
     @parser.use_kwargs({'query': fields.Str(required=True, validate=validate.Length(min=1))})
-    def get(self, query: Optional_[str]) -> Response:
+    def get(self, query: str) -> Response:
         data = []
         artists = db.select(s.artist for s in db.Song if query.lower()
                             in s.artist.lower()).limit(5)
@@ -169,6 +167,7 @@ class AutocompleteController(rest.Resource):
 
 
 class SongController(rest.Resource):
+    @jwt_optional
     @parser.use_kwargs(SongBasicSchema(), validate=validate_song, locations=('view_args',))
     def get(self, id: UUID) -> Response:
         song = get_song_or_abort(id)
@@ -208,7 +207,7 @@ class SongController(rest.Resource):
 
 
 @db.db_session
-def validate_token(args: Dict[str, UUID]) -> None:
+def validate_token(args: Dict[str, UUID]) -> bool:
     error = 'Token is invalid'
 
     try:
@@ -301,8 +300,8 @@ def validate_user(args: Dict[str, str]) -> None:
 class FavouriteController(rest.Resource):
     @jwt_optional
     @parser.use_kwargs(FavouriteSchema(), validate=lambda args: validate_page(args) and validate_user(args))
-    def get(self, page: int, query: Optional_[str], limit: int,
-            user: Optional_[str]) -> Response:
+    def get(self, page: int, query: str, limit: int,
+            user: Optional[str]) -> Response:
         if user:
             user = db.User.get(username=user)
         elif current_user:

@@ -7,7 +7,7 @@ from datetime import datetime
 from enum import Enum
 from functools import lru_cache, partial
 from random import choices
-from typing import Dict, List, NamedTuple, Optional, Union
+from typing import Any, Dict, List, NamedTuple, Optional, Union
 from urllib.error import URLError
 from urllib.request import urlopen
 from uuid import UUID
@@ -22,6 +22,7 @@ from werkzeug.exceptions import HTTPException
 
 from radio import app
 from radio import models as db
+from radio.common.schemas import RequestStatus
 
 register_blueprint_prefixed = partial(
     app.register_blueprint, url_prefix=app.config['SERVER_API_PREFIX'])
@@ -151,7 +152,7 @@ def sample_songs_weighted(num: int = 6) -> List[db.Song]:
     return choices(songs, weights=weights, k=num)
 
 
-def get_metadata(filename: str) -> Optional[Dict[str, int]]:
+def get_metadata(filename: str) -> Optional[Dict[str, Any]]:
     """
     Returns the associated tags for a given music file.
 
@@ -177,7 +178,7 @@ def get_song_or_abort(song_id: UUID) -> db.Song:
     song = db.Song.get(id=song_id)
     if not song:
         resp = make_api_response(404, 'Not Found', 'Song does not exist')
-        raise HTTPException(description=resp.response, response=resp)
+        raise HTTPException(description=resp.get_data(), response=resp)
     else:
         return song
 
@@ -346,13 +347,6 @@ def humanize_lastplayed(seconds: Union[arrow.arrow.Arrow, int]) -> str:
         return 'Never before'
 
 
-@dataclass
-class RequestStatus:
-    requestable: bool
-    humanized_lastplayed: str = humanize_lastplayed(0)
-    reason: Optional[str] = None
-
-
 @db.db_session
 def request_status(song: db.Song) -> RequestStatus:
     """
@@ -401,7 +395,7 @@ def parse_status(url: str) -> dict:
 
     Logic behind returning an explicit "Online" key is readability
     """
-    result = {'Online': False}  # Assume False by default
+    result = {'Online': False, 'Current Song': ''}  # Assume False by default
     try:
         xml = urlopen(url).read()
     except URLError:

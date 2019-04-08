@@ -1,5 +1,5 @@
 import math
-from typing import Dict
+from typing import Any, Dict, Iterator
 
 
 class Pagination:
@@ -37,14 +37,14 @@ class Pagination:
         """
         return self.page < self.pages
 
-    def to_json(self) -> Dict[int, bool]:
+    def to_json(self) -> Dict[str, Any]:
         """
         :returns: Pagination info as a dictionary
         """
         return dict(self.__dict__, pages=self.pages, has_prev=self.has_prev, has_next=self.has_next)
 
     def iter_pages(self, left_edge=2, left_current=2,
-                   right_current=5, right_edge=2) -> int:
+                   right_current=5, right_edge=2) -> Iterator[int]:
         """
         :returns: Iterator over all pages, with clipping when too many pages exist
         """
