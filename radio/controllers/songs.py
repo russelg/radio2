@@ -76,7 +76,8 @@ def get_song_details(song: db.Song) -> Dict:
     song = SongData(**song.to_dict(exclude='filename', with_lazy=True))
     song.size = os.path.getsize(os.path.join(
         app.config["PATH_MUSIC"], original_song.filename))
-    song.meta = SongMeta(request_status(song), favourited=False)
+    song.meta = SongMeta(
+        **dataclasses.asdict(request_status(song)), favourited=False)
     if current_user:
         song.meta.favourited = original_song in current_user.favourites
     return song
@@ -130,7 +131,8 @@ class RequestController(rest.Resource):
 
         if status.requestable:
             db.Queue(song=song, requested=True)
-            meta = SongMeta(request_status(song))
+            meta = SongMeta(
+                **dataclasses.asdict(request_status(song)), favourited=False)
             if current_user:
                 meta.favourited = song in current_user.favourites
             return make_api_response(200, None, f'Requested "{song.title}" successfully', {'meta': meta})
