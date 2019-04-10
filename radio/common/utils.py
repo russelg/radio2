@@ -99,7 +99,7 @@ def allowed_file(filename: str) -> bool:
     :return: True if filename is valid
     """
     _, file_extension = os.path.splitext(filename)
-    return file_extension.lower() in app.config["ALLOWED_EXTENSIONS"]
+    return file_extension[1:].lower() in app.config["ALLOWED_EXTENSIONS"]
 
 
 def encode_file(filename: str) -> str:

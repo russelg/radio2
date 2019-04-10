@@ -476,6 +476,7 @@ class Songs extends React.Component {
             <Form onSubmit={this.handleSearch}>
               <InputGroup>
                 <AsyncTypeahead
+                  id="search"
                   labelKey="result"
                   filterBy={['result']}
                   renderMenuItemChildren={(result, props) => (
