@@ -9,7 +9,7 @@ import {
   Row,
 } from 'reactstrap'
 
-class Error extends React.Component {
+class Error extends React.PureComponent {
   handleBack() {
     this.props.history.goBack()
   }

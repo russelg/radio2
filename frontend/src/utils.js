@@ -27,6 +27,3 @@ export function readableSeconds(seconds) {
 export function fuzzyTime(time) {
   return moment(time).fromNow()
 }
-
-export const ConditionalWrap = ({ condition, wrap, children }) =>
-  condition ? wrap(children) : children

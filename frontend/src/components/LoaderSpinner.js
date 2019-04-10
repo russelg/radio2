@@ -1,12 +1,11 @@
 import React from 'react'
-import FontAwesome from 'react-fontawesome'
-import { Col } from 'reactstrap'
+import { Col, Spinner } from 'reactstrap'
 
-class LoaderSpinner extends React.Component {
+class LoaderSpinner extends React.PureComponent {
   render() {
     return (
       <Col sm="12" className="my-auto text-center fa-3x">
-        <FontAwesome name="spinner" spin size="3x" />
+        <Spinner style={{ width: '8rem', height: '8rem' }} />
       </Col>
     )
   }

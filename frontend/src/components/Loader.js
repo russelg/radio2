@@ -4,7 +4,7 @@ import { Container, Row } from 'reactstrap'
 import './Loader.css'
 import LoaderSpinner from './LoaderSpinner'
 
-class Loader extends React.Component {
+class Loader extends React.PureComponent {
   componentDidMount() {
     let elem = ReactDOM.findDOMNode(this)
 
