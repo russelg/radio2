@@ -23,9 +23,10 @@ def send_css(path: str):
     return send_from_directory('static/static/css', path)
 
 
-@app.route('/<path:_>')
-def index(_: str):
-    return app.send_static_file('index.html')
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def index(path: str):
+    return send_from_directory('static', 'index.html')
 
 
 if __name__ == '__main__':

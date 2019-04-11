@@ -53,7 +53,7 @@ class Navbar extends React.Component {
             <Collapse
               isOpen={!this.state.collapsed}
               navbar
-              className="justify-content-end no-flex-grow">
+              className="justify-content-start no-flex-grow">
               <Nav navbar>{songsButton}</Nav>
             </Collapse>
           )}

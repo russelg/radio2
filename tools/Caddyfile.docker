@@ -10,6 +10,17 @@ http://radio.local {
 	proxy /style.css	icecast:8067 	{ transparent }
 	proxy /tunein.png	icecast:8067 	{ transparent }
 
+	rewrite {
+		if {path} is /
+		to /proxy/{uri}
+	}
+	rewrite {
+		to {path} /proxy/{uri}
+	}
+
 	# api
-	proxy /api			server:80	 	{ transparent }
+	proxy /proxy			server:80	 	{
+		transparent
+		without /proxy
+	}
 }

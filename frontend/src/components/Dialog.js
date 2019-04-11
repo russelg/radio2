@@ -9,7 +9,7 @@ class Dialog extends React.PureComponent {
           <Col lg={{ size: 8, offset: 2 }}>
             <Card>
               <CardBody className="mx-auto col-md-8">
-                <CardTitle className="text-center">
+                <CardTitle className="text-center" tag="h2">
                   {this.props.title}
                 </CardTitle>
                 <>{this.props.children}</>

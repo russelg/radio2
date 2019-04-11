@@ -120,7 +120,7 @@ class SignUp extends React.Component {
             }) => (
               <Form
                 onSubmit={handleSubmit}
-                className="text-center"
+                className="text-center px-4 py-3"
                 autoComplete="new-password">
                 <FormInput
                   icon="user"
