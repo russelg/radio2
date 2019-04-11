@@ -14,15 +14,13 @@ import { API_BASE, playingState, settings } from './store'
 const AsyncHome = Loadable({
   loader: () => import('./pages/Home'),
   loading: Loader,
-  render(loaded, props) {
-    let Component = loaded.default
-    return <Component {...props} />
-  },
+  delay: 100,
 })
 
 const AsyncSongs = Loadable({
   loader: () => import('./pages/Songs'),
   loading: Loader,
+  delay: 100,
 })
 
 class App extends React.Component {

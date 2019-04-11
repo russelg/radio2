@@ -196,7 +196,6 @@ export const playingState = store({
       radio.sync_seconds = radio.cur_time - cur
       end += radio.sync_seconds
       start += radio.sync_seconds
-      radio.temp_update_progress = 0
       radio.duration = end - start
       radio.position = radio.cur_time - start
       radio.update_progress = (100 / radio.duration) * radio.position
@@ -219,7 +218,7 @@ export const playingState = store({
     if (radio.update_progress > 0) {
       radio.update_progress = radio.update_progress + radio.update_progress_inc
     } else {
-      radio.update_progress = 100
+      radio.update_progress = 0
     }
   },
 

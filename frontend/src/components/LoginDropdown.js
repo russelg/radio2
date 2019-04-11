@@ -9,7 +9,7 @@ import {
 } from 'reactstrap'
 import LoginForm from './LoginForm'
 
-class LoginDropdown extends React.PureComponent {
+class LoginDropdown extends React.Component {
   render() {
     return (
       <UncontrolledDropdown nav inNavbar>

@@ -55,7 +55,7 @@ class Songs extends React.Component {
       alerts: [],
       username: null,
       files: [],
-      show_admin: true,
+      show_admin: localStorage.getItem('show_admin') === 'true',
       location: new URL(window.location.href),
     }
 
@@ -149,6 +149,7 @@ class Songs extends React.Component {
 
   getPage(page, query = undefined, username = undefined) {
     const url = this.getUrl({ page, query, user: username })
+    this.setState({ loaded: false })
     fetch(`${API_BASE}/${url}`)
       .then(async res => {
         if (res.status === 422 || res.status !== 200) {
@@ -172,6 +173,7 @@ class Songs extends React.Component {
   }
 
   handleAdminChange(event) {
+    localStorage.setItem('show_admin', event.target.checked)
     this.setState({ show_admin: event.target.checked })
   }
 
@@ -538,37 +540,50 @@ class Songs extends React.Component {
             <hr />
           </Col>
         </Row>
-        {!this.state.loaded && (
-          <Row>
-            <LoaderSpinner />
-          </Row>
-        )}
-        {this.state.loaded && (
-          <Row>
-            <Col>
-              {this.state.songs.length === 0 && (
+        <Row>
+          <Col>
+            {this.state.loaded ? (
+              this.state.songs.length === 0 && (
                 <h2 className="mx-auto text-center">No results</h2>
-              )}
-              {this.state.songs.length !== 0 && (
-                <SongsTable
-                  songs={this.state.songs}
-                  requestSong={this.requestSong.bind(this)}
-                  favouriteSong={this.favouriteSong.bind(this)}
-                  deleteSong={this.deleteSong.bind(this)}
-                  updateSongMetadata={this.updateSongMetadata.bind(this)}
-                  downloads={
-                    settings.downloads_enabled ||
-                    (auth.admin && this.state.show_admin)
-                  }
-                  isAdmin={auth.admin && this.state.show_admin}
-                  downloadSong={this.downloadSong.bind(this)}
-                  loggedIn={auth.logged_in}
-                  reloadPage={this.reloadPage.bind(this)}
-                />
-              )}
-            </Col>
-          </Row>
-        )}
+              )
+            ) : (
+              <LoaderSpinner
+                style={{
+                  zIndex: 1,
+                  position: 'absolute',
+                  background: 'rgba(255,255,255,0.5)',
+                  height: '100%',
+                  left: '0',
+                }}
+              />
+            )}
+            {/* {this.state.songs.length === 0 &&
+              (this.state.loaded ? (
+                <h2 className="mx-auto text-center">No results</h2>
+              ) : (
+                <LoaderSpinner />
+              ))
+            // <LoaderSpinner /> // <h2 className="mx-auto text-center">No results</h2>
+            } */}
+            {this.state.songs.length !== 0 && (
+              <SongsTable
+                songs={this.state.songs}
+                requestSong={this.requestSong.bind(this)}
+                favouriteSong={this.favouriteSong.bind(this)}
+                deleteSong={this.deleteSong.bind(this)}
+                updateSongMetadata={this.updateSongMetadata.bind(this)}
+                downloads={
+                  settings.downloads_enabled ||
+                  (auth.admin && this.state.show_admin)
+                }
+                isAdmin={auth.admin && this.state.show_admin}
+                downloadSong={this.downloadSong.bind(this)}
+                loggedIn={auth.logged_in}
+                reloadPage={this.reloadPage.bind(this)}
+              />
+            )}
+          </Col>
+        </Row>
         <hr />
         <Row>
           <Col className="justify-content-center">{pagination}</Col>
