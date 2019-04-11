@@ -33,6 +33,7 @@ let config = {
         return json.access_token
       })
   },
+  fetchRetryCount: 3,
 }
 
 export const auth = store({

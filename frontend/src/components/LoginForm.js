@@ -2,6 +2,7 @@ import React from 'react'
 import { view } from 'react-easy-state'
 import { Button, Form, FormFeedback, FormGroup, Input } from 'reactstrap'
 import { auth } from '../store'
+import './LoginForm.css'
 
 class LoginForm extends React.Component {
   constructor() {
@@ -36,7 +37,7 @@ class LoginForm extends React.Component {
 
   render() {
     return (
-      <Form className="px-4 py-3" onSubmit={this.handleLogin}>
+      <Form className="px-4 py-3 form-signin" onSubmit={this.handleLogin}>
         <FormGroup>
           <Input
             name="username"
@@ -47,9 +48,8 @@ class LoginForm extends React.Component {
             invalid={this.state.error !== null}
             required
             autoComplete="username"
+            className="username"
           />
-        </FormGroup>
-        <FormGroup>
           <Input
             type="password"
             name="password"
@@ -60,6 +60,7 @@ class LoginForm extends React.Component {
             invalid={this.state.error !== null}
             required
             autoComplete="current-password"
+            className="password"
           />
           <FormFeedback>{this.state.error}</FormFeedback>
         </FormGroup>

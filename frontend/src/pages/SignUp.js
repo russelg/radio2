@@ -5,20 +5,15 @@ import FontAwesome from 'react-fontawesome'
 import { Link, Redirect } from 'react-router-dom'
 import {
   Button,
-  Card,
-  CardBody,
-  CardTitle,
-  Col,
-  Container,
   Form,
   FormFeedback,
   FormGroup,
   Input,
   InputGroup,
   InputGroupAddon,
-  Row,
 } from 'reactstrap'
 import * as yup from 'yup'
+import Dialog from '../components/Dialog'
 import { auth } from '../store'
 import './Home.css'
 
@@ -93,94 +88,89 @@ class SignUp extends React.Component {
 
     // let errors = schemaErrors(schema, this.state)
     return (
-      <Container className="content-panel">
-        <Row className="align-items-center">
-          <Col lg={{ size: 8, offset: 2 }}>
-            <Card>
-              <CardBody className="mx-auto col-md-6">
-                <CardTitle>Register</CardTitle>
-                {this.state.registered === false && (
-                  <Formik
-                    initialValues={{
-                      username: '',
-                      password: '',
-                      confirmPassword: '',
-                    }}
-                    validate={schemaErrors}
-                    onSubmit={(values, { setSubmitting, setErrors }) => {
-                      auth
-                        .register(values.username, values.password)
-                        .then(msg => {
-                          this.setState({ registered: msg })
-                        })
-                        .catch(error => {
-                          setErrors({ username: error.message })
-                        })
-                      setSubmitting(false)
-                    }}
-                    render={({
-                      values,
-                      errors,
-                      touched,
-                      handleChange,
-                      handleBlur,
-                      handleSubmit,
-                      isSubmitting,
-                    }) => (
-                      <Form onSubmit={handleSubmit} autoComplete="new-password">
-                        <FormInput
-                          icon="user"
-                          placeholder="username"
-                          name="username"
-                          value={values.username}
-                          onBlur={handleBlur}
-                          onChange={handleChange}
-                          invalidError={errors.username}
-                          invalid={touched.username && !!errors.username}
-                        />
-                        <FormInput
-                          icon="lock"
-                          placeholder="password"
-                          name="password"
-                          type="password"
-                          value={values.password}
-                          onBlur={handleBlur}
-                          onChange={handleChange}
-                          invalidError={errors.password}
-                          invalid={touched.password && !!errors.password}
-                        />
-                        <FormInput
-                          icon="lock"
-                          placeholder="confirm password"
-                          name="confirmPassword"
-                          type="password"
-                          value={values.confirmPassword}
-                          onBlur={handleBlur}
-                          onChange={handleChange}
-                          invalidError={errors.confirmPassword}
-                          invalid={
-                            (touched.confirmPassword || touched.password) &&
-                            !!errors.confirmPassword
-                          }
-                        />
-                        <Button type="submit" disabled={isSubmitting}>
-                          Submit
-                        </Button>
-                      </Form>
-                    )}
-                  />
-                )}
-                {this.state.registered && (
-                  <h2>
-                    {this.state.registered}! You may now{' '}
-                    <Link to="/sign-in">sign in</Link>.
-                  </h2>
-                )}
-              </CardBody>
-            </Card>
-          </Col>
-        </Row>
-      </Container>
+      <Dialog title="Sign Up">
+        {' '}
+        {this.state.registered === false && (
+          <Formik
+            initialValues={{
+              username: '',
+              password: '',
+              confirmPassword: '',
+            }}
+            validate={schemaErrors}
+            onSubmit={(values, { setSubmitting, setErrors }) => {
+              auth
+                .register(values.username, values.password)
+                .then(msg => {
+                  this.setState({ registered: msg })
+                })
+                .catch(error => {
+                  setErrors({ username: error.message })
+                })
+              setSubmitting(false)
+            }}
+            render={({
+              values,
+              errors,
+              touched,
+              handleChange,
+              handleBlur,
+              handleSubmit,
+              isSubmitting,
+            }) => (
+              <Form
+                onSubmit={handleSubmit}
+                className="text-center"
+                autoComplete="new-password">
+                <FormInput
+                  icon="user"
+                  placeholder="username"
+                  name="username"
+                  value={values.username}
+                  onBlur={handleBlur}
+                  onChange={handleChange}
+                  invalidError={errors.username}
+                  invalid={touched.username && !!errors.username}
+                />
+                <FormInput
+                  icon="lock"
+                  placeholder="password"
+                  name="password"
+                  type="password"
+                  value={values.password}
+                  onBlur={handleBlur}
+                  onChange={handleChange}
+                  invalidError={errors.password}
+                  invalid={touched.password && !!errors.password}
+                />
+                <FormInput
+                  icon="lock"
+                  placeholder="confirm password"
+                  name="confirmPassword"
+                  type="password"
+                  value={values.confirmPassword}
+                  onBlur={handleBlur}
+                  onChange={handleChange}
+                  invalidError={errors.confirmPassword}
+                  invalid={
+                    (touched.confirmPassword || touched.password) &&
+                    !!errors.confirmPassword
+                  }
+                />
+                <Button type="submit" disabled={isSubmitting}>
+                  Submit
+                </Button>
+              </Form>
+            )}
+          />
+        )}
+        {this.state.registered && (
+          <h2>
+            {this.state.registered}! You may now{' '}
+            <Link to="/sign-in">sign in</Link>.
+          </h2>
+        )}
+      </Dialog>
     )
   }
 }
