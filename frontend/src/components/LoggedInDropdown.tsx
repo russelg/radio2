@@ -12,12 +12,12 @@ import {
 import { auth } from '../store'
 
 class LoggedInDropdown extends React.Component {
-  constructor() {
-    super()
+  constructor(props) {
+    super(props)
     this.handleLogout = this.handleLogout.bind(this)
   }
 
-  async handleLogout(event) {
+  async handleLogout() {
     await auth.logout()
   }
 

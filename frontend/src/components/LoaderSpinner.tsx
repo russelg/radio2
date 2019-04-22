@@ -2,14 +2,20 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import { Col, Spinner } from 'reactstrap'
 
-class LoaderSpinner extends React.Component {
+export interface Props {
+  style?: object
+}
+
+class LoaderSpinner extends React.PureComponent<Props> {
   componentDidMount() {
-    let elem = ReactDOM.findDOMNode(this)
+    let elem = ReactDOM.findDOMNode(this) as HTMLElement
 
     // fade loader in
-    window.requestAnimationFrame(() => {
-      elem.style.opacity = 1
-    })
+    if (elem instanceof HTMLElement) {
+      window.requestAnimationFrame(() => {
+        elem.style.opacity = '1'
+      })
+    }
   }
 
   render() {
@@ -19,7 +25,7 @@ class LoaderSpinner extends React.Component {
         className="d-flex justify-content-center fa-3x"
         style={{
           transition: 'opacity 300ms',
-          opacity: '0',
+          opacity: 0,
           ...this.props.style,
         }}>
         <Spinner

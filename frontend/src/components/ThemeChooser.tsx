@@ -1,21 +1,29 @@
 import React from 'react'
 import { view } from 'react-easy-state'
 
-class ThemeChooser extends React.Component {
+export interface State {
+  selected: string
+}
+
+export interface Props {
+  styles: object
+}
+
+class ThemeChooser extends React.Component<Props, State> {
+  state = {
+    selected: localStorage.hasOwnProperty('css')
+      ? localStorage['css']
+      : document.querySelector<HTMLLinkElement>('#change_stylesheet')!.href,
+  }
+
   constructor(props) {
     super(props)
-    this.state = {
-      selected: localStorage.hasOwnProperty('css')
-        ? localStorage['css']
-        : document.querySelector('#change_stylesheet').href,
-    }
-
     this.onChange = this.onChange.bind(this)
   }
 
   onChange(event) {
     const css = event.target.value
-    document.querySelector('#change_stylesheet').href = css
+    document.querySelector<HTMLLinkElement>('#change_stylesheet')!.href = css
     localStorage['css'] = css
     this.setState({ selected: css })
   }

@@ -8,8 +8,8 @@ if (!localStorage.getItem('volume')) {
 export const API_BASE = '/api/v1'
 
 let config = {
-  shouldIntercept: request => true,
-  shouldInvalidateAccessToken: request => false,
+  shouldIntercept: () => true,
+  shouldInvalidateAccessToken: () => false,
   shouldWaitForTokenRenewal: true,
   authorizeRequest: (request, accessToken) => {
     request.headers.set('Authorization', `Bearer ${accessToken}`)
@@ -160,17 +160,20 @@ export const playingState = store({
     afk: 'init',
     current_title: '',
     current_artist: '',
+    cur_time: 0,
+    duration: 0,
+    position: 0,
   },
 
   get volume() {
     if (localStorage.getItem('volume')) {
-      return parseInt(localStorage.getItem('volume'), 10)
+      return parseInt(localStorage.getItem('volume') || '80', 10)
     }
     return 80
   },
 
-  set volume(vol) {
-    localStorage.setItem('volume', vol)
+  set volume(vol: number) {
+    localStorage.setItem('volume', `${vol}`)
   },
 
   sync_offset: 4,
