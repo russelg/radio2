@@ -25,7 +25,7 @@ import ThemeChooser from './ThemeChooser'
 interface Props extends RouteComponentProps<any> {
   children: JSX.Element
   title: string
-  styles: object
+  styles: { [k: string]: string }
   currentStyle?: string
 }
 
@@ -34,16 +34,17 @@ interface State {
 }
 
 class Navbar extends React.Component<Props, State> {
-  constructor(props) {
+  state = {
+    collapsed: true,
+  }
+
+  constructor(props: Props) {
     super(props)
-    this.state = {
-      collapsed: true,
-    }
 
     this.toggle = this.toggle.bind(this)
   }
 
-  toggle() {
+  toggle(): void {
     this.setState({
       collapsed: !this.state.collapsed,
     })

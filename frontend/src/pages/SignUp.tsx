@@ -97,7 +97,7 @@ class SignUp extends React.Component {
     registered: false,
   }
 
-  constructor(props) {
+  constructor(props: {}) {
     super(props)
   }
 

@@ -1,9 +1,10 @@
-import React, { createRef } from 'react'
+import React from 'react'
 import { view } from 'react-easy-state'
 import ReactHowler from 'react-howler'
 import Loadable from 'react-loadable'
 import { BrowserRouter as Router, Route } from 'react-router-dom'
 import { AnimatedSwitch } from 'react-router-transition'
+import { ApiResponse, NowPlayingJson, SettingsJson } from './api/Schemas'
 import Loader from './components/Loader'
 import MiniPlayer from './components/MiniPlayer'
 import Navbar from './components/Navbar'
@@ -55,7 +56,7 @@ class App extends React.Component<Props, State> {
   fetchSettings(): void {
     fetch(`${API_BASE}/settings`)
       .then(res => res.json())
-      .then(result => {
+      .then((result: ApiResponse<SettingsJson>) => {
         settings.updateSettings(result)
         this.setState({ loaded: true })
         if (!playingState.playing) document.title = settings.title
@@ -65,7 +66,7 @@ class App extends React.Component<Props, State> {
   updateState(): void {
     fetch(`${API_BASE}/np`)
       .then(res => res.json())
-      .then(result => {
+      .then((result: ApiResponse<NowPlayingJson>) => {
         playingState.update(result)
         playingState.progressParse()
         this.setState({ loaded: true })
@@ -82,14 +83,14 @@ class App extends React.Component<Props, State> {
     this.intervalId = setInterval(this.periodicUpdate.bind(this), 500)
   }
 
-  periodicUpdate() {
+  periodicUpdate(): void {
     // only continue to update nowplaying if the radio is playing
     // and we aren't on the homepage (i.e. miniplayer is showing)
     if (window.location.pathname === '/' || playingState.playing)
       playingState.periodicUpdate(() => this.updateState())
   }
 
-  togglePlaying() {
+  togglePlaying(): void {
     let howler = this.player.current!.howler
 
     // Force howler to unload and reload the song

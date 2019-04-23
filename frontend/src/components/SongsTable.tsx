@@ -35,7 +35,7 @@ class SongsTable extends React.Component<Props, State> {
     deleting: [] as SongItem[],
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     if (this.props.loggedIn !== prevProps.loggedIn) {
       this.props.reloadPage()
     }

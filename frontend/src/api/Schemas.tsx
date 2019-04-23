@@ -1,7 +1,9 @@
+export type Description = string | string[] | { [k: string]: string[] }
+
 export interface ApiBaseResponse {
   status_code: number
   error: string | null
-  description: string | string[] | { [k: string]: string[] }
+  description: Description
   message?: string
   _links?: {
     _self?: string
@@ -58,6 +60,10 @@ export interface SongDownloadJson {
   download_token: string
 }
 
+export interface SongRequestJson {
+  meta: SongMeta
+}
+
 export interface AutocompleteItemJson {
   result: string
   type: string
@@ -66,4 +72,45 @@ export interface AutocompleteItemJson {
 export interface AutocompleteJson {
   query: string
   suggestions: AutocompleteItemJson[]
+}
+
+export interface SettingsJson {
+  css: string
+  styles: {
+    [k: string]: string
+  }
+  icecast: {
+    mount: string
+    url: string
+  }
+  title: string
+  downloads_enabled: boolean
+  uploads_enabled: boolean
+}
+
+export interface NowPlayingSong extends Song {
+  time: string
+  timestamp: number
+  requested: boolean
+}
+
+export interface NowPlayingJson extends Song {
+  len: number
+  current: number
+  start_time: number
+  end_time: number
+  requested: boolean
+  queue: NowPlayingSong[]
+  lp: NowPlayingSong[]
+  listeners: number
+  total_songs: number
+  total_plays: number
+  total_size: number
+}
+
+export interface LoginJson {
+  access_token: string
+  refresh_token: string
+  username: string
+  admin: boolean
 }

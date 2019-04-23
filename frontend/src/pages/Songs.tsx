@@ -27,8 +27,10 @@ import {
   ApiResponse,
   AutocompleteItemJson,
   AutocompleteJson,
+  Description,
   SongDownloadJson,
   SongItem,
+  SongRequestJson,
   SongsJson,
 } from '../api/Schemas'
 import Error from '../components/Error'
@@ -74,7 +76,7 @@ export interface State {
   }
   songs: SongItem[]
   loaded: boolean
-  error: string | string[] | { [k: string]: string[] } | null
+  error: Description | null
   query?: string | null
   typeaheadLoading: boolean
   typeahead: any[]
@@ -127,11 +129,6 @@ class Songs extends React.Component<Props, State> {
   }
 
   static getSearchComponents(search?: string): ParsedQueryParams {
-    // const parsed = queryString.parse(search)
-    // const page = 'page' in parsed ? Number.parseInt(parsed.page || '', 10) : 1
-    // const query = 'query' in parsed ? parsed.query || '' : ''
-    // const user = 'user' in parsed ? parsed.user || '' : ''
-
     const parsed = new URLSearchParams(search || '')
     const page = parseInt(parsed.get('page') || '1', 10) || 1
     const query = parsed.get('query') || undefined
@@ -190,6 +187,7 @@ class Songs extends React.Component<Props, State> {
   getUrl(params: ParsedQueryParams, favourites: boolean = false): string {
     // remove page from the query should it be 1 (the default)
     if (params.page === 1) delete params.page
+
     if (params.query === null) delete params.query
     if (params.user === null) delete params.user
 
@@ -221,7 +219,7 @@ class Songs extends React.Component<Props, State> {
       query = undefined,
       user = undefined,
     }: { query?: string | null; user?: string | null }
-  ) {
+  ): void {
     const url = this.getUrl({ page, query, user })
     this.setState({ loaded: false })
     fetch(`${API_BASE}/${url}`)
@@ -246,33 +244,33 @@ class Songs extends React.Component<Props, State> {
       })
   }
 
-  handleAdminChange(event: React.FormEvent<EventTarget>) {
+  handleAdminChange(event: React.FormEvent<EventTarget>): void {
     let target = event.target as HTMLInputElement
     localStorage.setItem('show_admin', target.checked.toString())
     this.setState({ show_admin: target.checked })
   }
 
-  handleSearchChange(event: React.FormEvent<EventTarget>) {
+  handleSearchChange(event: React.FormEvent<EventTarget>): void {
     let target = event.target as HTMLInputElement
     this.setState({ query: target.value || '' })
   }
 
-  handleFavesChange(event: React.FormEvent<EventTarget>) {
+  handleFavesChange(event: React.FormEvent<EventTarget>): void {
     let target = event.target as HTMLInputElement
     this.setState({ user: target.value || '' })
   }
 
-  handleSearch(event: React.FormEvent<EventTarget>) {
+  handleSearch(event: React.FormEvent<EventTarget>): void {
     event.preventDefault()
     this.handlePage(1)
   }
 
-  handleFaves(event: React.FormEvent<EventTarget>) {
+  handleFaves(event: React.FormEvent<EventTarget>): void {
     event.preventDefault()
     if (this.state.user !== undefined || auth.username) this.handlePage(1, true)
   }
 
-  handlePage(i: number, favourites: boolean = false) {
+  handlePage(i: number, favourites: boolean = false): void {
     this.handlePageChange(i, {
       query: this.state.query,
       history: true,
@@ -281,7 +279,7 @@ class Songs extends React.Component<Props, State> {
     })
   }
 
-  requestSong(song: SongItem) {
+  requestSong(song: SongItem): void {
     const { id } = song
     fetch(`${API_BASE}/request`, {
       method: 'PUT',
@@ -291,21 +289,23 @@ class Songs extends React.Component<Props, State> {
       }),
     })
       .then(res => res.json())
-      .then((result: ApiResponse<SongItem>) => {
+      .then((result: ApiResponse<SongRequestJson>) => {
         const error = result.error !== null
         let msg = (result.description as string) || ''
         this.sendAlert(msg, error)
 
         if (!error) {
           const { songs } = this.state
-          const stateSong: number = songs.indexOf(song)
+          const stateSong: number = songs.findIndex(
+            element => element.id === id
+          )
           songs[stateSong] = { ...song, meta: result.meta }
           this.setState({ songs })
         }
       })
   }
 
-  deleteSong(song: SongItem) {
+  deleteSong(song: SongItem): void {
     const { id } = song
     fetch(`${API_BASE}/song/${id}`, { method: 'DELETE' })
       .then(res => res.json())
@@ -323,12 +323,12 @@ class Songs extends React.Component<Props, State> {
       })
   }
 
-  refreshSong(song: string) {
+  refreshSong(song: string): void {
     fetch(`${API_BASE}/song/${song}`, { method: 'GET' })
       .then(res => res.json())
-      .then((result: SongItem) => {
+      .then((result: ApiResponse<SongItem>) => {
         const { songs } = this.state
-        const stateSong = songs.indexOf(result)
+        const stateSong = songs.findIndex(element => element.id === song)
         if (stateSong > -1) {
           songs[stateSong] = { ...songs[stateSong], ...result }
         }
@@ -337,7 +337,7 @@ class Songs extends React.Component<Props, State> {
       })
   }
 
-  downloadSong(song: SongItem) {
+  downloadSong(song: SongItem): void {
     const { id } = song
     fetch(`${API_BASE}/auth/download`, {
       method: 'POST',
@@ -370,7 +370,7 @@ class Songs extends React.Component<Props, State> {
       })
   }
 
-  favouriteSong(song: SongItem, unfavourite = false) {
+  favouriteSong(song: SongItem, unfavourite = false): void {
     const { id, meta } = song
     const { songs } = this.state
 
@@ -393,7 +393,7 @@ class Songs extends React.Component<Props, State> {
         }
 
         if (!error) {
-          const stateSong = songs.indexOf(song)
+          const stateSong = songs.findIndex(element => element.id === id)
           meta.favourited = !meta.favourited
           songs[stateSong] = { ...song, meta }
         }
@@ -402,7 +402,10 @@ class Songs extends React.Component<Props, State> {
       })
   }
 
-  updateSongMetadata(song: SongItem, options) {
+  updateSongMetadata(
+    song: SongItem,
+    options: { artist?: string; title?: string }
+  ): void {
     const { id } = song
     const { songs } = this.state
 
@@ -423,12 +426,6 @@ class Songs extends React.Component<Props, State> {
 
         if (!error) {
           const stateSong = songs.findIndex(element => element.id === id)
-
-          // remove non-song keys
-          delete result.status_code
-          delete result.error
-          delete result.description
-
           songs[stateSong] = { ...song, ...result }
         }
 
@@ -436,7 +433,7 @@ class Songs extends React.Component<Props, State> {
       })
   }
 
-  onAlertDismissed(alert: AlertError) {
+  onAlertDismissed(alert: AlertError): void {
     const alerts = this.state.alerts
 
     // find the index of the alert that was dismissed
@@ -608,7 +605,7 @@ class Songs extends React.Component<Props, State> {
                     this.setState({ typeaheadLoading: true })
                     fetch(`${API_BASE}/autocomplete?query=${query}`)
                       .then(resp => resp.json())
-                      .then((json: AutocompleteJson) =>
+                      .then((json: ApiResponse<AutocompleteJson>) =>
                         this.setState({
                           typeaheadLoading: false,
                           typeahead: json.suggestions,

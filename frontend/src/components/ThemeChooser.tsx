@@ -6,7 +6,7 @@ export interface State {
 }
 
 export interface Props {
-  styles: object
+  styles: { [k: string]: string }
 }
 
 class ThemeChooser extends React.Component<Props, State> {
@@ -16,13 +16,14 @@ class ThemeChooser extends React.Component<Props, State> {
       : document.querySelector<HTMLLinkElement>('#change_stylesheet')!.href,
   }
 
-  constructor(props) {
+  constructor(props: Props) {
     super(props)
     this.onChange = this.onChange.bind(this)
   }
 
-  onChange(event) {
-    const css = event.target.value
+  onChange(event: React.FormEvent<EventTarget>) {
+    let target = event.target as HTMLSelectElement
+    const css = target.value
     document.querySelector<HTMLLinkElement>('#change_stylesheet')!.href = css
     localStorage['css'] = css
     this.setState({ selected: css })

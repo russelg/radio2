@@ -1,16 +1,16 @@
 import moment from 'moment'
 
-export function readableFilesize(fileSizeInBytes) {
+export function readableFilesize(size: number): string {
   let i = -1
   let byteUnits = ['kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
   do {
-    fileSizeInBytes = fileSizeInBytes / 1024
+    size = size / 1024
     i++
-  } while (fileSizeInBytes > 1024)
-  return (Math.max(fileSizeInBytes, 0.1).toFixed(2) + byteUnits[i]).toString()
+  } while (size > 1024)
+  return (Math.max(size, 0.1).toFixed(2) + byteUnits[i]).toString()
 }
 
-export function readableSeconds(seconds) {
+export function readableSeconds(seconds: number): string {
   let hours = Math.floor(seconds / 3600)
   let mins = Math.floor((seconds % 3600) / 60)
   let secs = Math.floor((seconds % 3600) % 60)
@@ -24,6 +24,6 @@ export function readableSeconds(seconds) {
   )
 }
 
-export function fuzzyTime(time) {
+export function fuzzyTime(time: moment.MomentInput): string {
   return moment(time).fromNow()
 }

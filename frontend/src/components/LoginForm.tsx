@@ -3,20 +3,21 @@ import { view } from 'react-easy-state'
 import { Button, Form, FormFeedback, FormGroup, Input } from 'reactstrap'
 import { auth } from '../store'
 import './LoginForm.css'
+import { Description } from '../api/Schemas'
 
 export interface Props {}
 
 export interface State {
   username: string
   password: string
-  error?: string
+  error?: Description | null
 }
 
 class LoginForm extends React.Component<Props, State> {
   state = {
     username: '',
     password: '',
-    error: undefined,
+    error: null,
   }
 
   constructor(props: Props) {
@@ -35,7 +36,7 @@ class LoginForm extends React.Component<Props, State> {
     const { username, password } = this.state
     event.preventDefault()
     auth.login(username, password).then(resp => {
-      if (resp.error !== undefined) this.setState({ error: resp.description })
+      if (resp.error !== null) this.setState({ error: resp.description })
     })
   }
 
@@ -71,7 +72,11 @@ class LoginForm extends React.Component<Props, State> {
             autoComplete="current-password"
             className="password"
           />
-          <FormFeedback>{this.state.error}</FormFeedback>
+          <FormFeedback>
+            {this.state.error !== null
+              ? (this.state.error! as Description).toString()
+              : ''}
+          </FormFeedback>
         </FormGroup>
         <Button color="success" block disabled={!this.validateForm()}>
           Login
