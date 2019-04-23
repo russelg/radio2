@@ -1,4 +1,4 @@
-version: "3"
+version: '3'
 
 services:
   caddy:
@@ -9,8 +9,10 @@ services:
     command: yarn start
     environment:
       HOST: frontend
+      DANGEROUSLY_DISABLE_HOST_CHECK: 'true'
     expose:
       - 3000
+      - 9222
 
   server:
     command: flask run

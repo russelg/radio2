@@ -3,9 +3,7 @@
 }
 
 .player {
-  margin: -13px 0;
-  margin-right: 1rem;
-  margin-left: 1rem;
+  margin: -13px 1rem;
 }
 
 .no-flex-grow {
@@ -17,9 +15,9 @@
 }
 
 .badge-admin {
-  margin: 0px 5px;
+  margin: 0 5px;
 }
 
 .navbar label {
-  margin-bottom: 0rem;
+  margin-bottom: 0;
 }

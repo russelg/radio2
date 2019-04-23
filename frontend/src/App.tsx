@@ -4,6 +4,7 @@ import ReactHowler from 'react-howler'
 import Loadable from 'react-loadable'
 import { BrowserRouter as Router, Route } from 'react-router-dom'
 import { AnimatedSwitch } from 'react-router-transition'
+import { ApiResponse, NowPlayingJson, SettingsJson } from './api/Schemas'
 import Loader from './components/Loader'
 import MiniPlayer from './components/MiniPlayer'
 import Navbar from './components/Navbar'
@@ -23,35 +24,49 @@ const AsyncSongs = Loadable({
   delay: 100,
 })
 
-class App extends React.Component {
-  constructor(props) {
-    super(props)
-    this.state = {
-      loaded: false,
-    }
+interface Props {}
+interface State {
+  loaded: boolean
+}
 
-    this.intervalId = null
+class App extends React.Component<Props, State> {
+  intervalId?: any = undefined
+  player: React.RefObject<ReactHowler>
 
-    if (localStorage.getItem('css'))
-      document.querySelector('#change_stylesheet').href = localStorage.getItem(
-        'css'
-      )
+  state = {
+    loaded: false,
   }
 
-  fetchSettings() {
+  constructor(props: Props) {
+    super(props)
+
+    this.player = React.createRef()
+
+    if (localStorage.getItem('css')) {
+      let customCSS: HTMLLinkElement | null = document.querySelector(
+        '#change_stylesheet'
+      )
+
+      if (customCSS instanceof HTMLLinkElement) {
+        customCSS.href = localStorage.getItem('css') || ''
+      }
+    }
+  }
+
+  fetchSettings(): void {
     fetch(`${API_BASE}/settings`)
       .then(res => res.json())
-      .then(result => {
+      .then((result: ApiResponse<SettingsJson>) => {
         settings.updateSettings(result)
         this.setState({ loaded: true })
         if (!playingState.playing) document.title = settings.title
       })
   }
 
-  updateState() {
+  updateState(): void {
     fetch(`${API_BASE}/np`)
       .then(res => res.json())
-      .then(result => {
+      .then((result: ApiResponse<NowPlayingJson>) => {
         playingState.update(result)
         playingState.progressParse()
         this.setState({ loaded: true })
@@ -68,15 +83,15 @@ class App extends React.Component {
     this.intervalId = setInterval(this.periodicUpdate.bind(this), 500)
   }
 
-  periodicUpdate() {
+  periodicUpdate(): void {
     // only continue to update nowplaying if the radio is playing
     // and we aren't on the homepage (i.e. miniplayer is showing)
     if (window.location.pathname === '/' || playingState.playing)
       playingState.periodicUpdate(() => this.updateState())
   }
 
-  togglePlaying() {
-    const { howler } = App.player
+  togglePlaying(): void {
+    let howler = this.player.current!.howler
 
     // Force howler to unload and reload the song
     // if we don't do this sometimes the radio will just not resume playback
@@ -97,8 +112,10 @@ class App extends React.Component {
       <Router>
         <div className="h-100">
           <Navbar title={settings.title} styles={settings.styles}>
-            {!(playingState.info.title === '' || !playingState.playing) && (
+            {!(playingState.info.title === '' || !playingState.playing) ? (
               <MiniPlayer />
+            ) : (
+              <></>
             )}
           </Navbar>
 
@@ -109,7 +126,7 @@ class App extends React.Component {
             html5={true}
             playing={playingState.playing}
             volume={playingState.volume / 100}
-            ref={ref => (App.player = ref)}
+            ref={this.player}
           />
 
           <AnimatedSwitch
@@ -120,7 +137,12 @@ class App extends React.Component {
             <Route
               exact
               path="/"
-              render={() => <AsyncHome togglePlaying={this.togglePlaying} />}
+              render={props => (
+                <AsyncHome
+                  {...props}
+                  togglePlaying={this.togglePlaying.bind(this)}
+                />
+              )}
             />
             <Route
               path="/songs"

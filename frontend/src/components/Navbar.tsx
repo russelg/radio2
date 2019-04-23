@@ -1,6 +1,10 @@
 import React from 'react'
 import { view } from 'react-easy-state'
-import { NavLink as RRNavLink, withRouter } from 'react-router-dom'
+import {
+  NavLink as RRNavLink,
+  RouteComponentProps,
+  withRouter,
+} from 'react-router-dom'
 import {
   Collapse,
   Container,
@@ -18,17 +22,29 @@ import LoginDropdown from './LoginDropdown'
 import './Navbar.css'
 import ThemeChooser from './ThemeChooser'
 
-class Navbar extends React.Component {
-  constructor(props) {
-    super()
-    this.state = {
-      collapsed: true,
-    }
+interface Props extends RouteComponentProps<any> {
+  children: JSX.Element
+  title: string
+  styles: { [k: string]: string }
+  currentStyle?: string
+}
+
+interface State {
+  collapsed: boolean
+}
+
+class Navbar extends React.Component<Props, State> {
+  state = {
+    collapsed: true,
+  }
+
+  constructor(props: Props) {
+    super(props)
 
     this.toggle = this.toggle.bind(this)
   }
 
-  toggle() {
+  toggle(): void {
     this.setState({
       collapsed: !this.state.collapsed,
     })
@@ -57,7 +73,7 @@ class Navbar extends React.Component {
               <Nav navbar>{songsButton}</Nav>
             </Collapse>
           )}
-          <Nav navbar className="player flex-grow">
+          <Nav navbar className="player flex-grow my-auto">
             <NavItem className="text-center mx-auto">
               {this.props.children}
             </NavItem>
@@ -74,10 +90,7 @@ class Navbar extends React.Component {
               <NavItem>
                 <NavLink>
                   <Label htmlFor="theme_chooser">Style</Label>
-                  <ThemeChooser
-                    styles={this.props.styles}
-                    currentStyle={this.props.currentStyle}
-                  />
+                  <ThemeChooser styles={this.props.styles} />
                 </NavLink>
               </NavItem>
             </Nav>

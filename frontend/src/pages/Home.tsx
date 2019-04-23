@@ -23,41 +23,52 @@ import {
 } from 'reactstrap'
 import { playingState, settings } from '../store'
 import { fuzzyTime, readableFilesize, readableSeconds } from '../utils'
+import { SongListItem } from '../api/Schemas'
 import './Home.css'
 
-class Home extends React.Component {
-  constructor(props) {
+export interface State {
+  modal: boolean
+  dropdownOpen: boolean
+  loaded: boolean
+}
+
+export interface Props {
+  togglePlaying: () => void
+}
+
+class Home extends React.Component<Props, State> {
+  state = {
+    modal: false,
+    dropdownOpen: false,
+    loaded: false,
+  }
+
+  toggleModal = this.toggle.bind(this, 'modal')
+  toggleDropdown = this.toggle.bind(this, 'dropdownOpen')
+
+  constructor(props: Props) {
     super(props)
-    this.state = {
-      modal: false,
-      dropdownOpen: false,
-      loaded: false,
-    }
-
-    this.toggleModal = this.toggle.bind(this, 'modal')
-    this.toggleDropdown = this.toggle.bind(this, 'dropdownOpen')
   }
 
-  static volumeChange(event) {
-    playingState.volume = parseInt(event.target.value, 10)
+  static volumeChange(event: React.FormEvent<EventTarget>): void {
+    let target = event.target as HTMLInputElement
+    playingState.volume = parseInt(target.value, 10)
   }
 
-  toggle(itm) {
-    this.setState({
-      [itm]: !this.state[itm],
-    })
+  toggle(itm: string): void {
+    let newState = this.state
+    newState[itm] = !this.state[itm]
+    this.setState(newState)
   }
 
   render() {
     const { info, radio } = playingState
 
-    // if (info.title === '') return <Loader />
-
     return (
       <Container className="content-panel">
         <Row>
           <Col>
-            <Row className="align-items-center">
+            <Row>
               <Col xs={false} lg="6" className="pb-3">
                 <h2>{settings.title}</h2>
                 <h5 className="text-muted mb-0">
@@ -79,7 +90,11 @@ class Home extends React.Component {
                 <ButtonGroup className="btn-block">
                   <Dropdown
                     isOpen={this.state.dropdownOpen}
-                    toggle={this.toggleDropdown}
+                    toggle={() =>
+                      this.setState({
+                        dropdownOpen: !this.state.dropdownOpen,
+                      })
+                    }
                     className="btn-block">
                     <DropdownToggle caret className="btn-block">
                       More Options
@@ -216,7 +231,7 @@ class Home extends React.Component {
             <h4 className="text-center">Last Played</h4>
             {info.lp.length > 0 ? (
               <ListGroup>
-                {info.lp.map(item => (
+                {info.lp.map((item: SongListItem) => (
                   <ListGroupItem
                     key={item.time}
                     className="clearfix p-4"
@@ -238,7 +253,7 @@ class Home extends React.Component {
             <h4 className="text-center">Queue</h4>
             {info.queue.length > 0 ? (
               <ListGroup>
-                {info.queue.map(item => (
+                {info.queue.map((item: SongListItem) => (
                   <ListGroupItem
                     key={item.time}
                     className="clearfix p-4"

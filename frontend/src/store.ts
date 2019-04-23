@@ -1,37 +1,39 @@
 import { authorize, clear, configure } from '@shoutem/fetch-token-intercept'
 import { store } from 'react-easy-state'
+import {
+  SettingsJson,
+  NowPlayingJson,
+  ApiResponse,
+  LoginJson,
+  ApiBaseResponse,
+} from './api/Schemas'
 
-if (!localStorage.getItem('volume')) {
-  localStorage.setItem('volume', '80')
-}
+// if (!localStorage.getItem('volume')) {
+//   localStorage.setItem('volume', '80')
+// }
 
-export const API_BASE = '/api/v1'
+export const API_BASE: string = '/api/v1'
 
 let config = {
-  shouldIntercept: request => true,
-  shouldInvalidateAccessToken: request => false,
+  shouldIntercept: () => true,
+  shouldInvalidateAccessToken: () => false,
   shouldWaitForTokenRenewal: true,
-  authorizeRequest: (request, accessToken) => {
+  authorizeRequest: (request: Request, accessToken: string) => {
     request.headers.set('Authorization', `Bearer ${accessToken}`)
     return request
   },
-  createAccessTokenRequest: refreshToken =>
+  createAccessTokenRequest: (refreshToken: string) =>
     new Request(`${API_BASE}/auth/refresh`, {
       headers: { Authorization: `Bearer ${refreshToken}` },
       method: 'POST',
     }),
-  parseAccessToken: response => {
-    return response
-      .clone()
-      .json()
-      .then(json => {
-        auth.username = json.username
-        auth.access_token = json.access_token
-        auth.logged_in = true
-        auth.admin = json.admin || false
-
-        return json.access_token
-      })
+  parseAccessToken: async (response: Response) => {
+    const json = await response.clone().json()
+    auth.username = json.username
+    auth.access_token = json.access_token
+    auth.logged_in = true
+    auth.admin = json.admin || false
+    return json.access_token
   },
   fetchRetryCount: 3,
 }
@@ -41,47 +43,43 @@ export const auth = store({
   logged_in: false,
   admin: false,
 
-  get access_token() {
+  get access_token(): string {
     return localStorage.getItem('access_token') || ''
   },
 
-  set access_token(token) {
+  set access_token(token: string) {
     localStorage.setItem('access_token', token)
   },
 
-  get refresh_token() {
+  get refresh_token(): string {
     return localStorage.getItem('refresh_token') || ''
   },
 
-  set refresh_token(token) {
+  set refresh_token(token: string) {
     localStorage.setItem('refresh_token', token)
   },
 
-  login(username, password) {
-    return fetch(`${API_BASE}/auth/login`, {
+  async login(
+    username: string,
+    password: string
+  ): Promise<ApiResponse<LoginJson>> {
+    const response: Response = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       body: JSON.stringify({ username, password }),
       headers: new Headers({
         'Content-Type': 'application/json',
       }),
-    }).then(response =>
-      response
-        .clone()
-        .json()
-        .then(r => {
-          if ('access_token' in r && 'refresh_token' in r) {
-            this.refresh_token = r.refresh_token
-            config.parseAccessToken(response)
-
-            authorize(this.refresh_token, this.access_token)
-          }
-
-          return r
-        })
-    )
+    })
+    const r: ApiResponse<LoginJson> = await response.clone().json()
+    if ('access_token' in r && 'refresh_token' in r) {
+      this.refresh_token = r.refresh_token
+      config.parseAccessToken(response)
+      authorize(this.refresh_token, this.access_token)
+    }
+    return r
   },
 
-  async register(username, password) {
+  async register(username: string, password: string): Promise<string> {
     let resp = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
       body: JSON.stringify({ username, password }),
@@ -90,15 +88,15 @@ export const auth = store({
       }),
     })
 
-    let r = await resp.clone().json()
+    let r: ApiBaseResponse = await resp.clone().json()
     if (r.status_code === 200 && r.error === null) {
-      return r.description
+      return r.description.toString()
     }
 
-    throw new Error(r.description)
+    throw new Error(r.description.toString())
   },
 
-  logout() {
+  logout(): void {
     this.username = ''
     this.logged_in = false
     this.admin = false
@@ -111,9 +109,14 @@ export const auth = store({
 configure(config)
 if (auth.refresh_token) authorize(auth.refresh_token)
 
-export const settings = store({
+export interface SettingsStore extends SettingsJson {
+  updateSettings: (settings: SettingsJson) => void
+  stream_url: string
+}
+
+export const settings: SettingsStore = store({
   css: '',
-  styles: {},
+  styles: {} as { [k: string]: string },
   icecast: {
     mount: '',
     url: '',
@@ -122,16 +125,48 @@ export const settings = store({
   downloads_enabled: false,
   uploads_enabled: false,
 
-  updateSettings(settings) {
+  updateSettings(settings: SettingsJson): void {
     Object.assign(this, settings)
   },
 
-  get stream_url() {
+  get stream_url(): string {
     return this.icecast.url + this.icecast.mount
   },
-})
+} as SettingsStore)
 
-export const playingState = store({
+export interface RadioStore {
+  counter: number
+  sync_seconds: number
+  update_progress: number
+  update_progress_inc: number
+  update_old_progress: number
+  current_pos: number
+  current_len: number
+  afk: string
+  current_title: string
+  current_artist: string
+  cur_time: number
+  duration: number
+  position: number
+}
+
+export interface PlayingStore {
+  info: NowPlayingJson
+  radio: RadioStore
+  volume: number
+  sync_offset: number
+  loaded: boolean
+  playing: boolean
+  progress: number
+  update: (info: NowPlayingJson) => void
+  progressParse: () => void
+  radioUpdate: (start: number, end: number, cur: number) => void
+  applyProgress: () => void
+  periodicUpdate: (func: () => void) => void
+  togglePlaying: () => void
+}
+
+export const playingState: PlayingStore = store({
   info: {
     len: 0,
     current: 0,
@@ -139,8 +174,8 @@ export const playingState = store({
     end_time: 0,
     artist: '',
     title: '',
-    id: 0,
-    requested: 0,
+    id: '',
+    requested: false,
     total_songs: 0,
     total_plays: 0,
     queue: [],
@@ -160,36 +195,41 @@ export const playingState = store({
     afk: 'init',
     current_title: '',
     current_artist: '',
+    cur_time: 0,
+    duration: 0,
+    position: 0,
   },
 
-  get volume() {
-    if (localStorage.getItem('volume')) {
-      return parseInt(localStorage.getItem('volume'), 10)
+  get volume(): number {
+    let vol = localStorage.getItem('volume')
+    if (vol) {
+      return parseInt(vol || '80', 10)
     }
     return 80
   },
 
-  set volume(vol) {
-    localStorage.setItem('volume', vol)
+  set volume(vol: number) {
+    localStorage.setItem('volume', `${vol}`)
   },
 
   sync_offset: 4,
   loaded: false,
   playing: false,
 
-  update(info) {
+  update(info: NowPlayingJson): void {
     Object.assign(this.info, info)
   },
 
-  progressParse() {
+  progressParse(): void {
+    let { info, sync_offset } = this
     this.radioUpdate(
-      this.info.start_time + this.sync_offset,
-      this.info.end_time + this.sync_offset,
-      this.info.current
+      info.start_time + sync_offset,
+      info.end_time + sync_offset,
+      info.current
     )
   },
 
-  radioUpdate(start, end, cur) {
+  radioUpdate(start: number, end: number, cur: number): void {
     let { radio } = this
 
     if (end !== 0) {
@@ -208,12 +248,12 @@ export const playingState = store({
     }
   },
 
-  get progress() {
+  get progress(): number {
     let { radio } = this
     return radio.update_progress + radio.update_progress_inc
   },
 
-  applyProgress() {
+  applyProgress(): void {
     let { radio } = this
 
     if (radio.update_progress > 0) {
@@ -223,7 +263,7 @@ export const playingState = store({
     }
   },
 
-  periodicUpdate(func) {
+  periodicUpdate(func: () => void): void {
     let { info, radio } = this
 
     if (this.playing) {
@@ -242,7 +282,7 @@ export const playingState = store({
     }
   },
 
-  togglePlaying() {
+  togglePlaying(): void {
     this.playing = !this.playing
   },
-})
+} as PlayingStore)

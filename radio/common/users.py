@@ -6,6 +6,7 @@ import bcrypt
 from flask import Response
 from flask_jwt_extended import (create_access_token, create_refresh_token,
                                 get_jwt_claims, verify_jwt_in_request)
+from jwt.exceptions import ExpiredSignatureError
 
 from radio import jwt
 from radio import models as db
@@ -127,9 +128,12 @@ def user_is_admin() -> bool:
     :return: True if current user is an admin
     :rtype: bool
     """
-    verify_jwt_in_request()
-    claims = get_jwt_claims() or {'roles': []}
-    return 'admin' in claims['roles']
+    try:
+        verify_jwt_in_request()
+        claims = get_jwt_claims() or {'roles': []}
+        return 'admin' in claims['roles']
+    except ExpiredSignatureError:
+        return False
 
 
 def admin_required(fn):

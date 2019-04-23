@@ -3,27 +3,39 @@ import { view } from 'react-easy-state'
 import FontAwesome from 'react-fontawesome'
 import Editable from 'react-x-editable'
 import { Button, Form, Table, UncontrolledTooltip } from 'reactstrap'
+import { SongItem } from '../api/Schemas'
 import { readableFilesize } from '../utils'
 
-class SongsTable extends React.Component {
-  state = {
-    deleting: [],
-  }
+interface Props {
+  songs: SongItem[]
+  downloads: boolean
+  isAdmin: boolean
+  loggedIn: boolean
+  deleteSong: (song: SongItem) => void
+  downloadSong: (song: SongItem) => void
+  requestSong: (song: SongItem) => void
+  favouriteSong: (song: SongItem, favourite?: boolean) => void
+  updateSongMetadata: (song: SongItem, options: object) => void
+  reloadPage: () => void
+}
 
+interface State {
+  deleting: SongItem[]
+}
+
+class SongsTable extends React.Component<Props, State> {
   static defaultProps = {
     songs: [],
     downloads: false,
     isAdmin: false,
     loggedIn: false,
-    deleteSong: () => undefined,
-    downloadSong: () => undefined,
-    requestSong: () => undefined,
-    favouriteSong: () => undefined,
-    updateSongMetadata: () => undefined,
-    reloadPage: () => undefined,
   }
 
-  componentDidUpdate(prevProps) {
+  state = {
+    deleting: [] as SongItem[],
+  }
+
+  componentDidUpdate(prevProps: Props) {
     if (this.props.loggedIn !== prevProps.loggedIn) {
       this.props.reloadPage()
     }
@@ -40,7 +52,7 @@ class SongsTable extends React.Component {
           </tr>
         </thead>
         <tbody>
-          {this.props.songs.map(song => (
+          {this.props.songs.map((song: SongItem) => (
             <tr key={song.id} className="d-flex">
               <td className="col-3">
                 {this.props.isAdmin ? (
@@ -144,7 +156,7 @@ class SongsTable extends React.Component {
                           ? 'danger'
                           : 'warning'
                       }
-                      onClick={e => {
+                      onClick={() => {
                         this.state.deleting.includes(song)
                           ? this.props.deleteSong(song)
                           : this.setState({

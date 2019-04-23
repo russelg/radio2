@@ -9,7 +9,7 @@ import { AlertList } from 'react-bs-notifier'
 import { view } from 'react-easy-state'
 import { FilePond, registerPlugin } from 'react-filepond'
 import Pagination from 'react-js-pagination'
-import { withRouter } from 'react-router-dom'
+import { RouteComponentProps, withRouter } from 'react-router-dom'
 import {
   Button,
   Col,
@@ -22,6 +22,17 @@ import {
   Label,
   Row,
 } from 'reactstrap'
+import {
+  ApiBaseResponse,
+  ApiResponse,
+  AutocompleteItemJson,
+  AutocompleteJson,
+  Description,
+  SongDownloadJson,
+  SongItem,
+  SongRequestJson,
+  SongsJson,
+} from '../api/Schemas'
 import Error from '../components/Error'
 import LoaderSpinner from '../components/LoaderSpinner'
 import SongsTable from '../components/SongsTable'
@@ -31,33 +42,81 @@ import './Songs.css'
 
 registerPlugin(FilePondPluginFileValidateType)
 
-class Songs extends React.Component {
-  constructor(props) {
+export interface AlertError {
+  id: number
+  message: string
+  type: 'success' | 'danger'
+}
+
+export interface ParsedQueryParams {
+  page: number
+  query?: string | null
+  user?: string | null
+}
+
+export interface PageChangeOptions {
+  query?: string | null
+  user?: string | null
+  history?: boolean
+  force_refresh?: boolean
+  favourites?: boolean
+}
+
+export interface Props extends RouteComponentProps<any> {
+  favourites: boolean
+}
+
+export interface State {
+  page: number
+  pagination: {
+    per_page: number
+    page: number
+    pages: number
+    total_count: number
+  }
+  songs: SongItem[]
+  loaded: boolean
+  error: Description | null
+  query?: string | null
+  typeaheadLoading: boolean
+  typeahead: any[]
+  alerts: AlertError[]
+  user?: string | null
+  files: any[]
+  show_admin: boolean
+  location: URL
+}
+
+class Songs extends React.Component<Props, State> {
+  state = {
+    page: 0,
+    pagination: {
+      per_page: 50,
+      page: 1,
+      pages: 1,
+      total_count: 0,
+    },
+    songs: [] as SongItem[],
+    loaded: false,
+    error: null,
+    query: null,
+    typeaheadLoading: false,
+    typeahead: [],
+    alerts: [] as AlertError[],
+    user: null,
+    files: [],
+    show_admin: localStorage.getItem('show_admin') === 'true',
+    location: new URL(window.location.href),
+  }
+
+  unlisten: any
+  pond: FilePond | null
+
+  constructor(props: Props) {
     super(props)
 
-    const page = this.getSearchComponents(props.location.search).page
-
-    this.state = {
-      page,
-      pagination: {
-        per_page: 50,
-        page: 1,
-        pages: 1,
-        total_count: 0,
-      },
-      songs: [],
-      loaded: false,
-      error: '',
-      search: '',
-      query: null,
-      typeaheadLoading: false,
-      typeahead: [],
-      alerts: [],
-      username: null,
-      files: [],
-      show_admin: localStorage.getItem('show_admin') === 'true',
-      location: new URL(window.location.href),
-    }
+    this.state.page = Songs.getSearchComponents(props.location.search).page
+    this.pond = null
 
     this.handleAdminChange = this.handleAdminChange.bind(this)
     this.handlePageChange = this.handlePageChange.bind(this)
@@ -69,8 +128,17 @@ class Songs extends React.Component {
     this.sendAlert = this.sendAlert.bind(this)
   }
 
-  sendAlert(msg, error) {
-    const newAlert = {
+  static getSearchComponents(search?: string): ParsedQueryParams {
+    const parsed = new URLSearchParams(search || '')
+    const page = parseInt(parsed.get('page') || '1', 10) || 1
+    const query = parsed.get('query') || undefined
+    const user = parsed.get('user') || undefined
+
+    return { page, query, user }
+  }
+
+  sendAlert(msg: string, error: boolean): void {
+    const newAlert: AlertError = {
       id: new Date().getTime(),
       message: msg,
       type: error ? 'danger' : 'success',
@@ -81,49 +149,47 @@ class Songs extends React.Component {
     })
   }
 
-  getSearchComponents(search) {
-    const parsed = queryString.parse(search)
-    const page = 'page' in parsed ? Number.parseInt(parsed.page, 10) : 1
-    const query = 'query' in parsed ? parsed.query || undefined : undefined
-    const username = 'user' in parsed ? parsed.user || undefined : undefined
-
-    return { page, query, username }
-  }
-
-  firePageChange(search = null) {
+  firePageChange(search?: string): void {
     const propSearch = this.props.location.search
-    const { page, query, username } = this.getSearchComponents(
-      search !== null ? search : propSearch
+    const { page, query, user } = Songs.getSearchComponents(
+      search !== undefined ? search : propSearch
     )
 
-    this.handlePageChange(page, { query, history: false, username })
-    this.getPage(page, query, username)
+    this.handlePageChange(page, { query, history: false, user })
+    this.getPage(page, { query, user })
   }
 
-  componentWillMount() {
-    this.unlisten = this.props.history.listen((location, action) => {
+  componentWillMount(): void {
+    this.unlisten = this.props.history.listen(location => {
       if (location.pathname === this.state.location.pathname) {
-        this.setState({ location })
-        this.firePageChange(location.search)
+        let url = new URL(window.location.href)
+        url.search = location.search
+        url.pathname = location.pathname
+
+        this.setState({ location: url })
+        this.firePageChange(url.search)
       }
     })
   }
 
-  componentWillUnmount() {
-    this.unlisten()
+  componentWillUnmount(): void {
+    if (this.unlisten !== null) this.unlisten()
   }
 
-  componentDidMount() {
+  componentDidMount(): void {
+    this.reloadPage()
+  }
+
+  reloadPage(): void {
     this.firePageChange()
   }
 
-  reloadPage() {
-    this.firePageChange()
-  }
-
-  getUrl(params, favourites = false) {
+  getUrl(params: ParsedQueryParams, favourites: boolean = false): string {
     // remove page from the query should it be 1 (the default)
     if (params.page === 1) delete params.page
+
+    if (params.query === null) delete params.query
+    if (params.user === null) delete params.user
 
     if ((this.props.favourites || favourites) && params.user)
       return `favourites?${queryString.stringify(params)}`
@@ -132,34 +198,40 @@ class Songs extends React.Component {
   }
 
   handlePageChange(
-    page,
+    page: number,
     {
       query = undefined,
       history = true,
-      username = undefined,
+      user = undefined,
       force_refresh = true,
       favourites = false,
-    }
-  ) {
-    this.setState({ loaded: !force_refresh, page, search: query, username })
+    }: PageChangeOptions
+  ): void {
+    this.setState({ loaded: !force_refresh, page, query, user })
 
-    const url = this.getUrl({ page, query, user: username }, favourites)
+    const url = this.getUrl({ page, query, user }, favourites)
     if (history) this.props.history.push(`/${url}`)
   }
 
-  getPage(page, query = undefined, username = undefined) {
-    const url = this.getUrl({ page, query, user: username })
+  getPage(
+    page: number,
+    {
+      query = undefined,
+      user = undefined,
+    }: { query?: string | null; user?: string | null }
+  ): void {
+    const url = this.getUrl({ page, query, user })
     this.setState({ loaded: false })
     fetch(`${API_BASE}/${url}`)
       .then(async res => {
-        if (res.status === 422 || res.status !== 200) {
-          const json = await res.clone().json()
+        if (res.status !== 200) {
+          const json: ApiResponse<SongsJson> = await res.clone().json()
           this.setState({ error: json.description, loaded: false })
           return
         }
         return res.json()
       })
-      .then(result => {
+      .then((result: ApiResponse<SongsJson>) => {
         if (result !== undefined) {
           this.setState({
             page,
@@ -172,40 +244,42 @@ class Songs extends React.Component {
       })
   }
 
-  handleAdminChange(event) {
-    localStorage.setItem('show_admin', event.target.checked)
-    this.setState({ show_admin: event.target.checked })
+  handleAdminChange(event: React.FormEvent<EventTarget>): void {
+    let target = event.target as HTMLInputElement
+    localStorage.setItem('show_admin', target.checked.toString())
+    this.setState({ show_admin: target.checked })
   }
 
-  handleSearchChange(event) {
-    this.setState({ search: event.target.value || undefined })
+  handleSearchChange(event: React.FormEvent<EventTarget>): void {
+    let target = event.target as HTMLInputElement
+    this.setState({ query: target.value || '' })
   }
 
-  handleFavesChange(event) {
-    this.setState({ username: event.target.value || undefined })
+  handleFavesChange(event: React.FormEvent<EventTarget>): void {
+    let target = event.target as HTMLInputElement
+    this.setState({ user: target.value || '' })
   }
 
-  handleSearch(event) {
+  handleSearch(event: React.FormEvent<EventTarget>): void {
     event.preventDefault()
     this.handlePage(1)
   }
 
-  handleFaves(event) {
+  handleFaves(event: React.FormEvent<EventTarget>): void {
     event.preventDefault()
-    if (this.state.username !== undefined || auth.username)
-      this.handlePage(1, true)
+    if (this.state.user !== undefined || auth.username) this.handlePage(1, true)
   }
 
-  handlePage(i, favourites = false) {
+  handlePage(i: number, favourites: boolean = false): void {
     this.handlePageChange(i, {
-      query: this.state.search,
+      query: this.state.query,
       history: true,
-      username: this.state.username,
+      user: this.state.user,
       favourites,
     })
   }
 
-  requestSong(song) {
+  requestSong(song: SongItem): void {
     const { id } = song
     fetch(`${API_BASE}/request`, {
       method: 'PUT',
@@ -215,28 +289,32 @@ class Songs extends React.Component {
       }),
     })
       .then(res => res.json())
-      .then(result => {
+      .then((result: ApiResponse<SongRequestJson>) => {
         const error = result.error !== null
-        let msg = 'description' in result ? result.description : result.message
+        let msg = (result.description as string) || ''
         this.sendAlert(msg, error)
 
         if (!error) {
           const { songs } = this.state
-          const stateSong = songs.indexOf(song)
+          const stateSong: number = songs.findIndex(
+            element => element.id === id
+          )
           songs[stateSong] = { ...song, meta: result.meta }
           this.setState({ songs })
         }
       })
   }
 
-  deleteSong(song) {
+  deleteSong(song: SongItem): void {
     const { id } = song
     fetch(`${API_BASE}/song/${id}`, { method: 'DELETE' })
       .then(res => res.json())
-      .then(result => {
+      .then((result: ApiBaseResponse) => {
         const error = result.error !== null
-        let msg = 'description' in result ? result.description : result.message
-        this.sendAlert(msg, error)
+        let msg = result.description || ''
+        if (typeof msg === 'string') {
+          this.sendAlert(msg, error)
+        }
 
         if (!error) {
           const { songs } = this.state
@@ -245,19 +323,21 @@ class Songs extends React.Component {
       })
   }
 
-  refreshSong(song) {
+  refreshSong(song: string): void {
     fetch(`${API_BASE}/song/${song}`, { method: 'GET' })
       .then(res => res.json())
-      .then(result => {
+      .then((result: ApiResponse<SongItem>) => {
         const { songs } = this.state
-        const stateSong = songs.indexOf(song)
-        if (stateSong > -1) songs[stateSong] = { ...song, ...result }
+        const stateSong = songs.findIndex(element => element.id === song)
+        if (stateSong > -1) {
+          songs[stateSong] = { ...songs[stateSong], ...result }
+        }
 
         this.setState({ songs: [result, ...songs] })
       })
   }
 
-  downloadSong(song) {
+  downloadSong(song: SongItem): void {
     const { id } = song
     fetch(`${API_BASE}/auth/download`, {
       method: 'POST',
@@ -270,7 +350,7 @@ class Songs extends React.Component {
         response
           .clone()
           .json()
-          .then(resp => {
+          .then((resp: ApiResponse<SongDownloadJson>) => {
             if ('download_token' in resp) {
               const token = resp.download_token
               const link = document.createElement('a')
@@ -280,8 +360,8 @@ class Songs extends React.Component {
               link.click()
             } else {
               const error = resp.error !== null
-              let msg = 'description' in resp ? resp.description : resp.message
-              this.sendAlert(msg, `Error downloading: ${error}`)
+              let msg = resp.description || ''
+              this.sendAlert(`Error downloading: ${msg}`, error)
             }
           })
       })
@@ -290,7 +370,7 @@ class Songs extends React.Component {
       })
   }
 
-  favouriteSong(song, unfavourite = false) {
+  favouriteSong(song: SongItem, unfavourite = false): void {
     const { id, meta } = song
     const { songs } = this.state
 
@@ -305,13 +385,15 @@ class Songs extends React.Component {
       }),
     })
       .then(res => res.json())
-      .then(result => {
+      .then((result: ApiBaseResponse) => {
         const error = result.error !== null
-        let msg = 'description' in result ? result.description : result.message
-        this.sendAlert(msg, error)
+        let msg = result.description || ''
+        if (typeof msg === 'string') {
+          this.sendAlert(msg, error)
+        }
 
         if (!error) {
-          const stateSong = songs.indexOf(song)
+          const stateSong = songs.findIndex(element => element.id === id)
           meta.favourited = !meta.favourited
           songs[stateSong] = { ...song, meta }
         }
@@ -320,7 +402,10 @@ class Songs extends React.Component {
       })
   }
 
-  updateSongMetadata(song, options) {
+  updateSongMetadata(
+    song: SongItem,
+    options: { artist?: string; title?: string }
+  ): void {
     const { id } = song
     const { songs } = this.state
 
@@ -332,19 +417,15 @@ class Songs extends React.Component {
       }),
     })
       .then(res => res.json())
-      .then(result => {
+      .then((result: ApiResponse<SongItem>) => {
         const error = result.error !== null
-        let msg = 'description' in result ? result.description : result.message
-        this.sendAlert(msg, error)
+        let msg = result.description || ''
+        if (typeof msg === 'string') {
+          this.sendAlert(msg, error)
+        }
 
         if (!error) {
           const stateSong = songs.findIndex(element => element.id === id)
-
-          // remove non-song keys
-          delete result.status_code
-          delete result.error
-          delete result.description
-
           songs[stateSong] = { ...song, ...result }
         }
 
@@ -352,7 +433,7 @@ class Songs extends React.Component {
       })
   }
 
-  onAlertDismissed(alert) {
+  onAlertDismissed(alert: AlertError): void {
     const alerts = this.state.alerts
 
     // find the index of the alert that was dismissed
@@ -367,7 +448,8 @@ class Songs extends React.Component {
   }
 
   render() {
-    if (this.state.error !== '') return <Error>{this.state.error}</Error>
+    if (this.state.error && this.state.error !== '')
+      return <Error errors={this.state.error} />
 
     const pagination = (
       <Pagination
@@ -386,6 +468,7 @@ class Songs extends React.Component {
       />
     )
 
+    // @ts-ignore
     return (
       <Container className="content-panel">
         <AlertList
@@ -424,19 +507,22 @@ class Songs extends React.Component {
                 allowMultiple={true}
                 maxFiles={10}
                 instantUpload={true}
+                // @ts-ignore
                 server={{
                   process: {
                     url: `${API_BASE}/upload`,
-                    onload: response => {
-                      const json = JSON.parse(response)
+                    onload: (response: string) => {
+                      const json: { id: string } = JSON.parse(response)
                       return json.id
                     },
                     headers: {
                       Authorization: `Bearer ${auth.access_token}`,
                     },
                   },
-                  fetch: null,
-                  revert: null,
+                  fetch: '',
+                  revert: '',
+                  load: '',
+                  restore: '',
                 }}
                 onupdatefiles={fileItems => {
                   this.setState({
@@ -445,11 +531,13 @@ class Songs extends React.Component {
                 }}
                 onprocessfile={(err, file) => {
                   if (!err) {
+                    // @ts-ignore
                     const uploadedId = String(file.serverId)
                     this.sendAlert('Song uploaded!', false)
                     this.refreshSong(uploadedId)
                   } else {
                     let msg = 'Song upload failed'
+                    // @ts-ignore
                     if (err.code === 413) msg += ' (file too large)'
                     this.sendAlert(msg, true)
                   }
@@ -465,7 +553,7 @@ class Songs extends React.Component {
               <InputGroup>
                 <Input
                   placeholder="Username"
-                  value={this.state.username || ''}
+                  value={this.state.user || ''}
                   onChange={this.handleFavesChange}
                 />
                 <InputGroupAddon addonType="append">
@@ -481,37 +569,43 @@ class Songs extends React.Component {
                   id="search"
                   labelKey="result"
                   filterBy={['result']}
-                  renderMenuItemChildren={(result, props) => (
+                  renderMenuItemChildren={(
+                    result: AutocompleteItemJson,
+                    props
+                  ) => (
                     <span>
                       <b>{result.type}</b>:&nbsp;
-                      <Highlighter search={props.text}>
+                      <Highlighter search={props.text || ''}>
                         {result.result}
                       </Highlighter>
                     </span>
                   )}
                   onInputChange={input => {
-                    const search = input || undefined
-                    this.setState({ search })
+                    const query = input || null
+                    this.setState({ query })
                   }}
-                  onChange={selected => {
-                    const search = selected[0] || { result: '' }
-                    this.setState({ search: search.result })
+                  onChange={(selected: AutocompleteItemJson[]) => {
+                    const res: AutocompleteItemJson = selected[0] || {
+                      result: '',
+                    }
+                    this.setState({ query: res.result })
                   }}
-                  onKeyDown={event => {
+                  // @ts-ignore
+                  onKeyDown={(event: any) => {
                     // only submit on enter if the user has not selected a typeahead option
                     if (
                       event.keyCode === 13 &&
-                      this.state.search === event.target.defaultValue
+                      this.state.query === event.target.defaultValue
                     ) {
                       this.handleSearch(event)
                     }
                   }}
                   isLoading={this.state.typeaheadLoading}
-                  onSearch={query => {
+                  onSearch={(query: string) => {
                     this.setState({ typeaheadLoading: true })
                     fetch(`${API_BASE}/autocomplete?query=${query}`)
                       .then(resp => resp.json())
-                      .then(json =>
+                      .then((json: ApiResponse<AutocompleteJson>) =>
                         this.setState({
                           typeaheadLoading: false,
                           typeahead: json.suggestions,
@@ -520,7 +614,7 @@ class Songs extends React.Component {
                   }}
                   placeholder="Search"
                   options={this.state.typeahead}
-                  defaultInputValue={this.state.search}
+                  defaultInputValue={this.state.query || ''}
                   highlightOnlyResult={false}
                   minLength={1}
                   selectHintOnEnter={false}
@@ -557,14 +651,6 @@ class Songs extends React.Component {
                 }}
               />
             )}
-            {/* {this.state.songs.length === 0 &&
-              (this.state.loaded ? (
-                <h2 className="mx-auto text-center">No results</h2>
-              ) : (
-                <LoaderSpinner />
-              ))
-            // <LoaderSpinner /> // <h2 className="mx-auto text-center">No results</h2>
-            } */}
             {this.state.songs.length !== 0 && (
               <SongsTable
                 songs={this.state.songs}
@@ -576,7 +662,7 @@ class Songs extends React.Component {
                   settings.downloads_enabled ||
                   (auth.admin && this.state.show_admin)
                 }
-                isAdmin={auth.admin && this.state.show_admin}
+                isAdmin={auth.admin ? this.state.show_admin : false}
                 downloadSong={this.downloadSong.bind(this)}
                 loggedIn={auth.logged_in}
                 reloadPage={this.reloadPage.bind(this)}
@@ -593,4 +679,4 @@ class Songs extends React.Component {
   }
 }
 
-export default view(withRouter(props => <Songs {...props} />))
+export default view(withRouter((props: Props) => <Songs {...props} />))

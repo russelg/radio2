@@ -3,16 +3,25 @@ import { view } from 'react-easy-state'
 import { Button, Form, FormFeedback, FormGroup, Input } from 'reactstrap'
 import { auth } from '../store'
 import './LoginForm.css'
+import { Description } from '../api/Schemas'
 
-class LoginForm extends React.Component {
-  constructor() {
-    super()
+export interface Props {}
 
-    this.state = {
-      username: '',
-      password: '',
-      error: null,
-    }
+export interface State {
+  username: string
+  password: string
+  error?: Description | null
+}
+
+class LoginForm extends React.Component<Props, State> {
+  state = {
+    username: '',
+    password: '',
+    error: null,
+  }
+
+  constructor(props: Props) {
+    super(props)
 
     this.handleLogin = this.handleLogin.bind(this)
     this.handleChange = this.handleChange.bind(this)
@@ -23,7 +32,7 @@ class LoginForm extends React.Component {
     return this.state.username.length > 0 && this.state.password.length > 0
   }
 
-  handleLogin(event) {
+  handleLogin(event: React.FormEvent<EventTarget>) {
     const { username, password } = this.state
     event.preventDefault()
     auth.login(username, password).then(resp => {
@@ -31,8 +40,11 @@ class LoginForm extends React.Component {
     })
   }
 
-  handleChange(event) {
-    this.setState({ [event.target.id]: event.target.value })
+  handleChange(event: React.FormEvent<EventTarget>) {
+    let target = event.target as HTMLInputElement
+    let newState = {}
+    newState[target.name] = target.value
+    this.setState({ ...newState })
   }
 
   render() {
@@ -41,7 +53,6 @@ class LoginForm extends React.Component {
         <FormGroup>
           <Input
             name="username"
-            id="username"
             placeholder="Username"
             value={this.state.username}
             onChange={this.handleChange}
@@ -53,7 +64,6 @@ class LoginForm extends React.Component {
           <Input
             type="password"
             name="password"
-            id="password"
             placeholder="Password"
             value={this.state.password}
             onChange={this.handleChange}
@@ -62,7 +72,11 @@ class LoginForm extends React.Component {
             autoComplete="current-password"
             className="password"
           />
-          <FormFeedback>{this.state.error}</FormFeedback>
+          <FormFeedback>
+            {this.state.error !== null
+              ? (this.state.error! as Description).toString()
+              : ''}
+          </FormFeedback>
         </FormGroup>
         <Button color="success" block disabled={!this.validateForm()}>
           Login

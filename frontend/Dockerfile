@@ -8,8 +8,3 @@ RUN cd /app && ln -s /tmp/node_modules
 
 ADD . /app
 WORKDIR /app
-# RUN npm install -g -s --no-progress yarn && \
-#     yarn
-#   && \
-#    yarn build && \
-#    yarn cache clean

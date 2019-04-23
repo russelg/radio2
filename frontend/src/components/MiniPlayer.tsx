@@ -10,7 +10,7 @@ class MiniPlayer extends React.Component {
     const { info, radio } = playingState
 
     return (
-      <div className="navbar-text text-center">
+      <div className="p-0 navbar-text text-center">
         <div className="text-center song-metadata">
           {info.artist} - {info.title}
         </div>

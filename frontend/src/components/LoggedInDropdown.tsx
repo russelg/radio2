@@ -11,13 +11,13 @@ import {
 } from 'reactstrap'
 import { auth } from '../store'
 
-class LoggedInDropdown extends React.Component {
-  constructor() {
-    super()
+class LoggedInDropdown extends React.Component<{}> {
+  constructor(props: {}) {
+    super(props)
     this.handleLogout = this.handleLogout.bind(this)
   }
 
-  async handleLogout(event) {
+  async handleLogout(): Promise<void> {
     await auth.logout()
   }
 
