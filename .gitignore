@@ -298,7 +298,9 @@ venv.bak/
 
 
 # data directories
-paths/
+paths/*/*
+paths/*/*
+!paths/*/.gitkeep
 
 # config files
 radio/config.py
