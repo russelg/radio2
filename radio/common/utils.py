@@ -110,7 +110,11 @@ def encode_file(filename: str) -> str:
     :return: full path to encoded file
     """
     encode_folder = app.config["PATH_ENCODE"]
-    name, _ = os.path.splitext(filename)
+    is_full_path = os.path.isabs(filename)
+
+    base_filename = filename if not is_full_path else os.path.basename(
+        filename)
+    name, _ = os.path.splitext(base_filename)
     name_ogg = f'{name}.ogg'
 
     subprocess.call(
@@ -124,9 +128,10 @@ def encode_file(filename: str) -> str:
     shutil.move(full_path, new_path)
     print(f'{full_path} => {new_path}')
 
-    original_file = os.path.join(encode_folder, filename)
-    if os.path.isfile(original_file):
-        os.remove(original_file)
+    # remove the source file if it was in the encode directory
+    preencode_file = os.path.join(encode_folder, base_filename)
+    if os.path.isfile(preencode_file):
+        os.remove(preencode_file)
 
     return new_path
 
