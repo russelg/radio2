@@ -1,4 +1,6 @@
-import React, { FunctionComponent } from 'react'
+import React from 'react'
+import { view } from 'react-easy-state'
+
 import { Container, Row } from 'reactstrap'
 import './Loader.css'
 import LoaderSpinner from './LoaderSpinner'
@@ -9,7 +11,7 @@ export interface Props {
   retry?: () => void
 }
 
-const Loader: FunctionComponent<Props> = ({
+const Loader: React.FunctionComponent<Props> = ({
   pastDelay = false,
   error = false,
   retry = () => null,
@@ -34,4 +36,4 @@ const Loader: FunctionComponent<Props> = ({
   }
 }
 
-export default Loader
+export default view(Loader)

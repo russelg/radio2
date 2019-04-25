@@ -1,4 +1,5 @@
-import React, { FunctionComponent } from 'react'
+import React from 'react'
+import { view } from 'react-easy-state'
 import { RouteComponentProps, withRouter } from 'react-router-dom'
 import {
   Button,
@@ -50,4 +51,4 @@ class Error extends React.Component<Props> {
   }
 }
 
-export default withRouter(Error)
+export default withRouter(view(Error))

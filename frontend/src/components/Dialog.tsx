@@ -1,5 +1,6 @@
 import React, { FunctionComponent } from 'react'
 import { Card, CardBody, CardTitle, Col, Container, Row } from 'reactstrap'
+import { view } from 'react-easy-state'
 
 export interface Props {
   title: string
@@ -22,4 +23,4 @@ const Dialog: FunctionComponent<Props> = ({ title, children }) => (
   </Container>
 )
 
-export default Dialog
+export default view(Dialog)

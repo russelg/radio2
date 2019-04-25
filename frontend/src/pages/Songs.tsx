@@ -679,4 +679,4 @@ class Songs extends React.Component<Props, State> {
   }
 }
 
-export default view(withRouter((props: Props) => <Songs {...props} />))
+export default withRouter(view((props: Props) => <Songs {...props} />))
