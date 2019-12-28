@@ -1,23 +1,15 @@
-version: '2'
-
-services:
-  frontend-base:
-    image: node:12-alpine
-    volumes:
-      - ./frontend:/app
-      - frontend_nodemodules:/app/node_modules
-    working_dir: /app
-
-  frontend-install:
-    extends:
-      service: frontend-base
-    command: yarn
-
-  frontend-build:
-    extends:
-      service: frontend-base
-    command: yarn run build
+version: '3'
 
 volumes:
   frontend_nodemodules:
     external: true
+
+services:
+  frontend-install:
+    image: node:12-alpine
+    volumes:
+      - ./frontend/package.json:/app/package.json
+      - ./frontend/yarn.lock:/app/yarn.lock
+      - frontend_nodemodules:/app/node_modules
+    working_dir: /app
+    command: yarn install --pure-lockfile

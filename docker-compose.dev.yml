@@ -6,7 +6,7 @@ services:
       - ./tools/Caddyfile.docker.dev:/etc/Caddyfile
 
   frontend:
-    command: yarn run develop
+    command: yarn run start
     environment:
       HOST: frontend
       DANGEROUSLY_DISABLE_HOST_CHECK: 'true'

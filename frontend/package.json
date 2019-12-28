@@ -66,7 +66,6 @@
   "scripts": {
     "analyze": "source-map-explorer 'build/static/js/*.js'",
     "build": "parcel build src/index.html --detailed-report --no-source-maps",
-    "develop": "yarn run start",
     "prebuild": "rm -rf dist/",
     "start": "parcel ./src/index.html --hmr-port 9222",
     "type-check": "tsc --noEmit",
