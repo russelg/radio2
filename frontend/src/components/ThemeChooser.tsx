@@ -7,13 +7,14 @@ export interface State {
 
 export interface Props {
   styles: { [k: string]: string }
+  className?: string
 }
 
 class ThemeChooser extends React.Component<Props, State> {
   state = {
     selected: localStorage.hasOwnProperty('css')
       ? localStorage['css']
-      : document.querySelector<HTMLLinkElement>('#change_stylesheet')!.href,
+      : document.querySelector<HTMLLinkElement>('#change_stylesheet')!.href
   }
 
   constructor(props: Props) {
@@ -22,7 +23,7 @@ class ThemeChooser extends React.Component<Props, State> {
   }
 
   onChange(event: React.FormEvent<EventTarget>) {
-    let target = event.target as HTMLSelectElement
+    const target = event.target as HTMLSelectElement
     const css = target.value
     document.querySelector<HTMLLinkElement>('#change_stylesheet')!.href = css
     localStorage['css'] = css
@@ -32,7 +33,7 @@ class ThemeChooser extends React.Component<Props, State> {
   render() {
     return (
       <select
-        id="theme_chooser"
+        className={this.props.className || ''}
         value={this.state.selected}
         onChange={this.onChange}>
         {Object.entries(this.props.styles).map(style => (

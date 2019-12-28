@@ -1,31 +1,52 @@
 {
-  "name": "frontend",
-  "version": "0.1.0",
-  "private": true,
+  "browserslist": [
+    ">0.2%",
+    "not dead",
+    "not ie <= 11",
+    "not op_mini all"
+  ],
   "dependencies": {
+    "react": "^16.8.6",
+    "react-dom": "^16.8.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.0.0-0",
+    "@babel/plugin-proposal-class-properties": "^7.7.4",
+    "@babel/plugin-transform-runtime": "^7.7.6",
+    "@babel/preset-env": "^7.7.7",
+    "@babel/preset-react": "^7.7.4",
+    "@babel/preset-typescript": "^7.7.7",
     "@babel/runtime": "7.4.3",
     "@shoutem/fetch-token-intercept": "^0.2.2",
     "@types/howler": "^2.1.0",
-    "@types/jest": "^24.0.11",
     "@types/node": "^11.13.4",
+    "@types/parcel-env": "^0.0.0",
     "@types/react": "^16.8.13",
     "@types/react-bootstrap-typeahead": "^3.4.4",
     "@types/react-dom": "^16.8.3",
     "@types/react-filepond": "^5.0.2",
+    "@types/react-fontawesome": "^1.6.4",
+    "@types/react-howler": "^3.7.1",
     "@types/react-js-pagination": "^3.0.2",
+    "@types/react-loadable": "^5.5.3",
     "@types/react-router-dom": "^4.3.2",
     "@types/reactstrap": "^8.0.0",
+    "@types/yup": "^0.26.27",
+    "concurrently": "^5.0.2",
+    "cpy-cli": "^3.0.0",
+    "emotion": "^10.0.27",
     "filepond": "^4.1.4",
     "filepond-plugin-file-validate-type": "^1.2.4",
     "formik": "^1.5.2",
     "moment": "^2.20.1",
+    "parcel-bundler": "^1.12.4",
+    "parcel-plugin-babel-typescript": "^1.0.1",
+    "prettier": "^1.19.1",
     "query-string": "^6.4.2",
-    "react": "^16.8.6",
+    "react-bootstrap-editable": "^0.5.1",
     "react-bootstrap-typeahead": "^4.0.0-alpha.9",
     "react-bs-notifier": "^5.0.0",
-    "react-dom": "npm:@hot-loader/react-dom",
     "react-easy-state": "^6.1.1",
-    "react-editext": "^3.1.1",
     "react-filepond": "^7.0.1",
     "react-fontawesome": "^1.6.1",
     "react-howler": "^3.7.1",
@@ -34,27 +55,28 @@
     "react-router": "^5.0.0",
     "react-router-dom": "^5.0.0",
     "react-router-transition": "^1.2.1",
-    "react-scripts": "2.1.8",
-    "react-x-editable": "https://github.com/YassienW/react-x-editable#dev",
     "reactstrap": "^8.0.0",
-    "typescript": "^3.4.3",
+    "tslint": "^5.20.1",
+    "tslint-config-airbnb": "^5.11.2",
+    "tslint-config-prettier": "^1.18.0",
+    "tslint-config-standard": "^9.0.0",
+    "tslint-react": "^4.1.0",
+    "typescript": "^3.7.4",
     "yup": "^0.27.0"
   },
+  "name": "radio-frontend",
+  "private": true,
   "scripts": {
     "analyze": "source-map-explorer 'build/static/js/*.js'",
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject"
+    "build": "parcel build src/index.html --detailed-report --no-source-maps",
+    "develop": "yarn run start",
+    "prebuild": "rm -rf dist/",
+    "start": "parcel ./src/index.html --hmr-port 9222",
+    "type-check": "tsc --noEmit",
+    "type-check:watch": "tsc --noEmit --watch"
   },
-  "proxy": "http://localhost:5000",
-  "devDependencies": {
-    "babel-core": "^6.26.0"
+  "source": {
+    "./node_modules/react-bootstrap-editable/dist/editable.js": "./node_modules/react-bootstrap-editable/src/Editable.js"
   },
-  "browserslist": [
-    ">0.2%",
-    "not dead",
-    "not ie <= 11",
-    "not op_mini all"
-  ]
+  "version": "0.1.0"
 }

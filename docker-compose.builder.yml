@@ -1,0 +1,23 @@
+version: '2'
+
+services:
+  frontend-base:
+    image: node:12-alpine
+    volumes:
+      - ./frontend:/app
+      - frontend_nodemodules:/app/node_modules
+    working_dir: /app
+
+  frontend-install:
+    extends:
+      service: frontend-base
+    command: yarn
+
+  frontend-build:
+    extends:
+      service: frontend-base
+    command: yarn run build
+
+volumes:
+  frontend_nodemodules:
+    external: true

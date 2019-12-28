@@ -1,3 +1,4 @@
+// @ts-ignore
 import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type'
 import 'filepond/dist/filepond.min.css'
 import queryString from 'query-string'
@@ -5,6 +6,7 @@ import React from 'react'
 import { AsyncTypeahead, Highlighter } from 'react-bootstrap-typeahead'
 import 'react-bootstrap-typeahead/css/Typeahead-bs4.css'
 import 'react-bootstrap-typeahead/css/Typeahead.css'
+// @ts-ignore
 import { AlertList } from 'react-bs-notifier'
 import { view } from 'react-easy-state'
 import { FilePond, registerPlugin } from 'react-filepond'
@@ -32,13 +34,13 @@ import {
   SongItem,
   SongRequestJson,
   SongsJson,
-} from '../api/Schemas'
-import Error from '../components/Error'
-import LoaderSpinner from '../components/LoaderSpinner'
-import SongsTable from '../components/SongsTable'
-import { API_BASE, auth, settings } from '../store'
-import './Home.css'
-import './Songs.css'
+} from '/api/Schemas'
+import Error from '/components/Error'
+import LoaderSpinner from '/components/LoaderSpinner'
+import SongsTable from '/components/SongsTable'
+import '/pages/Home.css'
+import '/pages/Songs.css'
+import { API_BASE, auth, settings } from '/store'
 
 registerPlugin(FilePondPluginFileValidateType)
 
@@ -52,6 +54,7 @@ export interface ParsedQueryParams {
   page: number
   query?: string | null
   user?: string | null
+  [key: string]: unknown
 }
 
 export interface PageChangeOptions {
@@ -126,6 +129,13 @@ class Songs extends React.Component<Props, State> {
     this.handleFaves = this.handleFaves.bind(this)
     this.handlePage = this.handlePage.bind(this)
     this.sendAlert = this.sendAlert.bind(this)
+    this.onAlertDismissed = this.onAlertDismissed.bind(this)
+    this.requestSong = this.requestSong.bind(this)
+    this.favouriteSong = this.favouriteSong.bind(this)
+    this.deleteSong = this.deleteSong.bind(this)
+    this.updateSongMetadata = this.updateSongMetadata.bind(this)
+    this.downloadSong = this.downloadSong.bind(this)
+    this.reloadPage = this.reloadPage.bind(this)
   }
 
   static getSearchComponents(search?: string): ParsedQueryParams {
@@ -155,14 +165,14 @@ class Songs extends React.Component<Props, State> {
       search !== undefined ? search : propSearch
     )
 
-    this.handlePageChange(page, { query, history: false, user })
+    this.handlePageChange(page, { user, query, history: false })
     this.getPage(page, { query, user })
   }
 
   componentWillMount(): void {
     this.unlisten = this.props.history.listen(location => {
       if (location.pathname === this.state.location.pathname) {
-        let url = new URL(window.location.href)
+        const url = new URL(window.location.href)
         url.search = location.search
         url.pathname = location.pathname
 
@@ -191,8 +201,9 @@ class Songs extends React.Component<Props, State> {
     if (params.query === null) delete params.query
     if (params.user === null) delete params.user
 
-    if ((this.props.favourites || favourites) && params.user)
+    if ((this.props.favourites || favourites) && params.user) {
       return `favourites?${queryString.stringify(params)}`
+    }
 
     return `songs?${queryString.stringify(params)}`
   }
@@ -207,7 +218,7 @@ class Songs extends React.Component<Props, State> {
       favourites = false,
     }: PageChangeOptions
   ): void {
-    this.setState({ loaded: !force_refresh, page, query, user })
+    this.setState({ page, query, user, loaded: !force_refresh })
 
     const url = this.getUrl({ page, query, user }, favourites)
     if (history) this.props.history.push(`/${url}`)
@@ -245,18 +256,18 @@ class Songs extends React.Component<Props, State> {
   }
 
   handleAdminChange(event: React.FormEvent<EventTarget>): void {
-    let target = event.target as HTMLInputElement
+    const target = event.target as HTMLInputElement
     localStorage.setItem('show_admin', target.checked.toString())
     this.setState({ show_admin: target.checked })
   }
 
   handleSearchChange(event: React.FormEvent<EventTarget>): void {
-    let target = event.target as HTMLInputElement
+    const target = event.target as HTMLInputElement
     this.setState({ query: target.value || '' })
   }
 
   handleFavesChange(event: React.FormEvent<EventTarget>): void {
-    let target = event.target as HTMLInputElement
+    const target = event.target as HTMLInputElement
     this.setState({ user: target.value || '' })
   }
 
@@ -272,10 +283,10 @@ class Songs extends React.Component<Props, State> {
 
   handlePage(i: number, favourites: boolean = false): void {
     this.handlePageChange(i, {
+      favourites,
       query: this.state.query,
       history: true,
       user: this.state.user,
-      favourites,
     })
   }
 
@@ -283,7 +294,7 @@ class Songs extends React.Component<Props, State> {
     const { id } = song
     fetch(`${API_BASE}/request`, {
       method: 'PUT',
-      body: JSON.stringify({ id: id }),
+      body: JSON.stringify({ id }),
       headers: new Headers({
         'Content-Type': 'application/json',
       }),
@@ -291,7 +302,7 @@ class Songs extends React.Component<Props, State> {
       .then(res => res.json())
       .then((result: ApiResponse<SongRequestJson>) => {
         const error = result.error !== null
-        let msg = (result.description as string) || ''
+        const msg = (result.description as string) || ''
         this.sendAlert(msg, error)
 
         if (!error) {
@@ -311,7 +322,7 @@ class Songs extends React.Component<Props, State> {
       .then(res => res.json())
       .then((result: ApiBaseResponse) => {
         const error = result.error !== null
-        let msg = result.description || ''
+        const msg = result.description || ''
         if (typeof msg === 'string') {
           this.sendAlert(msg, error)
         }
@@ -360,7 +371,7 @@ class Songs extends React.Component<Props, State> {
               link.click()
             } else {
               const error = resp.error !== null
-              let msg = resp.description || ''
+              const msg = resp.description || ''
               this.sendAlert(`Error downloading: ${msg}`, error)
             }
           })
@@ -379,7 +390,7 @@ class Songs extends React.Component<Props, State> {
 
     fetch(`${API_BASE}/favourites`, {
       method,
-      body: JSON.stringify({ id: id }),
+      body: JSON.stringify({ id }),
       headers: new Headers({
         'Content-Type': 'application/json',
       }),
@@ -387,7 +398,7 @@ class Songs extends React.Component<Props, State> {
       .then(res => res.json())
       .then((result: ApiBaseResponse) => {
         const error = result.error !== null
-        let msg = result.description || ''
+        const msg = result.description || ''
         if (typeof msg === 'string') {
           this.sendAlert(msg, error)
         }
@@ -419,7 +430,7 @@ class Songs extends React.Component<Props, State> {
       .then(res => res.json())
       .then((result: ApiResponse<SongItem>) => {
         const error = result.error !== null
-        let msg = result.description || ''
+        const msg = result.description || ''
         if (typeof msg === 'string') {
           this.sendAlert(msg, error)
         }
@@ -448,8 +459,9 @@ class Songs extends React.Component<Props, State> {
   }
 
   render() {
-    if (this.state.error && this.state.error !== '')
+    if (this.state.error && this.state.error !== '') {
       return <Error errors={this.state.error} />
+    }
 
     const pagination = (
       <Pagination
@@ -474,7 +486,7 @@ class Songs extends React.Component<Props, State> {
         <AlertList
           alerts={this.state.alerts}
           timeout={2000}
-          onDismiss={this.onAlertDismissed.bind(this)}
+          onDismiss={this.onAlertDismissed}
         />
         {auth.admin && (
           <Row>
@@ -654,18 +666,18 @@ class Songs extends React.Component<Props, State> {
             {this.state.songs.length !== 0 && (
               <SongsTable
                 songs={this.state.songs}
-                requestSong={this.requestSong.bind(this)}
-                favouriteSong={this.favouriteSong.bind(this)}
-                deleteSong={this.deleteSong.bind(this)}
-                updateSongMetadata={this.updateSongMetadata.bind(this)}
+                requestSong={this.requestSong}
+                favouriteSong={this.favouriteSong}
+                deleteSong={this.deleteSong}
+                updateSongMetadata={this.updateSongMetadata}
                 downloads={
                   settings.downloads_enabled ||
                   (auth.admin && this.state.show_admin)
                 }
                 isAdmin={auth.admin ? this.state.show_admin : false}
-                downloadSong={this.downloadSong.bind(this)}
+                downloadSong={this.downloadSong}
                 loggedIn={auth.logged_in}
-                reloadPage={this.reloadPage.bind(this)}
+                reloadPage={this.reloadPage}
               />
             )}
           </Col>

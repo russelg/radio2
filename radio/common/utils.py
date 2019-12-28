@@ -25,7 +25,8 @@ from radio import models as db
 from radio.common.schemas import RequestStatus
 
 register_blueprint_prefixed = partial(
-    app.register_blueprint, url_prefix=app.config['SERVER_API_PREFIX'])
+    app.register_blueprint, url_prefix=app.config["SERVER_API_PREFIX"]
+)
 
 
 parser = flaskparser.FlaskParser()
@@ -34,7 +35,7 @@ parser = flaskparser.FlaskParser()
 # there can be some tricky circular dependencies
 @parser.error_handler
 def webargs_error(error, req, schema, error_status_code, error_headers):
-    resp = make_api_response(422, 'Unprocessable Entity', error.messages)
+    resp = make_api_response(422, "Unprocessable Entity", error.messages)
     raise HTTPException(description=resp.response, response=resp)
 
 
@@ -42,13 +43,18 @@ class QueueType(Enum):
     """
     An enum representing the queue state of a song
     """
+
     NONE = 0
     NORMAL = 1
     USER = 2
 
 
-def make_api_response(status_code: int, error: Union[str, bool, None],
-                      description: str = None, content: Dict = None) -> Response:
+def make_api_response(
+    status_code: int,
+    error: Union[str, bool, None],
+    description: str = None,
+    content: Dict = None,
+) -> Response:
     """
     Generates a standard response format to use for API responses
 
@@ -58,13 +64,10 @@ def make_api_response(status_code: int, error: Union[str, bool, None],
     :param content: any other content to include
     :return: a prepared response
     """
-    data = {
-        'status_code': status_code,
-        'error': error
-    }
+    data = {"status_code": status_code, "error": error}
 
     if description:
-        data['description'] = description
+        data["description"] = description
 
     if content is None:
         content = {}
@@ -78,7 +81,7 @@ def make_api_response(status_code: int, error: Union[str, bool, None],
 
 
 @lru_cache(maxsize=32)
-def get_folder_size(path: str = '.') -> int:
+def get_folder_size(path: str = ".") -> int:
     """
     Calculate the total size of all files in the given path.
     This is cached for performance concerns.
@@ -112,21 +115,31 @@ def encode_file(filename: str) -> str:
     encode_folder = app.config["PATH_ENCODE"]
     is_full_path = os.path.isabs(filename)
 
-    base_filename = filename if not is_full_path else os.path.basename(
-        filename)
+    base_filename = filename if not is_full_path else os.path.basename(filename)
     name, _ = os.path.splitext(base_filename)
-    name_ogg = f'{name}.ogg'
+    name_ogg = f"{name}.ogg"
 
     subprocess.call(
-        [app.config["PATH_FFMPEG_BINARY"], '-i', filename, '-map_metadata', '0', '-acodec',
-         'libvorbis', '-q:a', str(app.config['SONG_QUALITY_LVL']), '-vn', name_ogg],
-        cwd=encode_folder)
+        [
+            app.config["PATH_FFMPEG_BINARY"],
+            "-i",
+            filename,
+            "-map_metadata",
+            "0",
+            "-acodec",
+            "libvorbis",
+            "-q:a",
+            str(app.config["SONG_QUALITY_LVL"]),
+            "-vn",
+            name_ogg,
+        ],
+        cwd=encode_folder,
+    )
 
     full_path = os.path.join(encode_folder, name_ogg)
-    new_path = get_nonexistant_path(os.path.join(
-        app.config["PATH_MUSIC"], name_ogg))
+    new_path = get_nonexistant_path(os.path.join(app.config["PATH_MUSIC"], name_ogg))
     shutil.move(full_path, new_path)
-    print(f'{full_path} => {new_path}')
+    print(f"{full_path} => {new_path}")
 
     # remove the source file if it was in the encode directory
     preencode_file = os.path.join(encode_folder, base_filename)
@@ -165,24 +178,24 @@ def get_metadata(filename: str) -> Optional[Dict[str, Any]]:
     :return: dict containing music file tags
     """
     metadata = mutagen.File(filename, easy=True)
-    if 'title' not in metadata or 'artist' not in metadata:
+    if "title" not in metadata or "artist" not in metadata:
         os.remove(filename)
         return None
 
-    title = metadata['title'][0]
-    artist = metadata['artist'][0]
+    title = metadata["title"][0]
+    artist = metadata["artist"][0]
     return {
         "title": title,
         "artist": artist,
         "path": filename,
-        "length": metadata.info.length
+        "length": metadata.info.length,
     }
 
 
 def get_song_or_abort(song_id: UUID) -> db.Song:
     song = db.Song.get(id=song_id)
     if not song:
-        resp = make_api_response(404, 'Not Found', 'Song does not exist')
+        resp = make_api_response(404, "Not Found", "Song does not exist")
         raise HTTPException(description=resp.get_data(), response=resp)
     else:
         return song
@@ -200,13 +213,17 @@ def insert_song(filename: str) -> db.Song:
     meta = get_metadata(full_path)
     if meta:
         # check dupe
-        song = db.Song.get(artist=meta['artist'], title=meta['title'])
+        song = db.Song.get(artist=meta["artist"], title=meta["title"])
         if song:
-            print(full_path, 'is a dupe, removing...')
+            print(full_path, "is a dupe, removing...")
             os.remove(full_path)
         else:
-            song = db.Song(filename=filename, artist=meta['artist'], title=meta['title'], length=int(
-                meta['length']))
+            song = db.Song(
+                filename=filename,
+                artist=meta["artist"],
+                title=meta["title"],
+                length=int(meta["length"]),
+            )
             db.commit()
         return song
     return None
@@ -252,8 +269,9 @@ def reload_songs() -> None:
     This is done by removing songs that exist in the database, but not on the filesystem.
     Also adds any songs found in the filesystem that are not present in the database.
     """
-    os_songs = [f for f in os.listdir(
-        app.config["PATH_MUSIC"]) if not f.startswith('.')]
+    os_songs = [
+        f for f in os.listdir(app.config["PATH_MUSIC"]) if not f.startswith(".")
+    ]
     if db.count(s for s in db.Song) <= 0:
         for filename in os_songs:
             insert_song(filename)
@@ -302,7 +320,11 @@ def next_song() -> str:
     """
     generate_queue()
 
-    queue_entry = db.Queue.select().sort_by(db.Queue.id)[:1][0]
+    try:
+        queue_entry = db.Queue.select().sort_by(db.Queue.id)[:1][0]
+    except IndexError:
+        return None
+
     song = db.Song[queue_entry.song.id]
     song.playcount += 1
     song.lastplayed = datetime.utcnow()
@@ -349,7 +371,7 @@ def humanize_lastplayed(seconds: Union[arrow.arrow.Arrow, int]) -> str:
 
         return arrow.get(seconds).humanize()
     else:
-        return 'Never before'
+        return "Never before"
 
 
 @db.db_session
@@ -364,10 +386,10 @@ def request_status(song: db.Song) -> RequestStatus:
     info = RequestStatus(requestable=not status.queued)
 
     if db.count(x for x in db.Queue) >= 10:
-        info.reason = 'Queue is full. Please wait until there are less than 10 entries'
+        info.reason = "Queue is full. Please wait until there are less than 10 entries"
         info.requestable = False
     elif status.queued:
-        info.reason = 'This song is currently queued. It can be requested again 30 minutes after being played'
+        info.reason = "This song is currently queued. It can be requested again 30 minutes after being played"
     elif song.lastplayed:
         lastplayed = arrow.get(song.lastplayed)
         info.humanized_lastplayed = humanize_lastplayed(lastplayed)
@@ -375,7 +397,9 @@ def request_status(song: db.Song) -> RequestStatus:
         request_allowed = when_requestable(lastplayed.timestamp, song.length)
 
         if request_allowed > arrow.utcnow():
-            info.reason = f'This song can be requested again {request_allowed.humanize()}'
+            info.reason = (
+                f"This song can be requested again {request_allowed.humanize()}"
+            )
             info.requestable = False
 
     return info
@@ -400,7 +424,7 @@ def parse_status(url: str) -> dict:
 
     Logic behind returning an explicit "Online" key is readability
     """
-    result = {'Online': False, 'Current Song': ''}  # Assume False by default
+    result = {"Online": False, "Current Song": ""}  # Assume False by default
     try:
         xml = urlopen(url).read()
     except URLError:
@@ -408,12 +432,12 @@ def parse_status(url: str) -> dict:
 
     try:
         # CDATA required
-        xml_dict = xmltodict.parse(
-            xml, xml_attribs=False, cdata_separator="\n")
+        xml_dict = xmltodict.parse(xml, xml_attribs=False, cdata_separator="\n")
 
         try:
-            xml_dict = xml_dict.get('playlist', {}).get(
-                'trackList', {}).get('track', None)
+            xml_dict = (
+                xml_dict.get("playlist", {}).get("trackList", {}).get("track", None)
+            )
         except AttributeError:
             # No mountpoint it seems, just ditch an empty result
             return result
@@ -422,24 +446,24 @@ def parse_status(url: str) -> dict:
                 # We got none returned from the get anyway
                 return result
 
-        annotations = xml_dict.get('annotation', False)
+        annotations = xml_dict.get("annotation", False)
         if not annotations:
             # edge case for having nothing...
             return result
         annotations = annotations.split("\n")
         for annotation in annotations:
-            tmp = annotation.split(':', 1)
+            tmp = annotation.split(":", 1)
             if len(tmp) > 1:
                 result[tmp[0]] = tmp[1].strip()
 
-        result['Online'] = True
-        result['Current Song'] = xml_dict.get('title', '') or ''
+        result["Online"] = True
+        result["Current Song"] = xml_dict.get("title", "") or ""
     except UnicodeDecodeError:
         # we have runes, but we know we are online. This should not even be
         # possible (requests.get.content)
-        result['Online'] = True
+        result["Online"] = True
         # Erase the bad stuff. However, keep in mind stream title can do this (anything user input...)
-        result['Current Song'] = ''
+        result["Current Song"] = ""
 
     return result
 
@@ -494,4 +518,4 @@ def get_nonexistant_path(fname_path):
 
 def get_self_links(api, obj):
     """Generate `_links._self` for a request"""
-    return {'_self': api.url_for(obj, _external=True)}
+    return {"_self": api.url_for(obj, _external=True)}

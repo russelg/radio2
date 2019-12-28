@@ -1,10 +1,18 @@
-FROM node:8-alpine
+FROM node:12-alpine as build-deps
 
-RUN mkdir -p /app
-ADD .yarn_cache /usr/local/share/.cache/yarn/v1/
-ADD ./package.json ./yarn.* /tmp/
-RUN cd /tmp && apk add build-base libc6-compat git && npm install -g -s --no-progress yarn && yarn
-RUN cd /app && ln -s /tmp/node_modules /app/node_modules
+# ENV PACKAGES="\
+#     libc6-compat \
+#     build-base \
+#     git \
+#     "
+    
+# RUN apk add $PACKAGES
 
-ADD . /app
+RUN mkdir /app
 WORKDIR /app
+COPY package.json yarn.lock ./
+
+RUN yarn
+
+COPY . ./
+# RUN yarn build

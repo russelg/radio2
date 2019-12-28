@@ -49,30 +49,33 @@ class ShoutInstance:
 
         # Stream connection settings
         shout.protocol = pylibshout.SHOUT_PROTOCOL_HTTP
-        shout.host = config['ICECAST_HOST']
-        shout.port = config['ICECAST_PORT']
-        shout.user = config['ICECAST_USER']
-        shout.password = config['ICECAST_PASSWORD']
-        shout.mount = config['ICECAST_MOUNT'] + ('.mp3' if mp3 else '.ogg')
-        shout.format = pylibshout.SHOUT_FORMAT_MP3 if mp3 else pylibshout.SHOUT_FORMAT_OGG
+        shout.host = config["ICECAST_HOST"]
+        shout.port = config["ICECAST_PORT"]
+        shout.user = config["ICECAST_USER"]
+        shout.password = config["ICECAST_PASSWORD"]
+        shout.mount = config["ICECAST_MOUNT"] + (".mp3" if mp3 else ".ogg")
+        shout.format = (
+            pylibshout.SHOUT_FORMAT_MP3 if mp3 else pylibshout.SHOUT_FORMAT_OGG
+        )
         if mp3:
             shout.audio_info = {
-                pylibshout.SHOUT_AI_BITRATE: config['TRANSCODE_BITRATE']}
+                pylibshout.SHOUT_AI_BITRATE: config["TRANSCODE_BITRATE"]
+            }
 
         # Stream metadata
-        shout.name = config['ICECAST_NAME']
-        shout.description = config['ICECAST_DESCRIPTION']
-        shout.genre = config['ICECAST_GENRE']
-        shout.url = config['ICECAST_URL']
+        shout.name = config["ICECAST_NAME"]
+        shout.description = config["ICECAST_DESCRIPTION"]
+        shout.genre = config["ICECAST_GENRE"]
+        shout.url = config["ICECAST_URL"]
 
         return ShoutInstance(shout, None)
 
 
 class Worker(threading.Thread):
-    def __init__(self, group=None, target=None, name=None,
-                 args=(), kwargs=None, *, daemon=None):
-        super().__init__(group=group, target=target, name=name,
-                         daemon=daemon)
+    def __init__(
+        self, group=None, target=None, name=None, args=(), kwargs=None, *, daemon=None
+    ):
+        super().__init__(group=group, target=target, name=name, daemon=daemon)
         self.args = args
         self.kwargs = kwargs
 
@@ -84,18 +87,30 @@ class Worker(threading.Thread):
         start_time = time.time()
 
         meta = get_metadata(song_path)
-        data = meta['artist'] + ' - ' + meta["title"]
+        data = meta["artist"] + " - " + meta["title"]
 
         ffmpeg = None
-        song = open(song_path, 'rb')
-        devnull = open(os.devnull, 'w')
+        song = open(song_path, "rb")
+        devnull = open(os.devnull, "w")
 
         self.instance.src = song
         if self.instance.is_mp3:
-            self.instance.shout.metadata = {'song': data.encode('utf-8')}
-            ffmpeg = subprocess.Popen([app.config['PATH_FFMPEG_BINARY'], '-i', '-', '-f', 'mp3',
-                                       '-ab', f'{app.config["TRANSCODE_BITRATE"]}k', '-'],
-                                      stdin=song, stdout=subprocess.PIPE, stderr=devnull)
+            self.instance.shout.metadata = {"song": data.encode("utf-8")}
+            ffmpeg = subprocess.Popen(
+                [
+                    app.config["PATH_FFMPEG_BINARY"],
+                    "-i",
+                    "-",
+                    "-f",
+                    "mp3",
+                    "-ab",
+                    f'{app.config["TRANSCODE_BITRATE"]}k',
+                    "-",
+                ],
+                stdin=song,
+                stdout=subprocess.PIPE,
+                stderr=devnull,
+            )
             self.instance.src = ffmpeg.stdout
 
         sent_bytes = 0
@@ -110,8 +125,7 @@ class Worker(threading.Thread):
                         self.instance.shout.sync()
                         break
                     except pylibshout.ShoutException:
-                        app.logger.exception(
-                            'stream died, reset shout instance')
+                        app.logger.exception("stream died, reset shout instance")
                         self.instance.reset()
                         time.sleep(3)
                         continue
@@ -126,15 +140,16 @@ class Worker(threading.Thread):
         finish_time = time.time()
         kbps = int(sent_bytes * 0.008 / (finish_time - start_time))
         duration = int(finish_time - start_time)
-        ext = 'MP3' if self.instance.is_mp3 else 'OGG'
+        ext = "MP3" if self.instance.is_mp3 else "OGG"
         app.logger.info(
-            f"[{ext}] Sent {sent_bytes} bytes in {duration} seconds ({kbps} kbps)")
+            f"[{ext}] Sent {sent_bytes} bytes in {duration} seconds ({kbps} kbps)"
+        )
 
 
 def run():
     shout_instances: List[ShoutInstance] = []
     shout_instances.append(ShoutInstance.initialize(app.config, False))
-    if app.config['ICECAST_TRANSCODE']:
+    if app.config["ICECAST_TRANSCODE"]:
         shout_instances.append(ShoutInstance.initialize(app.config, True))
 
     for instance in shout_instances:
@@ -142,7 +157,13 @@ def run():
 
     while True:
         jobs = []
-        song = os.path.join(app.config['PATH_MUSIC'], next_song())
+        nxt_song = next_song()
+        if nxt_song is None:
+            time.sleep(10)
+            app.logger.info("No song to play, waiting...")
+            continue
+
+        song = os.path.join(app.config["PATH_MUSIC"], nxt_song)
         app.logger.info(f'streaming file "{song}"')
         for instance in shout_instances:
             worker = Worker(args=(instance, song))

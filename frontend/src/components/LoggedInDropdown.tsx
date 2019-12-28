@@ -9,7 +9,7 @@ import {
   DropdownToggle,
   UncontrolledDropdown,
 } from 'reactstrap'
-import { auth } from '../store'
+import { auth } from '/store'
 
 class LoggedInDropdown extends React.Component<{}> {
   constructor(props: {}) {
@@ -25,7 +25,8 @@ class LoggedInDropdown extends React.Component<{}> {
     return (
       <UncontrolledDropdown nav inNavbar>
         <DropdownToggle nav caret>
-          <FontAwesome fixedWidth name="user" /> {auth.username + ' '}
+          <FontAwesome fixedWidth name="user" />
+          {auth.username}{' '}
           {auth.admin && (
             <Badge pill variant="info" className="align-middle badge-admin">
               Admin

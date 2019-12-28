@@ -20,8 +20,8 @@ with db.db_session:
             db.commit()
 
     else:
-        valid = valid_username(args.username)
-        if valid.valid:
+        validator = valid_username(args.username)
+        if validator.valid:
             if args.password:
                 success = register(args.username, args.password,
                                    admin=args.admin, validate=False)
@@ -30,6 +30,6 @@ with db.db_session:
             else:
                 print(f'No password specified.')
         else:
-            print(f'Username "{args.username}" is not valid. ({valid.reason})')
+            print(f'Username "{args.username}" is not valid. ({validator.reason})')
 
 print(f'Exiting...')

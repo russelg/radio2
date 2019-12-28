@@ -2,7 +2,7 @@ import sys
 
 # do this to bypass importing __init__.py
 # this allows us to generate these config files in a very minimal py env
-sys.path.append('radio/')
+sys.path.append("radio/")
 from config import Config
 
 
@@ -45,10 +45,10 @@ if Config.ICECAST_TRANSCODE:
 
 icecast_xml += """<fileserve>1</fileserve>
     <paths>
-        <basedir>/usr/share/icecast2</basedir>
-        <logdir>/var/log/icecast2</logdir>
-        <webroot>/usr/share/icecast2/web</webroot>
-        <adminroot>/usr/share/icecast2/admin</adminroot>
+        <basedir>/usr/share/icecast</basedir>
+        <logdir>/var/log/icecast</logdir>
+        <webroot>/usr/share/icecast/web</webroot>
+        <adminroot>/usr/share/icecast/admin</adminroot>
         <alias source="/" destination="/status.xsl"/>
     </paths>
     <logging>
@@ -59,6 +59,10 @@ icecast_xml += """<fileserve>1</fileserve>
     </logging>
     <security>
         <chroot>0</chroot>
+        <changeowner>
+            <user>icecast</user>
+            <group>icecast</group>
+        </changeowner>
     </security>
 </icecast>"""
 
@@ -69,10 +73,10 @@ POSTGRES_PASSWORD={DB_PASSWORD}
 POSTGRES_USER={DB_USER}
 POSTGRES_DB={DB_DATABASE}"""
 
-with open('icecast.xml', 'w') as f:
+with open("icecast.xml", "w") as f:
     f.write(icecast_xml.format(**Config.__dict__))
-    print('wrote icecast.xml with values from radio/config.py')
+    print("wrote icecast.xml with values from radio/config.py")
 
-with open('icecast.env', 'w') as f:
+with open("icecast.env", "w") as f:
     f.write(env.format(**Config.__dict__))
-    print('wrote icecast.env with values from radio/config.py')
+    print("wrote icecast.env with values from radio/config.py")

@@ -7,7 +7,7 @@ import {
   DropdownToggle,
   UncontrolledDropdown,
 } from 'reactstrap'
-import LoginForm from './LoginForm'
+import LoginForm from '/components/LoginForm'
 
 const LoginDropdown: FunctionComponent = () => (
   <UncontrolledDropdown nav inNavbar>

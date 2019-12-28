@@ -12,11 +12,11 @@ import {
   InputGroup,
   InputGroupAddon,
 } from 'reactstrap'
-import * as yup from 'yup'
-import Dialog from '../components/Dialog'
-import { auth } from '../store'
-import './Home.css'
 import { InputType } from 'reactstrap/lib/Input'
+import * as yup from 'yup'
+import Dialog from '/components/Dialog'
+import '/pages/Home.css'
+import { auth } from '/store'
 
 export interface FormInputProps {
   icon?: string
@@ -34,11 +34,13 @@ function FormInput(props: FormInputProps) {
   return (
     <FormGroup>
       <InputGroup size="lg">
-        <InputGroupAddon addonType="prepend">
-          <span className="input-group-text">
-            <FontAwesome name={props.icon} />
-          </span>
-        </InputGroupAddon>
+        {props.icon && (
+          <InputGroupAddon addonType="prepend">
+            <span className="input-group-text">
+              <FontAwesome name={props.icon} />
+            </span>
+          </InputGroupAddon>
+        )}
         <Input
           onChange={props.onChange}
           onBlur={props.onBlur}
@@ -55,7 +57,7 @@ function FormInput(props: FormInputProps) {
   )
 }
 
-let schema = yup.object({
+const schema = yup.object({
   username: yup
     .string()
     .required('Username required')
@@ -71,8 +73,8 @@ let schema = yup.object({
     .oneOf([yup.ref('password')], 'Passwords do not match'),
 })
 
-let schemaErrors = (values: any): { [k: string]: string } => {
-  let errors = {}
+const schemaErrors = (values: any): { [k: string]: string } => {
+  const errors: { [k: string]: string } = {}
   try {
     schema.validateSync(values, { abortEarly: false })
   } catch (errs) {

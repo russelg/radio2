@@ -1,9 +1,10 @@
+import { css, cx } from 'emotion'
 import React from 'react'
 import { view } from 'react-easy-state'
 import {
   NavLink as RRNavLink,
   RouteComponentProps,
-  withRouter,
+  withRouter
 } from 'react-router-dom'
 import {
   Collapse,
@@ -14,16 +15,29 @@ import {
   NavbarBrand,
   NavbarToggler,
   NavItem,
-  NavLink,
+  NavLink
 } from 'reactstrap'
-import { auth } from '../store'
-import LoggedInDropdown from './LoggedInDropdown'
-import LoginDropdown from './LoginDropdown'
-import './Navbar.css'
-import ThemeChooser from './ThemeChooser'
+import LoggedInDropdown from '/components/LoggedInDropdown'
+import LoginDropdown from '/components/LoginDropdown'
+import ThemeChooser from '/components/ThemeChooser'
+import { auth } from '/store'
+
+const flexGrow = (val: number) => css`
+  flex-grow: ${val};
+`
+
+const navbar = css`
+  .badge-admin {
+    margin: 0 5px;
+  }
+
+  label {
+    margin-bottom: 0;
+  }
+`
 
 interface Props extends RouteComponentProps<any> {
-  children: JSX.Element
+  children: React.ReactNode
   title: string
   styles: { [k: string]: string }
   currentStyle?: string
@@ -35,7 +49,7 @@ interface State {
 
 class Navbar extends React.Component<Props, State> {
   state = {
-    collapsed: true,
+    collapsed: true
   }
 
   constructor(props: Props) {
@@ -46,7 +60,7 @@ class Navbar extends React.Component<Props, State> {
 
   toggle(): void {
     this.setState({
-      collapsed: !this.state.collapsed,
+      collapsed: !this.state.collapsed
     })
   }
 
@@ -60,7 +74,11 @@ class Navbar extends React.Component<Props, State> {
     )
 
     return (
-      <StrapNavbar color="primary" expand="lg" dark className="fixed-top">
+      <StrapNavbar
+        color="primary"
+        expand="lg"
+        dark
+        className={cx(navbar, 'fixed-top')}>
         <Container>
           <NavbarBrand to="/" activeClassName="active" tag={RRNavLink}>
             {this.props.title}
@@ -69,11 +87,11 @@ class Navbar extends React.Component<Props, State> {
             <Collapse
               isOpen={!this.state.collapsed}
               navbar
-              className="justify-content-start no-flex-grow">
+              className={cx(flexGrow(0), 'justify-content-start')}>
               <Nav navbar>{songsButton}</Nav>
             </Collapse>
           )}
-          <Nav navbar className="player flex-grow my-auto">
+          <Nav navbar className={cx(flexGrow(1), 'mx-n1 my-n3')}>
             <NavItem className="text-center mx-auto">
               {this.props.children}
             </NavItem>
@@ -82,7 +100,7 @@ class Navbar extends React.Component<Props, State> {
           <Collapse
             isOpen={!this.state.collapsed}
             navbar
-            className="justify-content-end no-flex-grow">
+            className={cx(flexGrow(0), 'justify-content-end')}>
             <Nav navbar>
               {!this.state.collapsed && songsButton}
               {!auth.logged_in && <LoginDropdown />}
@@ -90,7 +108,7 @@ class Navbar extends React.Component<Props, State> {
               <NavItem>
                 <NavLink>
                   <Label htmlFor="theme_chooser">Style</Label>
-                  <ThemeChooser styles={this.props.styles} />
+                  <ThemeChooser className="ml-1" styles={this.props.styles} />
                 </NavLink>
               </NavItem>
             </Nav>

@@ -1,9 +1,12 @@
 import React from 'react'
 import { view } from 'react-easy-state'
-
 import { Container, Row } from 'reactstrap'
-import './Loader.css'
-import LoaderSpinner from './LoaderSpinner'
+import LoaderSpinner from '/components/LoaderSpinner'
+import { css, cx } from 'emotion'
+
+const topmost = css`
+  z-index: 10;
+`
 
 export interface Props {
   pastDelay?: boolean
@@ -14,7 +17,7 @@ export interface Props {
 const Loader: React.FunctionComponent<Props> = ({
   pastDelay = false,
   error = false,
-  retry = () => null,
+  retry = () => null
 }) => {
   if (error) {
     return (
@@ -23,17 +26,19 @@ const Loader: React.FunctionComponent<Props> = ({
         <button onClick={retry}>Retry</button>
       </div>
     )
-  } else if (pastDelay) {
+  }
+
+  if (pastDelay) {
     return (
-      <Container className="h-100 fixed-top loader">
+      <Container className={cx(topmost, 'h-100 fixed-top')}>
         <Row className="h-100">
           <LoaderSpinner />
         </Row>
       </Container>
     )
-  } else {
-    return <span />
   }
+
+  return null
 }
 
 export default view(Loader)

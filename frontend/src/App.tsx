@@ -1,28 +1,21 @@
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import { view } from 'react-easy-state'
 import ReactHowler from 'react-howler'
-import Loadable from 'react-loadable'
 import { BrowserRouter as Router, Route } from 'react-router-dom'
+// @ts-ignore
 import { AnimatedSwitch } from 'react-router-transition'
-import { ApiResponse, NowPlayingJson, SettingsJson } from './api/Schemas'
-import Loader from './components/Loader'
-import MiniPlayer from './components/MiniPlayer'
-import Navbar from './components/Navbar'
-import SignIn from './pages/SignIn'
-import SignUp from './pages/SignUp'
-import { API_BASE, playingState, settings } from './store'
+import { ApiResponse, NowPlayingJson, SettingsJson } from '/api/Schemas'
+import ErrorBoundary from '/components/ErrorBoundary'
+import Loader from '/components/Loader'
+import LoaderSpinner from '/components/LoaderSpinner'
+import Navbar from '/components/Navbar'
+import { API_BASE, playingState, settings } from '/store'
 
-const AsyncHome = Loadable({
-  loader: () => import('./pages/Home'),
-  loading: Loader,
-  delay: 100,
-})
-
-const AsyncSongs = Loadable({
-  loader: () => import('./pages/Songs'),
-  loading: Loader,
-  delay: 100,
-})
+const Home = lazy(() => import('/pages/Home'))
+const Songs = lazy(() => import('/pages/Songs'))
+const MiniPlayer = lazy(() => import('./components/MiniPlayer'))
+const SignIn = lazy(() => import('/pages/SignIn'))
+const SignUp = lazy(() => import('/pages/SignUp'))
 
 interface Props {}
 interface State {
@@ -34,7 +27,7 @@ class App extends React.Component<Props, State> {
   player: React.RefObject<ReactHowler>
 
   state = {
-    loaded: false,
+    loaded: false
   }
 
   constructor(props: Props) {
@@ -43,7 +36,7 @@ class App extends React.Component<Props, State> {
     this.player = React.createRef()
 
     if (localStorage.getItem('css')) {
-      let customCSS: HTMLLinkElement | null = document.querySelector(
+      const customCSS: HTMLLinkElement | null = document.querySelector(
         '#change_stylesheet'
       )
 
@@ -51,6 +44,8 @@ class App extends React.Component<Props, State> {
         customCSS.href = localStorage.getItem('css') || ''
       }
     }
+
+    this.togglePlaying = this.togglePlaying.bind(this)
   }
 
   fetchSettings(): void {
@@ -86,12 +81,13 @@ class App extends React.Component<Props, State> {
   periodicUpdate(): void {
     // only continue to update nowplaying if the radio is playing
     // and we aren't on the homepage (i.e. miniplayer is showing)
-    if (window.location.pathname === '/' || playingState.playing)
+    if (window.location.pathname === '/' || playingState.playing) {
       playingState.periodicUpdate(() => this.updateState())
+    }
   }
 
   togglePlaying(): void {
-    let howler = this.player.current!.howler
+    const howler = this.player.current!.howler
 
     // Force howler to unload and reload the song
     // if we don't do this sometimes the radio will just not resume playback
@@ -110,17 +106,18 @@ class App extends React.Component<Props, State> {
 
     return (
       <Router>
+        {/*<ErrorBoundary>*/}
         <div className="h-100">
           <Navbar title={settings.title} styles={settings.styles}>
-            {!(playingState.info.title === '' || !playingState.playing) ? (
-              <MiniPlayer />
-            ) : (
-              <></>
+            {playingState.playing && playingState.info.title !== '' && (
+              <Suspense fallback={LoaderSpinner}>
+                <MiniPlayer />
+              </Suspense>
             )}
           </Navbar>
 
           <ReactHowler
-            src={[settings.stream_url + '.ogg', settings.stream_url + '.mp3']}
+            src={[`${settings.stream_url}.ogg`, `${settings.stream_url}.mp3`]}
             format={['ogg', 'mp3']}
             preload={false}
             html5={true}
@@ -128,36 +125,59 @@ class App extends React.Component<Props, State> {
             volume={playingState.volume / 100}
             ref={this.player}
           />
-
           <AnimatedSwitch
             atEnter={{ opacity: 0 }}
             atLeave={{ opacity: 0 }}
             atActive={{ opacity: 1 }}
             className="switch-wrapper h-100">
             <Route
-              exact
               path="/"
+              exact
               render={props => (
-                <AsyncHome
-                  {...props}
-                  togglePlaying={this.togglePlaying.bind(this)}
-                />
+                <Suspense fallback={<LoaderSpinner />}>
+                  <Home {...props} togglePlaying={this.togglePlaying} />
+                </Suspense>
               )}
             />
             <Route
               path="/songs"
               exact
-              render={props => <AsyncSongs {...props} favourites={false} />}
+              render={props => (
+                <Suspense fallback={<LoaderSpinner />}>
+                  <Songs {...props} favourites={false} />
+                </Suspense>
+              )}
             />
             <Route
               path="/favourites"
               exact
-              render={props => <AsyncSongs {...props} favourites={true} />}
+              render={props => (
+                <Suspense fallback={<LoaderSpinner />}>
+                  <Songs {...props} favourites={true} />
+                </Suspense>
+              )}
             />
-            <Route path="/sign-up" component={SignUp} exact />
-            <Route path="/sign-in" component={SignIn} exact />
+            <Route
+              path="/sign-up"
+              exact
+              render={props => (
+                <Suspense fallback={<LoaderSpinner />}>
+                  <SignUp {...props} />
+                </Suspense>
+              )}
+            />
+            <Route
+              path="/sign-in"
+              exact
+              render={props => (
+                <Suspense fallback={<LoaderSpinner />}>
+                  <SignIn {...props} />
+                </Suspense>
+              )}
+            />
           </AnimatedSwitch>
         </div>
+        {/*</ErrorBoundary>*/}
       </Router>
     )
   }

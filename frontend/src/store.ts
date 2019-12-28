@@ -1,3 +1,4 @@
+// @ts-ignore
 import { authorize, clear, configure } from '@shoutem/fetch-token-intercept'
 import { store } from 'react-easy-state'
 import {
@@ -6,7 +7,7 @@ import {
   ApiResponse,
   LoginJson,
   ApiBaseResponse,
-} from './api/Schemas'
+} from '/api/Schemas'
 
 // if (!localStorage.getItem('volume')) {
 //   localStorage.setItem('volume', '80')
@@ -14,7 +15,7 @@ import {
 
 export const API_BASE: string = '/api/v1'
 
-let config = {
+const config = {
   shouldIntercept: () => true,
   shouldInvalidateAccessToken: () => false,
   shouldWaitForTokenRenewal: true,
@@ -70,17 +71,19 @@ export const auth = store({
         'Content-Type': 'application/json',
       }),
     })
+
     const r: ApiResponse<LoginJson> = await response.clone().json()
     if ('access_token' in r && 'refresh_token' in r) {
       this.refresh_token = r.refresh_token
       config.parseAccessToken(response)
       authorize(this.refresh_token, this.access_token)
     }
+
     return r
   },
 
   async register(username: string, password: string): Promise<string> {
-    let resp = await fetch(`${API_BASE}/auth/register`, {
+    const resp = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
       body: JSON.stringify({ username, password }),
       headers: new Headers({
@@ -88,7 +91,7 @@ export const auth = store({
       }),
     })
 
-    let r: ApiBaseResponse = await resp.clone().json()
+    const r: ApiBaseResponse = await resp.clone().json()
     if (r.status_code === 200 && r.error === null) {
       return r.description.toString()
     }
@@ -97,10 +100,10 @@ export const auth = store({
   },
 
   logout(): void {
+    clear()
     this.username = ''
     this.logged_in = false
     this.admin = false
-    clear()
     this.access_token = ''
     this.refresh_token = ''
   },
@@ -201,7 +204,7 @@ export const playingState: PlayingStore = store({
   },
 
   get volume(): number {
-    let vol = localStorage.getItem('volume')
+    const vol = localStorage.getItem('volume')
     if (vol) {
       return parseInt(vol || '80', 10)
     }
@@ -221,7 +224,7 @@ export const playingState: PlayingStore = store({
   },
 
   progressParse(): void {
-    let { info, sync_offset } = this
+    const { info, sync_offset } = this
     this.radioUpdate(
       info.start_time + sync_offset,
       info.end_time + sync_offset,
@@ -230,15 +233,18 @@ export const playingState: PlayingStore = store({
   },
 
   radioUpdate(start: number, end: number, cur: number): void {
-    let { radio } = this
+    const { radio } = this
 
-    if (end !== 0) {
+    let localEnd = end
+    let localStart = start
+
+    if (localEnd !== 0) {
       radio.cur_time = Math.round(new Date().getTime() / 1000.0)
       radio.sync_seconds = radio.cur_time - cur
-      end += radio.sync_seconds
-      start += radio.sync_seconds
-      radio.duration = end - start
-      radio.position = radio.cur_time - start
+      localEnd += radio.sync_seconds
+      localStart += radio.sync_seconds
+      radio.duration = localEnd - localStart
+      radio.position = radio.cur_time - localStart
       radio.update_progress = (100 / radio.duration) * radio.position
       radio.update_progress_inc = (100 / radio.duration) * 0.5
       radio.current_pos = radio.position
@@ -249,12 +255,12 @@ export const playingState: PlayingStore = store({
   },
 
   get progress(): number {
-    let { radio } = this
+    const { radio } = this
     return radio.update_progress + radio.update_progress_inc
   },
 
   applyProgress(): void {
-    let { radio } = this
+    const { radio } = this
 
     if (radio.update_progress > 0) {
       radio.update_progress = radio.update_progress + radio.update_progress_inc
@@ -264,9 +270,9 @@ export const playingState: PlayingStore = store({
   },
 
   periodicUpdate(func: () => void): void {
-    let { info, radio } = this
+    const { info, radio, playing } = this
 
-    if (this.playing) {
+    if (playing) {
       document.title = `▶ ${info.title} - ${info.artist} | ${settings.title}`
     } else {
       document.title = settings.title

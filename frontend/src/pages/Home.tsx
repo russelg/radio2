@@ -21,10 +21,10 @@ import {
   Progress,
   Row,
 } from 'reactstrap'
-import { playingState, settings } from '../store'
-import { fuzzyTime, readableFilesize, readableSeconds } from '../utils'
-import { SongListItem } from '../api/Schemas'
-import './Home.css'
+import { SongListItem } from '/api/Schemas'
+import '/pages/Home.css'
+import { playingState, settings } from '/store'
+import { fuzzyTime, readableFilesize, readableSeconds } from '/utils'
 
 export interface State {
   modal: boolean
@@ -51,12 +51,12 @@ class Home extends React.Component<Props, State> {
   }
 
   static volumeChange(event: React.FormEvent<EventTarget>): void {
-    let target = event.target as HTMLInputElement
+    const target = event.target as HTMLInputElement
     playingState.volume = parseInt(target.value, 10)
   }
 
-  toggle(itm: string): void {
-    let newState = this.state
+  toggle(itm: keyof State): void {
+    const newState = this.state
     newState[itm] = !this.state[itm]
     this.setState(newState)
   }
@@ -100,15 +100,15 @@ class Home extends React.Component<Props, State> {
                       More Options
                     </DropdownToggle>
                     <DropdownMenu className="btn-block">
-                      <DropdownItem tag="a" href={settings.stream_url + '.ogg'}>
+                      <DropdownItem tag="a" href={`${settings.stream_url}.ogg`}>
                         Direct Stream Link
                       </DropdownItem>
-                      <DropdownItem tag="a" href={settings.stream_url + '.m3u'}>
+                      <DropdownItem tag="a" href={`${settings.stream_url}.m3u`}>
                         Stream .m3u Playlist
                       </DropdownItem>
                       <DropdownItem
                         tag="a"
-                        href={settings.stream_url + '.xspf'}>
+                        href={`${settings.stream_url}.xspf`}>
                         Stream .xspf Playlist
                       </DropdownItem>
                       <DropdownItem divider />
@@ -157,17 +157,17 @@ class Home extends React.Component<Props, State> {
                   </p>
                   <ul>
                     <li>
-                      <a href={settings.stream_url + '.ogg'}>
+                      <a href={`${settings.stream_url}.ogg`}>
                         Direct Stream Link
                       </a>
                     </li>
                     <li>
-                      <a href={settings.stream_url + '.m3u'}>
+                      <a href={`${settings.stream_url}.m3u`}>
                         Stream .m3u Playlist
                       </a>
                     </li>
                     <li>
-                      <a href={settings.stream_url + '.xspf'}>
+                      <a href={`${settings.stream_url}.xspf`}>
                         Stream .xspf Playlist
                       </a>
                     </li>
@@ -202,7 +202,7 @@ class Home extends React.Component<Props, State> {
                     </span>
                   ) : (
                     <span className="text-muted">
-                      No song currently playing
+                      No song currently playing.
                     </span>
                   )}
                 </h2>
@@ -227,7 +227,7 @@ class Home extends React.Component<Props, State> {
           </Col>
         </Row>
         <Row>
-          <Col xs={false} lg="6" className="pt-3">
+          <Col xs={false} lg="6" className="py-3">
             <h4 className="text-center">Last Played</h4>
             {info.lp.length > 0 ? (
               <ListGroup>
@@ -246,10 +246,12 @@ class Home extends React.Component<Props, State> {
                 ))}
               </ListGroup>
             ) : (
-              <p className="text-center text-muted">No songs played recently</p>
+              <p className="text-center text-muted">
+                No songs played recently.
+              </p>
             )}
           </Col>
-          <Col xs={false} lg="6" className="pt-3">
+          <Col xs={false} lg="6" className="py-3">
             <h4 className="text-center">Queue</h4>
             {info.queue.length > 0 ? (
               <ListGroup>
@@ -269,7 +271,7 @@ class Home extends React.Component<Props, State> {
               </ListGroup>
             ) : (
               <p className="text-center text-muted">
-                No songs currently queued
+                No songs currently queued.
               </p>
             )}
           </Col>

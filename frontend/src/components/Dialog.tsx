@@ -1,6 +1,6 @@
 import React, { FunctionComponent } from 'react'
-import { Card, CardBody, CardTitle, Col, Container, Row } from 'reactstrap'
 import { view } from 'react-easy-state'
+import { Card, CardBody, CardTitle, Col, Container, Row } from 'reactstrap'
 
 export interface Props {
   title: string

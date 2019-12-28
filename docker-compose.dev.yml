@@ -6,16 +6,18 @@ services:
       - ./tools/Caddyfile.docker.dev:/etc/Caddyfile
 
   frontend:
-    command: yarn start
+    command: yarn run develop
     environment:
       HOST: frontend
       DANGEROUSLY_DISABLE_HOST_CHECK: 'true'
     expose:
-      - 3000
+      - 1234
       - 9222
+    ports:
+      - 9222:9222
 
   server:
-    command: flask run
+    command: poetry run flask run
     environment:
       FLASK_APP: radio/api.py
       FLASK_DEBUG: 1

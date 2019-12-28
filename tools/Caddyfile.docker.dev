@@ -1,8 +1,6 @@
-http://radio.local, https://radio.local {
-	tls self_signed
-
+http://radio.local {
 	# frontend
-    proxy / 			frontend:3000 	{ websocket }
+    proxy / 			frontend:1234 	{ websocket }
 
 	# api
 	proxy /api			server:80	 	{ transparent }

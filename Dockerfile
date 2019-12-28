@@ -1,4 +1,14 @@
-FROM python:3.7.2-alpine
+FROM python:3.7-alpine
+
+ENV APP=/app \
+    PYTHONFAULTHANDLER=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONHASHSEED=random \
+    PIP_NO_CACHE_DIR=off \
+    PIP_DISABLE_PIP_VERSION_CHECK=on \
+    PIP_DEFAULT_TIMEOUT=100 \
+    POETRY_VERSION=1.0.0
+
 
 ENV PACKAGES="\
     dumb-init \
@@ -16,13 +26,20 @@ ENV PACKAGES="\
     ffmpeg \
     "
 
-# VOLUME [ "/app" ]
 
-ADD . /app
-WORKDIR /app
+EXPOSE 80
 
 RUN apk add $PACKAGES \
-    && pip install pipenv
-RUN cd /app/radio \
-    && pipenv install --system --deploy \
-    && cd /app/radio/pylibshout && python setup.py install
+    && pip install "poetry==$POETRY_VERSION"
+
+RUN mkdir $APP && mkdir $APP/radio
+
+WORKDIR /pysetup
+COPY ./poetry.lock* ./pyproject.toml /pysetup/
+COPY radio/pylibshout /pysetup/pylibshout
+RUN poetry config virtualenvs.create false && poetry install --no-interaction --no-ansi
+WORKDIR /pysetup/pylibshout
+RUN poetry run python setup.py install
+
+WORKDIR $APP
+COPY . $APP

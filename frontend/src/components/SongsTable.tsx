@@ -1,10 +1,14 @@
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import { view } from 'react-easy-state'
 import FontAwesome from 'react-fontawesome'
-import Editable from 'react-x-editable'
 import { Button, Form, Table, UncontrolledTooltip } from 'reactstrap'
-import { SongItem } from '../api/Schemas'
-import { readableFilesize } from '../utils'
+import { SongItem } from '/api/Schemas'
+import { readableFilesize } from '/utils'
+
+// @ts-ignore
+const Editable = lazy(() =>
+  import('/../lib/react-bootstrap-editable/src/Editable')
+)
 
 interface Props {
   songs: SongItem[]
@@ -28,11 +32,11 @@ class SongsTable extends React.Component<Props, State> {
     songs: [],
     downloads: false,
     isAdmin: false,
-    loggedIn: false,
+    loggedIn: false
   }
 
   state = {
-    deleting: [] as SongItem[],
+    deleting: [] as SongItem[]
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -58,13 +62,13 @@ class SongsTable extends React.Component<Props, State> {
                 {this.props.isAdmin ? (
                   <Editable
                     name="artist"
-                    dataType="text"
+                    dataType="textfield"
                     mode="inline"
-                    value={song.artist}
-                    bootstrap4
-                    handleSubmit={val =>
+                    isValueClickable
+                    initialValue={song.artist}
+                    onSubmit={(value: string) =>
                       this.props.updateSongMetadata(song, {
-                        artist: val.value,
+                        artist: value
                       })
                     }
                   />
@@ -76,13 +80,13 @@ class SongsTable extends React.Component<Props, State> {
                 {this.props.isAdmin ? (
                   <Editable
                     name="title"
-                    dataType="text"
+                    type="textfield"
                     mode="inline"
-                    value={song.title}
-                    bootstrap4
-                    handleSubmit={val =>
+                    isValueClickable
+                    initialValue={song.title}
+                    onSubmit={(value: string) =>
                       this.props.updateSongMetadata(song, {
-                        title: val.value,
+                        title: value
                       })
                     }
                   />
@@ -160,7 +164,7 @@ class SongsTable extends React.Component<Props, State> {
                         this.state.deleting.includes(song)
                           ? this.props.deleteSong(song)
                           : this.setState({
-                              deleting: [song, ...this.state.deleting],
+                              deleting: [song, ...this.state.deleting]
                             })
                       }}>
                       <FontAwesome

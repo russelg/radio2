@@ -1,9 +1,23 @@
 import React from 'react'
 import { view } from 'react-easy-state'
 import { Button, Form, FormFeedback, FormGroup, Input } from 'reactstrap'
-import { auth } from '../store'
-import './LoginForm.css'
-import { Description } from '../api/Schemas'
+import { auth } from '/store'
+import { Description } from '/api/Schemas'
+import { css, cx } from 'emotion'
+
+const formControlStyle = css`
+  .form-control {
+    position: relative;
+    box-sizing: border-box;
+    height: auto;
+    padding: 10px;
+    font-size: 16px;
+  }
+
+  .form-control:focus {
+    z-index: 2;
+  }
+`
 
 export interface Props {}
 
@@ -17,7 +31,7 @@ class LoginForm extends React.Component<Props, State> {
   state = {
     username: '',
     password: '',
-    error: null,
+    error: null
   }
 
   constructor(props: Props) {
@@ -41,15 +55,17 @@ class LoginForm extends React.Component<Props, State> {
   }
 
   handleChange(event: React.FormEvent<EventTarget>) {
-    let target = event.target as HTMLInputElement
-    let newState = {}
-    newState[target.name] = target.value
+    const target = event.target as HTMLInputElement
+    const newState = this.state
+    newState[target.name as 'username' | 'password'] = target.value
     this.setState({ ...newState })
   }
 
   render() {
     return (
-      <Form className="px-4 py-3 form-signin" onSubmit={this.handleLogin}>
+      <Form
+        className={cx(formControlStyle, 'px-4 py-3')}
+        onSubmit={this.handleLogin}>
         <FormGroup>
           <Input
             name="username"
@@ -59,7 +75,11 @@ class LoginForm extends React.Component<Props, State> {
             invalid={this.state.error !== null}
             required
             autoComplete="username"
-            className="username"
+            className={css`
+              margin-bottom: -1px;
+              border-bottom-left-radius: 0 !important;
+              border-bottom-right-radius: 0 !important;
+            `}
           />
           <Input
             type="password"
@@ -70,7 +90,11 @@ class LoginForm extends React.Component<Props, State> {
             invalid={this.state.error !== null}
             required
             autoComplete="current-password"
-            className="password"
+            className={css`
+              margin-bottom: 10px;
+              border-top-left-radius: 0 !important;
+              border-top-right-radius: 0 !important;
+            `}
           />
           <FormFeedback>
             {this.state.error !== null
