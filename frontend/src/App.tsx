@@ -106,78 +106,78 @@ class App extends React.Component<Props, State> {
 
     return (
       <Router>
-        {/*<ErrorBoundary>*/}
-        <div className="h-100">
-          <Navbar title={settings.title} styles={settings.styles}>
-            {playingState.playing && playingState.info.title !== '' && (
-              <Suspense fallback={LoaderSpinner}>
-                <MiniPlayer />
-              </Suspense>
-            )}
-          </Navbar>
+        <ErrorBoundary>
+          <div className="h-100">
+            <Navbar title={settings.title} styles={settings.styles}>
+              {playingState.playing && playingState.info.title !== '' && (
+                <Suspense fallback={LoaderSpinner}>
+                  <MiniPlayer />
+                </Suspense>
+              )}
+            </Navbar>
 
-          <ReactHowler
-            src={[`${settings.stream_url}.ogg`, `${settings.stream_url}.mp3`]}
-            format={['ogg', 'mp3']}
-            preload={false}
-            html5={true}
-            playing={playingState.playing}
-            volume={playingState.volume / 100}
-            ref={this.player}
-          />
-          <AnimatedSwitch
-            atEnter={{ opacity: 0 }}
-            atLeave={{ opacity: 0 }}
-            atActive={{ opacity: 1 }}
-            className="switch-wrapper h-100">
-            <Route
-              path="/"
-              exact
-              render={props => (
-                <Suspense fallback={<LoaderSpinner />}>
-                  <Home {...props} togglePlaying={this.togglePlaying} />
-                </Suspense>
-              )}
+            <ReactHowler
+              src={[`${settings.stream_url}.ogg`, `${settings.stream_url}.mp3`]}
+              format={['ogg', 'mp3']}
+              preload={false}
+              html5={true}
+              playing={playingState.playing}
+              volume={playingState.volume / 100}
+              ref={this.player}
             />
-            <Route
-              path="/songs"
-              exact
-              render={props => (
-                <Suspense fallback={<LoaderSpinner />}>
-                  <Songs {...props} favourites={false} />
-                </Suspense>
-              )}
-            />
-            <Route
-              path="/favourites"
-              exact
-              render={props => (
-                <Suspense fallback={<LoaderSpinner />}>
-                  <Songs {...props} favourites={true} />
-                </Suspense>
-              )}
-            />
-            <Route
-              path="/sign-up"
-              exact
-              render={props => (
-                <Suspense fallback={<LoaderSpinner />}>
-                  <SignUp {...props} />
-                </Suspense>
-              )}
-            />
-            <Route
-              path="/sign-in"
-              exact
-              render={props => (
-                <Suspense fallback={<LoaderSpinner />}>
-                  <SignIn {...props} />
-                </Suspense>
-              )}
-            />
-          </AnimatedSwitch>
-        </div>
-        {/*</ErrorBoundary>*/}
+            <AnimatedSwitch
+              atEnter={{ opacity: 0 }}
+              atLeave={{ opacity: 0 }}
+              atActive={{ opacity: 1 }}
+              className="switch-wrapper h-100">
+              <Route
+                path="/"
+                exact
+                render={props => (
+                  <Suspense fallback={<LoaderSpinner />}>
+                    <Home {...props} togglePlaying={this.togglePlaying} />
+                  </Suspense>
+                )}
+              />
+              <Route
+                path="/songs"
+                exact
+                render={props => (
+                  <Suspense fallback={<LoaderSpinner />}>
+                    <Songs {...props} favourites={false} />
+                  </Suspense>
+                )}
+              />
+              <Route
+                path="/favourites"
+                exact
+                render={props => (
+                  <Suspense fallback={<LoaderSpinner />}>
+                    <Songs {...props} favourites={true} />
+                  </Suspense>
+                )}
+              />
+              <Route
+                path="/sign-up"
+                exact
+                render={props => (
+                  <Suspense fallback={<LoaderSpinner />}>
+                    <SignUp {...props} />
+                  </Suspense>
+                )}
+              />
+              <Route
+                path="/sign-in"
+                exact
+                render={props => (
+                  <Suspense fallback={<LoaderSpinner />}>
+                    <SignIn {...props} />
+                  </Suspense>
+                )}
+              />
+            </AnimatedSwitch>
+          </div>
+        </ErrorBoundary>
       </Router>
     )
   }

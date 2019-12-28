@@ -313,3 +313,5 @@ icecast.env
 .yarn_cache/*
 !.yarn_cache/.gitkeep
 .dockerignore
+*.sublime-project
+*.sublime-workspace

@@ -44,7 +44,7 @@ services:
     volumes:
       - ./frontend:/app
       - frontend_nodemodules:/app/node_modules
-      - frontend_build:/app/build
+      - frontend_build:/app/dist
     environment:
       - CHOKIDAR_USEPOLLING=1
 
@@ -55,7 +55,7 @@ services:
     command: poetry run gunicorn -b 0.0.0.0:80 radio.api:app
     volumes:
       - ./:/app
-      - frontend_build:/app/frontend/build
+      - frontend_build:/app/frontend/dist
     expose:
       - 80
     ports:
