@@ -10,6 +10,7 @@ services:
     environment:
       HOST: frontend
       DANGEROUSLY_DISABLE_HOST_CHECK: 'true'
+      PARCEL_WORKERS: 8
     expose:
       - 1234
       - 9222

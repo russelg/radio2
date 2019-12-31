@@ -1,4 +1,7 @@
-import moment from 'moment'
+import format from 'date-fns/format'
+import fromUnixTime from 'date-fns/fromUnixTime'
+import formatDistanceToNow from 'date-fns/formatDistanceToNow'
+import parseISO from 'date-fns/parseISO'
 
 export function readableFilesize(size: number): string {
   let i = -1
@@ -12,9 +15,9 @@ export function readableFilesize(size: number): string {
 }
 
 export function readableSeconds(seconds: number): string {
-  return moment.utc(seconds * 1000).format('m:ss')
+  return format(fromUnixTime(Math.max(0, seconds)), 'm:ss')
 }
 
-export function fuzzyTime(time: moment.MomentInput): string {
-  return moment(time).fromNow()
+export function fuzzyTime(time: string): string {
+  return formatDistanceToNow(parseISO(time), { addSuffix: true })
 }

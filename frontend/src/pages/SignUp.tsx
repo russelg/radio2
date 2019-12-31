@@ -1,7 +1,14 @@
+import {
+  IconLookup,
+  IconName,
+  IconPrefix
+} from '@fortawesome/fontawesome-common-types'
+import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
+import { faUser } from '@fortawesome/free-solid-svg-icons/faUser'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { Formik } from 'formik'
 import React from 'react'
 import { view } from 'react-easy-state'
-import FontAwesome from 'react-fontawesome'
 import { Link, Redirect } from 'react-router-dom'
 import {
   Button,
@@ -10,7 +17,7 @@ import {
   FormGroup,
   Input,
   InputGroup,
-  InputGroupAddon,
+  InputGroupAddon
 } from 'reactstrap'
 import { InputType } from 'reactstrap/lib/Input'
 import * as yup from 'yup'
@@ -19,7 +26,7 @@ import '/pages/Home.css'
 import { auth } from '/store'
 
 export interface FormInputProps {
-  icon?: string
+  icon?: IconName | [IconPrefix, IconName] | IconLookup
   onChange?: (event: React.FormEvent<EventTarget>) => void
   onBlur?: (event: React.FormEvent<EventTarget>) => void
   placeholder?: string
@@ -37,7 +44,7 @@ function FormInput(props: FormInputProps) {
         {props.icon && (
           <InputGroupAddon addonType="prepend">
             <span className="input-group-text">
-              <FontAwesome name={props.icon} />
+              <FontAwesomeIcon icon={props.icon} />
             </span>
           </InputGroupAddon>
         )}
@@ -65,12 +72,12 @@ const schema = yup.object({
     .max(32, 'Username must be shorter than 32 characters')
     .matches(/^\w(?:\w*(?:[.-]\w+)?)*$/, {
       excludeEmptyString: true,
-      message: 'Username may only contain the following: A-z, 0-9, -_.',
+      message: 'Username may only contain the following: A-z, 0-9, -_.'
     }),
   password: yup.string().required('Password required'),
   confirmPassword: yup
     .string()
-    .oneOf([yup.ref('password')], 'Passwords do not match'),
+    .oneOf([yup.ref('password')], 'Passwords do not match')
 })
 
 const schemaErrors = (values: any): { [k: string]: string } => {
@@ -96,7 +103,7 @@ class SignUp extends React.Component {
     username: '',
     password: '',
     confirmPassword: '',
-    registered: false,
+    registered: false
   }
 
   constructor(props: {}) {
@@ -117,7 +124,7 @@ class SignUp extends React.Component {
                 {
                   username: '',
                   password: '',
-                  confirmPassword: '',
+                  confirmPassword: ''
                 } as SignUpFormInputs
               }
               validate={schemaErrors}
@@ -142,14 +149,14 @@ class SignUp extends React.Component {
                 handleChange,
                 handleBlur,
                 handleSubmit,
-                isSubmitting,
+                isSubmitting
               }) => (
                 <Form
                   onSubmit={handleSubmit}
                   className="text-center px-4 py-3"
                   autoComplete="new-password">
                   <FormInput
-                    icon="user"
+                    icon={faUser}
                     placeholder="username"
                     name="username"
                     value={values.username}
@@ -159,7 +166,7 @@ class SignUp extends React.Component {
                     invalid={touched.username ? !!errors.username : false}
                   />
                   <FormInput
-                    icon="lock"
+                    icon={faLock}
                     placeholder="password"
                     name="password"
                     type="password"
@@ -170,7 +177,7 @@ class SignUp extends React.Component {
                     invalid={touched.password ? !!errors.password : false}
                   />
                   <FormInput
-                    icon="lock"
+                    icon={faLock}
                     placeholder="confirm password"
                     name="confirmPassword"
                     type="password"

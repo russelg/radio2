@@ -6,12 +6,11 @@ import React from 'react'
 import { AsyncTypeahead, Highlighter } from 'react-bootstrap-typeahead'
 import 'react-bootstrap-typeahead/css/Typeahead-bs4.css'
 import 'react-bootstrap-typeahead/css/Typeahead.css'
-// @ts-ignore
-import { AlertList } from 'react-bs-notifier'
 import { view } from 'react-easy-state'
 import { FilePond, registerPlugin } from 'react-filepond'
 import Pagination from 'react-js-pagination'
 import { RouteComponentProps, withRouter } from 'react-router-dom'
+import { toast } from 'react-toastify'
 import {
   Button,
   Col,
@@ -22,7 +21,7 @@ import {
   InputGroup,
   InputGroupAddon,
   Label,
-  Row,
+  Row
 } from 'reactstrap'
 import {
   ApiBaseResponse,
@@ -33,7 +32,7 @@ import {
   SongDownloadJson,
   SongItem,
   SongRequestJson,
-  SongsJson,
+  SongsJson
 } from '/api/Schemas'
 import Error from '/components/Error'
 import LoaderSpinner from '/components/LoaderSpinner'
@@ -43,12 +42,6 @@ import '/pages/Songs.css'
 import { API_BASE, auth, settings } from '/store'
 
 registerPlugin(FilePondPluginFileValidateType)
-
-export interface AlertError {
-  id: number
-  message: string
-  type: 'success' | 'danger'
-}
 
 export interface ParsedQueryParams {
   page: number
@@ -83,7 +76,6 @@ export interface State {
   query?: string | null
   typeaheadLoading: boolean
   typeahead: any[]
-  alerts: AlertError[]
   user?: string | null
   files: any[]
   show_admin: boolean
@@ -97,7 +89,7 @@ class Songs extends React.Component<Props, State> {
       per_page: 50,
       page: 1,
       pages: 1,
-      total_count: 0,
+      total_count: 0
     },
     songs: [] as SongItem[],
     loaded: false,
@@ -105,11 +97,10 @@ class Songs extends React.Component<Props, State> {
     query: null,
     typeaheadLoading: false,
     typeahead: [],
-    alerts: [] as AlertError[],
     user: null,
     files: [],
     show_admin: localStorage.getItem('show_admin') === 'true',
-    location: new URL(window.location.href),
+    location: new URL(window.location.href)
   }
 
   unlisten: any
@@ -129,13 +120,13 @@ class Songs extends React.Component<Props, State> {
     this.handleFaves = this.handleFaves.bind(this)
     this.handlePage = this.handlePage.bind(this)
     this.sendAlert = this.sendAlert.bind(this)
-    this.onAlertDismissed = this.onAlertDismissed.bind(this)
     this.requestSong = this.requestSong.bind(this)
     this.favouriteSong = this.favouriteSong.bind(this)
     this.deleteSong = this.deleteSong.bind(this)
     this.updateSongMetadata = this.updateSongMetadata.bind(this)
     this.downloadSong = this.downloadSong.bind(this)
     this.reloadPage = this.reloadPage.bind(this)
+    this.updateSong = this.updateSong.bind(this)
   }
 
   static getSearchComponents(search?: string): ParsedQueryParams {
@@ -148,14 +139,8 @@ class Songs extends React.Component<Props, State> {
   }
 
   sendAlert(msg: string, error: boolean): void {
-    const newAlert: AlertError = {
-      id: new Date().getTime(),
-      message: msg,
-      type: error ? 'danger' : 'success',
-    }
-
-    this.setState({
-      alerts: [...this.state.alerts, newAlert],
+    toast(msg, {
+      type: error ? 'error' : 'success'
     })
   }
 
@@ -169,7 +154,11 @@ class Songs extends React.Component<Props, State> {
     this.getPage(page, { query, user })
   }
 
-  componentWillMount(): void {
+  componentWillUnmount(): void {
+    if (this.unlisten !== null) this.unlisten()
+  }
+
+  componentDidMount(): void {
     this.unlisten = this.props.history.listen(location => {
       if (location.pathname === this.state.location.pathname) {
         const url = new URL(window.location.href)
@@ -180,13 +169,7 @@ class Songs extends React.Component<Props, State> {
         this.firePageChange(url.search)
       }
     })
-  }
 
-  componentWillUnmount(): void {
-    if (this.unlisten !== null) this.unlisten()
-  }
-
-  componentDidMount(): void {
     this.reloadPage()
   }
 
@@ -215,7 +198,7 @@ class Songs extends React.Component<Props, State> {
       history = true,
       user = undefined,
       force_refresh = true,
-      favourites = false,
+      favourites = false
     }: PageChangeOptions
   ): void {
     this.setState({ page, query, user, loaded: !force_refresh })
@@ -228,7 +211,7 @@ class Songs extends React.Component<Props, State> {
     page: number,
     {
       query = undefined,
-      user = undefined,
+      user = undefined
     }: { query?: string | null; user?: string | null }
   ): void {
     const url = this.getUrl({ page, query, user })
@@ -249,7 +232,7 @@ class Songs extends React.Component<Props, State> {
             pagination: result.pagination,
             songs: result.songs,
             query: result.query,
-            loaded: true,
+            loaded: true
           })
         }
       })
@@ -286,7 +269,7 @@ class Songs extends React.Component<Props, State> {
       favourites,
       query: this.state.query,
       history: true,
-      user: this.state.user,
+      user: this.state.user
     })
   }
 
@@ -296,8 +279,8 @@ class Songs extends React.Component<Props, State> {
       method: 'PUT',
       body: JSON.stringify({ id }),
       headers: new Headers({
-        'Content-Type': 'application/json',
-      }),
+        'Content-Type': 'application/json'
+      })
     })
       .then(res => res.json())
       .then((result: ApiResponse<SongRequestJson>) => {
@@ -354,8 +337,8 @@ class Songs extends React.Component<Props, State> {
       method: 'POST',
       body: JSON.stringify({ id }),
       headers: new Headers({
-        'Content-Type': 'application/json',
-      }),
+        'Content-Type': 'application/json'
+      })
     })
       .then(response => {
         response
@@ -392,8 +375,8 @@ class Songs extends React.Component<Props, State> {
       method,
       body: JSON.stringify({ id }),
       headers: new Headers({
-        'Content-Type': 'application/json',
-      }),
+        'Content-Type': 'application/json'
+      })
     })
       .then(res => res.json())
       .then((result: ApiBaseResponse) => {
@@ -424,8 +407,8 @@ class Songs extends React.Component<Props, State> {
       method: 'PUT',
       body: JSON.stringify(options),
       headers: new Headers({
-        'Content-Type': 'application/json',
-      }),
+        'Content-Type': 'application/json'
+      })
     })
       .then(res => res.json())
       .then((result: ApiResponse<SongItem>) => {
@@ -444,18 +427,12 @@ class Songs extends React.Component<Props, State> {
       })
   }
 
-  onAlertDismissed(alert: AlertError): void {
-    const alerts = this.state.alerts
-
-    // find the index of the alert that was dismissed
-    const idx = alerts.indexOf(alert)
-
-    if (idx >= 0) {
-      this.setState({
-        // remove the alert from the array
-        alerts: [...alerts.slice(0, idx), ...alerts.slice(idx + 1)],
-      })
-    }
+  updateSong(id: string, song: SongItem) {
+    console.log('updating:', { id, song })
+    const songs = [...this.state.songs]
+    const stateSong: number = songs.findIndex(element => element.id === id)
+    songs[stateSong] = { ...songs[stateSong], ...song }
+    this.setState({ songs })
   }
 
   render() {
@@ -483,11 +460,6 @@ class Songs extends React.Component<Props, State> {
     // @ts-ignore
     return (
       <Container className="content-panel">
-        <AlertList
-          alerts={this.state.alerts}
-          timeout={2000}
-          onDismiss={this.onAlertDismissed}
-        />
         {auth.admin && (
           <Row>
             <Col>
@@ -528,17 +500,17 @@ class Songs extends React.Component<Props, State> {
                       return json.id
                     },
                     headers: {
-                      Authorization: `Bearer ${auth.access_token}`,
-                    },
+                      Authorization: `Bearer ${auth.access_token}`
+                    }
                   },
                   fetch: '',
                   revert: '',
                   load: '',
-                  restore: '',
+                  restore: ''
                 }}
                 onupdatefiles={fileItems => {
                   this.setState({
-                    files: fileItems.map(fileItem => fileItem.file),
+                    files: fileItems.map(fileItem => fileItem.file)
                   })
                 }}
                 onprocessfile={(err, file) => {
@@ -547,6 +519,12 @@ class Songs extends React.Component<Props, State> {
                     const uploadedId = String(file.serverId)
                     this.sendAlert('Song uploaded!', false)
                     this.refreshSong(uploadedId)
+
+                    // remove file after uploaded
+                    this.pond!.removeFile(file.id)
+                    this.setState({
+                      files: this.state.files.filter(itm => itm !== file.file)
+                    })
                   } else {
                     let msg = 'Song upload failed'
                     // @ts-ignore
@@ -598,7 +576,7 @@ class Songs extends React.Component<Props, State> {
                   }}
                   onChange={(selected: AutocompleteItemJson[]) => {
                     const res: AutocompleteItemJson = selected[0] || {
-                      result: '',
+                      result: ''
                     }
                     this.setState({ query: res.result })
                   }}
@@ -620,7 +598,7 @@ class Songs extends React.Component<Props, State> {
                       .then((json: ApiResponse<AutocompleteJson>) =>
                         this.setState({
                           typeaheadLoading: false,
-                          typeahead: json.suggestions,
+                          typeahead: json.suggestions
                         })
                       )
                   }}
@@ -654,31 +632,43 @@ class Songs extends React.Component<Props, State> {
               )
             ) : (
               <LoaderSpinner
+                size={{
+                  width: '8rem',
+                  height: '8rem',
+                  marginTop: '4rem'
+                }}
                 style={{
                   zIndex: 1,
                   position: 'absolute',
-                  background: 'rgba(255,255,255,0.5)',
+                  background: 'rgba(255,255,255,0.0)',
                   height: '100%',
-                  left: '0',
+                  left: '0'
                 }}
               />
             )}
             {this.state.songs.length !== 0 && (
-              <SongsTable
-                songs={this.state.songs}
-                requestSong={this.requestSong}
-                favouriteSong={this.favouriteSong}
-                deleteSong={this.deleteSong}
-                updateSongMetadata={this.updateSongMetadata}
-                downloads={
-                  settings.downloads_enabled ||
-                  (auth.admin && this.state.show_admin)
-                }
-                isAdmin={auth.admin ? this.state.show_admin : false}
-                downloadSong={this.downloadSong}
-                loggedIn={auth.logged_in}
-                reloadPage={this.reloadPage}
-              />
+              <div
+                style={{
+                  opacity: this.state.loaded ? '1' : '0.10',
+                  transition: 'opacity 0.15s ease-in-out'
+                }}>
+                <SongsTable
+                  songs={this.state.songs}
+                  requestSong={this.requestSong}
+                  favouriteSong={this.favouriteSong}
+                  deleteSong={this.deleteSong}
+                  updateSongMetadata={this.updateSongMetadata}
+                  downloads={
+                    settings.downloads_enabled ||
+                    (auth.admin && this.state.show_admin)
+                  }
+                  isAdmin={auth.admin ? this.state.show_admin : false}
+                  downloadSong={this.downloadSong}
+                  loggedIn={auth.logged_in}
+                  reloadPage={this.reloadPage}
+                  updateSong={this.updateSong}
+                />
+              </div>
             )}
           </Col>
         </Row>
@@ -691,4 +681,4 @@ class Songs extends React.Component<Props, State> {
   }
 }
 
-export default withRouter(view((props: Props) => <Songs {...props} />))
+export default withRouter(view(Songs))

@@ -19,7 +19,7 @@ import {
   ModalFooter,
   ModalHeader,
   Progress,
-  Row,
+  Row
 } from 'reactstrap'
 import { SongListItem } from '/api/Schemas'
 import '/pages/Home.css'
@@ -40,7 +40,7 @@ class Home extends React.Component<Props, State> {
   state = {
     modal: false,
     dropdownOpen: false,
-    loaded: false,
+    loaded: false
   }
 
   toggleModal = this.toggle.bind(this, 'modal')
@@ -92,7 +92,7 @@ class Home extends React.Component<Props, State> {
                     isOpen={this.state.dropdownOpen}
                     toggle={() =>
                       this.setState({
-                        dropdownOpen: !this.state.dropdownOpen,
+                        dropdownOpen: !this.state.dropdownOpen
                       })
                     }
                     className="btn-block">
@@ -228,7 +228,7 @@ class Home extends React.Component<Props, State> {
         </Row>
         <Row>
           <Col xs={false} lg="6" className="py-3">
-            <h4 className="text-center">Last Played</h4>
+            <h4 className="text-center mb-4">Last Played</h4>
             {info.lp.length > 0 ? (
               <ListGroup>
                 {info.lp.map((item: SongListItem) => (
@@ -252,7 +252,7 @@ class Home extends React.Component<Props, State> {
             )}
           </Col>
           <Col xs={false} lg="6" className="py-3">
-            <h4 className="text-center">Queue</h4>
+            <h4 className="text-center mb-4">Queue</h4>
             {info.queue.length > 0 ? (
               <ListGroup>
                 {info.queue.map((item: SongListItem) => (

@@ -1,15 +1,16 @@
 import React from 'react'
 import { findDOMNode } from 'react-dom'
 import { Col, Spinner } from 'reactstrap'
+import { view } from 'react-easy-state'
 
 export interface Props {
   style?: object
-  size?: any
+  size?: string | object
 }
 
-class LoaderSpinner extends React.PureComponent<Props> {
+class LoaderSpinner extends React.Component<Props> {
   static defaultProps = {
-    size: 'sm',
+    size: 'lg',
     style: {}
   }
 
@@ -25,6 +26,8 @@ class LoaderSpinner extends React.PureComponent<Props> {
   }
 
   render() {
+    const isStr =
+      Object.prototype.toString.call(this.props.size) === '[object String]'
     return (
       <Col
         sm="12"
@@ -39,12 +42,12 @@ class LoaderSpinner extends React.PureComponent<Props> {
           size={this.props.size || undefined}
           color="info"
           style={
-            this.props.size === undefined
+            this.props.size === undefined || isStr
               ? {
                   width: '8rem',
                   height: '8rem'
                 }
-              : undefined
+              : (this.props.size as object)
           }
         />
       </Col>
@@ -52,4 +55,4 @@ class LoaderSpinner extends React.PureComponent<Props> {
   }
 }
 
-export default LoaderSpinner
+export default view(LoaderSpinner)

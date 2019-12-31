@@ -6,7 +6,7 @@ import {
   NowPlayingJson,
   ApiResponse,
   LoginJson,
-  ApiBaseResponse,
+  ApiBaseResponse
 } from '/api/Schemas'
 
 // if (!localStorage.getItem('volume')) {
@@ -16,7 +16,12 @@ import {
 export const API_BASE: string = '/api/v1'
 
 const config = {
-  shouldIntercept: () => true,
+  shouldIntercept: (request: Request) => {
+    // exclude login requests from intercepting
+    // without this, each login will occur 3 times if invalid...
+    if (request.url.includes('/auth/login')) return false
+    return true
+  },
   shouldInvalidateAccessToken: () => false,
   shouldWaitForTokenRenewal: true,
   authorizeRequest: (request: Request, accessToken: string) => {
@@ -26,7 +31,7 @@ const config = {
   createAccessTokenRequest: (refreshToken: string) =>
     new Request(`${API_BASE}/auth/refresh`, {
       headers: { Authorization: `Bearer ${refreshToken}` },
-      method: 'POST',
+      method: 'POST'
     }),
   parseAccessToken: async (response: Response) => {
     const json = await response.clone().json()
@@ -36,7 +41,7 @@ const config = {
     auth.admin = json.admin || false
     return json.access_token
   },
-  fetchRetryCount: 3,
+  fetchRetryCount: 3
 }
 
 export const auth = store({
@@ -68,8 +73,8 @@ export const auth = store({
       method: 'POST',
       body: JSON.stringify({ username, password }),
       headers: new Headers({
-        'Content-Type': 'application/json',
-      }),
+        'Content-Type': 'application/json'
+      })
     })
 
     const r: ApiResponse<LoginJson> = await response.clone().json()
@@ -87,8 +92,8 @@ export const auth = store({
       method: 'POST',
       body: JSON.stringify({ username, password }),
       headers: new Headers({
-        'Content-Type': 'application/json',
-      }),
+        'Content-Type': 'application/json'
+      })
     })
 
     const r: ApiBaseResponse = await resp.clone().json()
@@ -106,7 +111,7 @@ export const auth = store({
     this.admin = false
     this.access_token = ''
     this.refresh_token = ''
-  },
+  }
 })
 
 configure(config)
@@ -122,7 +127,7 @@ export const settings: SettingsStore = store({
   styles: {} as { [k: string]: string },
   icecast: {
     mount: '',
-    url: '',
+    url: ''
   },
   title: '',
   downloads_enabled: false,
@@ -134,7 +139,7 @@ export const settings: SettingsStore = store({
 
   get stream_url(): string {
     return this.icecast.url + this.icecast.mount
-  },
+  }
 } as SettingsStore)
 
 export interface RadioStore {
@@ -184,7 +189,7 @@ export const playingState: PlayingStore = store({
     queue: [],
     lp: [],
     total_size: 0,
-    listeners: 0,
+    listeners: 0
   },
 
   radio: {
@@ -200,7 +205,7 @@ export const playingState: PlayingStore = store({
     current_artist: '',
     cur_time: 0,
     duration: 0,
-    position: 0,
+    position: 0
   },
 
   get volume(): number {
@@ -290,5 +295,5 @@ export const playingState: PlayingStore = store({
 
   togglePlaying(): void {
     this.playing = !this.playing
-  },
+  }
 } as PlayingStore)

@@ -2,11 +2,11 @@ import React, { FunctionComponent } from 'react'
 import { view } from 'react-easy-state'
 import { Card, CardBody, CardTitle, Col, Container, Row } from 'reactstrap'
 
-export interface Props {
+export interface DialogProps {
   title: string
 }
 
-const Dialog: FunctionComponent<Props> = ({ title, children }) => (
+const Dialog: FunctionComponent<DialogProps> = ({ title, children }) => (
   <Container className="content-panel">
     <Row className="align-items-center">
       <Col lg={{ size: 8, offset: 2 }}>
@@ -15,7 +15,7 @@ const Dialog: FunctionComponent<Props> = ({ title, children }) => (
             <CardTitle className="text-center" tag="h2">
               {title}
             </CardTitle>
-            <>{children}</>
+            {children}
           </CardBody>
         </Card>
       </Col>

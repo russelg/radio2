@@ -3,8 +3,9 @@
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
     "baseUrl": "./src",
+    "esModuleInterop": true,
     "jsx": "react",
-    "lib": ["dom", "es2017"],
+    "lib": ["dom", "esnext"],
     "module": "esnext",
     "moduleResolution": "node",
     "noImplicitAny": true,
@@ -16,7 +17,7 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
-    "target": "esnext",
+    "target": "es5",
     "plugins": [
       {
         "name": "typescript-styled-plugin"

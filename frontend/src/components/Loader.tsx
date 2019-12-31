@@ -8,13 +8,13 @@ const topmost = css`
   z-index: 10;
 `
 
-export interface Props {
+export interface LoaderProps {
   pastDelay?: boolean
   error?: boolean
   retry?: () => void
 }
 
-const Loader: React.FunctionComponent<Props> = ({
+const Loader: React.FunctionComponent<LoaderProps> = ({
   pastDelay = false,
   error = false,
   retry = () => null

@@ -1,11 +1,12 @@
 import io
+import logging
 import os
 import subprocess
 import threading
 import time
+from dataclasses import dataclass
 from typing import List
 
-from dataclasses import dataclass
 from radio.api import app
 from radio.common.utils import get_metadata, next_song
 
@@ -14,6 +15,8 @@ try:
     import pylibshout
 except ImportError:
     from radio.pylibshout import pylibshout
+
+app.logger.setLevel(logging.INFO)
 
 
 @dataclass

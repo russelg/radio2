@@ -1,48 +1,44 @@
-import React from 'react'
+import { faUser } from '@fortawesome/free-solid-svg-icons/faUser'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import React, { FunctionComponent } from 'react'
 import { view } from 'react-easy-state'
-import FontAwesome from 'react-fontawesome'
 import { Link } from 'react-router-dom'
 import {
   Badge,
   DropdownItem,
   DropdownMenu,
   DropdownToggle,
-  UncontrolledDropdown,
+  UncontrolledDropdown
 } from 'reactstrap'
 import { auth } from '/store'
 
-class LoggedInDropdown extends React.Component<{}> {
-  constructor(props: {}) {
-    super(props)
-    this.handleLogout = this.handleLogout.bind(this)
-  }
-
-  async handleLogout(): Promise<void> {
+const LoggedInDropdown: FunctionComponent = () => {
+  const handleLogout = async () => {
     await auth.logout()
   }
 
-  render() {
-    return (
-      <UncontrolledDropdown nav inNavbar>
-        <DropdownToggle nav caret>
-          <FontAwesome fixedWidth name="user" />
-          {auth.username}{' '}
-          {auth.admin && (
+  return (
+    <UncontrolledDropdown nav inNavbar>
+      <DropdownToggle nav caret>
+        <FontAwesomeIcon fixedWidth icon={faUser} />
+        <span className="mx-2">{auth.username}</span>
+        {auth.admin && (
+          <>
             <Badge pill variant="info" className="align-middle badge-admin">
               Admin
             </Badge>
-          )}
-        </DropdownToggle>
-        <DropdownMenu right>
-          <DropdownItem to={`/favourites?user=${auth.username}`} tag={Link}>
-            View your favourites
-          </DropdownItem>
-          <DropdownItem divider />
-          <DropdownItem onClick={this.handleLogout}>Logout</DropdownItem>
-        </DropdownMenu>
-      </UncontrolledDropdown>
-    )
-  }
+          </>
+        )}
+      </DropdownToggle>
+      <DropdownMenu right>
+        <DropdownItem to={`/favourites?user=${auth.username}`} tag={Link}>
+          View your favourites
+        </DropdownItem>
+        <DropdownItem divider />
+        <DropdownItem onClick={handleLogout}>Logout</DropdownItem>
+      </DropdownMenu>
+    </UncontrolledDropdown>
+  )
 }
 
 export default view(LoggedInDropdown)

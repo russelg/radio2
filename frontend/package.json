@@ -6,17 +6,22 @@
     "not op_mini all"
   ],
   "dependencies": {
-    "react": "^16.12.0",
-    "react-dom": "^16.12.0"
+    "react": ">=15.0.0",
+    "react-dom": ">=15.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.7.7",
     "@babel/plugin-proposal-class-properties": "^7.7.4",
+    "@babel/plugin-transform-react-jsx": "^7.7.7",
+    "@babel/plugin-transform-react-jsx-source": "^7.7.4",
     "@babel/plugin-transform-runtime": "^7.7.6",
     "@babel/preset-env": "^7.7.7",
     "@babel/preset-react": "^7.7.4",
     "@babel/preset-typescript": "^7.7.7",
     "@babel/runtime": "7.7.7",
+    "@fortawesome/fontawesome-svg-core": "^1.2.26",
+    "@fortawesome/free-solid-svg-icons": "^5.12.0",
+    "@fortawesome/react-fontawesome": "^0.1.8",
     "@shoutem/fetch-token-intercept": "^0.2.2",
     "@types/howler": "^2.1.2",
     "@types/node": "^13.1.1",
@@ -32,6 +37,7 @@
     "@types/react-router-dom": "^5.1.3",
     "@types/reactstrap": "^8.2.0",
     "@types/yup": "^0.26.27",
+    "date-fns": "^2.8.1",
     "emotion": "^10.0.27",
     "filepond": "^4.9.3",
     "filepond-plugin-file-validate-type": "^1.2.4",
@@ -52,7 +58,9 @@
     "react-router": "^5.1.2",
     "react-router-dom": "^5.1.2",
     "react-router-transition": "^2.0.0",
+    "react-toastify": "^5.4.1",
     "reactstrap": "^8.2.0",
+    "restful-react": "^9.6.1",
     "tslint": "^5.20.1",
     "tslint-config-airbnb": "^5.11.2",
     "tslint-config-prettier": "^1.18.0",
@@ -64,7 +72,7 @@
   "name": "radio-frontend",
   "private": true,
   "scripts": {
-    "analyze": "source-map-explorer 'build/static/js/*.js'",
+    "analyze": "source-map-explorer 'dist/*.js'",
     "build": "parcel build src/index.html --detailed-report --no-source-maps",
     "prebuild": "rm -rf dist/",
     "start": "parcel ./src/index.html --hmr-port 9222",

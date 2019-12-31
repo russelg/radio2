@@ -4,6 +4,8 @@ import ReactHowler from 'react-howler'
 import { BrowserRouter as Router, Route } from 'react-router-dom'
 // @ts-ignore
 import { AnimatedSwitch } from 'react-router-transition'
+import { toast, Zoom } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 import { ApiResponse, NowPlayingJson, SettingsJson } from '/api/Schemas'
 import ErrorBoundary from '/components/ErrorBoundary'
 import Loader from '/components/Loader'
@@ -11,9 +13,15 @@ import LoaderSpinner from '/components/LoaderSpinner'
 import Navbar from '/components/Navbar'
 import { API_BASE, playingState, settings } from '/store'
 
+toast.configure({
+  autoClose: 2000,
+  position: 'top-center',
+  transition: Zoom
+})
+
 const Home = lazy(() => import('/pages/Home'))
 const Songs = lazy(() => import('/pages/Songs'))
-const MiniPlayer = lazy(() => import('./components/MiniPlayer'))
+const MiniPlayer = lazy(() => import('/components/MiniPlayer'))
 const SignIn = lazy(() => import('/pages/SignIn'))
 const SignUp = lazy(() => import('/pages/SignUp'))
 
@@ -110,7 +118,7 @@ class App extends React.Component<Props, State> {
           <div className="h-100">
             <Navbar title={settings.title} styles={settings.styles}>
               {playingState.playing && playingState.info.title !== '' && (
-                <Suspense fallback={LoaderSpinner}>
+                <Suspense fallback={<LoaderSpinner />}>
                   <MiniPlayer />
                 </Suspense>
               )}
@@ -162,7 +170,7 @@ class App extends React.Component<Props, State> {
                 exact
                 render={props => (
                   <Suspense fallback={<LoaderSpinner />}>
-                    <SignUp {...props} />
+                    <SignUp />
                   </Suspense>
                 )}
               />
@@ -171,7 +179,7 @@ class App extends React.Component<Props, State> {
                 exact
                 render={props => (
                   <Suspense fallback={<LoaderSpinner />}>
-                    <SignIn {...props} />
+                    <SignIn />
                   </Suspense>
                 )}
               />

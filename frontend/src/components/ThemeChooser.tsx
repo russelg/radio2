@@ -1,49 +1,41 @@
-import React from 'react'
+import React, { FunctionComponent, useState, FormEvent } from 'react'
 import { view } from 'react-easy-state'
 
-export interface State {
-  selected: string
-}
-
-export interface Props {
+export interface ThemeChooserProps {
   styles: { [k: string]: string }
   className?: string
 }
 
-class ThemeChooser extends React.Component<Props, State> {
-  state = {
-    selected: localStorage.hasOwnProperty('css')
+const ThemeChooser: FunctionComponent<ThemeChooserProps> = ({
+  styles,
+  className
+}) => {
+  const [selected, setSelected] = useState(
+    (localStorage.hasOwnProperty('css')
       ? localStorage['css']
-      : document.querySelector<HTMLLinkElement>('#change_stylesheet')!.href
+      : document.querySelector<HTMLLinkElement>('#change_stylesheet')!
+          .href) as string
+  )
+
+  const [loading, setLoading] = useState(false)
+
+  const onChange = (event: FormEvent<HTMLSelectElement>) => {
+    setLoading(true)
+    const { value } = event.currentTarget as HTMLSelectElement
+    document.querySelector<HTMLLinkElement>('#change_stylesheet')!.href = value
+    localStorage['css'] = value
+    setSelected(value)
   }
 
-  constructor(props: Props) {
-    super(props)
-    this.onChange = this.onChange.bind(this)
-  }
-
-  onChange(event: React.FormEvent<EventTarget>) {
-    const target = event.target as HTMLSelectElement
-    const css = target.value
-    document.querySelector<HTMLLinkElement>('#change_stylesheet')!.href = css
-    localStorage['css'] = css
-    this.setState({ selected: css })
-  }
-
-  render() {
-    return (
-      <select
-        className={this.props.className || ''}
-        value={this.state.selected}
-        onChange={this.onChange}>
-        {Object.entries(this.props.styles).map(style => (
-          <option key={style[0]} value={style[1]}>
-            {style[0]}
-          </option>
-        ))}
-      </select>
-    )
-  }
+  return (
+    <select className={className || ''} value={selected} onChange={onChange}>
+      {Object.entries(styles).map(style => (
+        <option key={style[0]} value={style[1]}>
+          {style[0]}
+        </option>
+      ))}
+    </select>
+  )
 }
 
 export default view(ThemeChooser)

@@ -53,6 +53,8 @@ services:
     image: radio
     working_dir: /app
     command: poetry run gunicorn -b 0.0.0.0:80 radio.api:app
+    # logging:
+    #   driver: none
     volumes:
       - ./:/app
       - frontend_build:/app/frontend/dist

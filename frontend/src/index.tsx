@@ -1,3 +1,5 @@
+/// <reference path="../node_modules/@types/parcel-env/index.d.ts" />
+
 import React from 'react'
 import { render } from 'react-dom'
 import { BrowserRouter } from 'react-router-dom'

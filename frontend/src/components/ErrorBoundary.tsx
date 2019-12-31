@@ -1,12 +1,13 @@
 import React from 'react'
+import { view } from 'react-easy-state'
 import Error from '/components/Error'
 
-export default class extends React.Component {
+class ErrorBoundary extends React.Component {
   static getDerivedStateFromError(error: any) {
     return { error, hasError: true }
   }
 
-  public state = { hasError: false, error: null }
+  public state = { hasError: false, error: undefined }
 
   render() {
     return this.state.hasError ? (
@@ -16,3 +17,5 @@ export default class extends React.Component {
     )
   }
 }
+
+export default view(ErrorBoundary)
