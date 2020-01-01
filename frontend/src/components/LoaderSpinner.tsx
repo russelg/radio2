@@ -39,14 +39,16 @@ class LoaderSpinner extends React.Component<Props> {
         }}>
         <Spinner
           className=""
-          size={this.props.size || undefined}
+          size={isStr ? this.props.size : undefined}
           color="info"
           style={
-            this.props.size === undefined || isStr
+            this.props.size === undefined
               ? {
                   width: '8rem',
                   height: '8rem'
                 }
+              : isStr
+              ? undefined
               : (this.props.size as object)
           }
         />

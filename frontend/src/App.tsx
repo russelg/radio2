@@ -16,7 +16,8 @@ import { API_BASE, playingState, settings } from '/store'
 toast.configure({
   autoClose: 2000,
   position: 'top-center',
-  transition: Zoom
+  transition: Zoom,
+  pauseOnFocusLoss: false
 })
 
 const Home = lazy(() => import('/pages/Home'))

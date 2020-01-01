@@ -1,6 +1,5 @@
 import { faBan } from '@fortawesome/free-solid-svg-icons/faBan'
 import { faDownload } from '@fortawesome/free-solid-svg-icons/faDownload'
-import { faExclamationTriangle } from '@fortawesome/free-solid-svg-icons/faExclamationTriangle'
 import { faHeart } from '@fortawesome/free-solid-svg-icons/faHeart'
 import { faTrash } from '@fortawesome/free-solid-svg-icons/faTrash'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -8,60 +7,83 @@ import React, {
   FunctionComponent,
   Suspense,
   useCallback,
-  useState
+  FormEvent
 } from 'react'
 import { view } from 'react-easy-state'
 import { toast } from 'react-toastify'
-import { Button, Form, UncontrolledTooltip } from 'reactstrap'
-import { useMutate } from 'restful-react'
+import { Button, Form, Spinner, UncontrolledTooltip } from 'reactstrap'
 import Editable from '/../lib/react-bootstrap-editable/src/Editable'
-import { SongItem, SongMeta, ApiBaseResponse, ApiResponse } from '/api/Schemas'
+import { useFetch } from '/api'
+import { ApiBaseResponse, ApiResponse, SongItem } from '/api/Schemas'
+import LoaderButton from '/components/LoaderButton'
 import LoaderSpinner from '/components/LoaderSpinner'
 import { API_BASE, auth, settings } from '/store'
 import { readableFilesize } from '/utils'
-import { useFetch } from '/api'
 
 interface SongRowProps {
   song: SongItem
   updateSong: (id: string, song: SongItem) => void
 }
 
+const handleResponse = <T extends ApiBaseResponse>(result: T): Promise<T> => {
+  if (result === undefined) {
+    return Promise.reject({
+      description: 'Error occured while loading response'
+    })
+  }
+
+  const error = result.error !== null
+  const msg = result.description || ''
+  if (typeof msg === 'string' && !error) {
+    toast(msg, {
+      type: 'success'
+    })
+  }
+
+  return error ? Promise.reject(result) : Promise.resolve(result)
+}
+
+const toastError = <T extends ApiBaseResponse>(result: T) => {
+  if (result) {
+    const msg = 'description' in result ? result.description : result.message
+    if (msg) toast(msg, { type: 'error' })
+  }
+}
+
 const RequestButton: FunctionComponent<SongRowProps> = ({
   song,
   updateSong
 }) => {
-  const { mutate: request, loading: loading } = useMutate({
-    verb: 'PUT',
-    path: `/request`,
-    base: API_BASE,
-    onMutate: (body, data) => {
-      toast(data.description, {
-        type: 'success'
-      })
-      updateSong(song.id, { ...song, meta: data.meta })
-    }
-  })
+  const { data, loading, errors, run } = useFetch(`${API_BASE}/request`)
 
-  const requestSong = (id: string) => {
-    request({ id }).catch(err => {
-      err &&
-        err.data &&
-        err.data.description &&
-        toast(err.data.description, {
-          type: 'error'
+  const requestSong = useCallback(
+    (event: FormEvent<HTMLButtonElement>) => {
+      event.preventDefault()
+      event.currentTarget.blur()
+
+      run({
+        method: 'PUT',
+        body: JSON.stringify({ id: song.id })
+      })
+        .then(handleResponse)
+        .then((result: ApiResponse<SongItem>) => {
+          updateSong(song.id, { ...song, meta: result.meta })
         })
-    })
-  }
+        .catch(toastError)
+    },
+    [song]
+  )
 
   return (
     <>
       <div className="disabled-button-wrapper" id={`request-${song.id}`}>
-        <Button
+        <LoaderButton
+          loading={loading}
           disabled={!song.meta.requestable}
           color={!song.meta.requestable ? 'danger' : undefined}
-          onClick={() => requestSong(song.id)}>
-          {loading ? <LoaderSpinner size="sm" /> : 'Request'}
-        </Button>
+          onClick={requestSong}>
+          Request
+        </LoaderButton>
       </div>
       <UncontrolledTooltip
         placement="top"
@@ -79,58 +101,47 @@ const FavouriteButton: FunctionComponent<SongRowProps> = ({
   song,
   updateSong
 }) => {
-  const [loading, setLoading] = useState(false)
+  const { data, loading, errors, run } = useFetch(`${API_BASE}/favourites`)
 
-  const favouriteSong = useCallback(() => {
-    if (loading) return
-    setLoading(true)
+  const favouriteSong = useCallback(
+    (event: FormEvent<HTMLButtonElement>) => {
+      event.preventDefault()
+      event.currentTarget.blur()
 
-    fetch(`${API_BASE}/favourites`, {
-      method: song.meta.favourited ? 'DELETE' : 'PUT',
-      body: JSON.stringify({ id: song.id }),
-      headers: new Headers({
-        'Content-Type': 'application/json'
+      run({
+        method: song.meta.favourited ? 'DELETE' : 'PUT',
+        body: JSON.stringify({ id: song.id })
       })
-    })
-      .then(res => res.json())
-      .then((result: ApiBaseResponse) => {
-        setLoading(false)
-        const error = result.error !== null
-        const msg = result.description || ''
-        if (typeof msg === 'string') {
-          toast(msg, {
-            type: error ? 'error' : 'success'
-          })
-        }
-
-        if (!error) {
+        .then(handleResponse)
+        .then((result: ApiBaseResponse) => {
           const { meta } = song
           meta.favourited = !meta.favourited
           updateSong(song.id, { ...song, meta })
-        }
-      })
-      .catch(err => {
-        toast(err.message, { type: 'error' })
-      })
-  }, [song])
+        })
+        .catch(toastError)
+    },
+    [song]
+  )
 
   return (
-    <Button
-      className="px-2"
-      id={`favourite-${song.id}`}
-      color={song.meta.favourited ? 'danger' : undefined}
-      onClick={favouriteSong}>
-      <FontAwesomeIcon
-        fixedWidth
-        icon={song.meta.favourited ? faBan : faHeart}
-      />
+    <>
+      <LoaderButton
+        loading={loading}
+        id={`favourite-${song.id}`}
+        color={song.meta.favourited ? 'danger' : undefined}
+        onClick={favouriteSong}>
+        <FontAwesomeIcon
+          fixedWidth
+          icon={song.meta.favourited ? faBan : faHeart}
+        />
+      </LoaderButton>
       <UncontrolledTooltip
         placement="top"
         target={`favourite-${song.id}`}
         delay={0}>
         {song.meta.favourited ? 'Unfavourite' : 'Favourite'}
       </UncontrolledTooltip>
-    </Button>
+    </>
   )
 }
 

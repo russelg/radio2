@@ -4,8 +4,8 @@ import 'filepond/dist/filepond.min.css'
 import queryString from 'query-string'
 import React from 'react'
 import { AsyncTypeahead, Highlighter } from 'react-bootstrap-typeahead'
-import 'react-bootstrap-typeahead/css/Typeahead-bs4.css'
 import 'react-bootstrap-typeahead/css/Typeahead.css'
+import 'react-bootstrap-typeahead/css/Typeahead-bs4.css'
 import { view } from 'react-easy-state'
 import { FilePond, registerPlugin } from 'react-filepond'
 import Pagination from 'react-js-pagination'
@@ -625,7 +625,10 @@ class Songs extends React.Component<Props, State> {
           </Col>
         </Row>
         <Row>
-          <Col>
+          <Col
+            style={{
+              minHeight: '16rem'
+            }}>
             {this.state.loaded ? (
               this.state.songs.length === 0 && (
                 <h2 className="mx-auto text-center">No results</h2>

@@ -2,7 +2,7 @@ import io
 import logging
 import os
 import subprocess
-import threading
+import multiprocessing
 import time
 from dataclasses import dataclass
 from typing import List
@@ -74,7 +74,7 @@ class ShoutInstance:
         return ShoutInstance(shout, None)
 
 
-class Worker(threading.Thread):
+class Worker(multiprocessing.Process):
     def __init__(
         self, group=None, target=None, name=None, args=(), kwargs=None, *, daemon=None
     ):

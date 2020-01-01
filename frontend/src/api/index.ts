@@ -1,38 +1,84 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 
 export interface ApiHook<T> {
-  data: T | null
+  data?: T
   loading: boolean
-  errors: boolean | any
+  errors: any
+  response: Res<T>
+  run: (options?: object) => Promise<any>
 }
+
+export interface Res<T> extends Response {
+  data?: T
+}
+
+const onAbort = () => {}
 
 export function useFetch<T>(
   url: string,
   options: object = {},
-  params: any[] = []
+  params?: any[]
 ): ApiHook<T> {
-  const [loading, setLoading] = useState(true)
-  const [errors, setErrors] = useState(null)
-  const [responseData, setResponseData] = useState(null as T | null)
+  const controller = useRef<AbortController>()
+  const res = useRef<Res<T>>({} as Res<T>)
+  const data = useRef<T | undefined>(undefined)
 
-  async function fetchData() {
-    const resp = await fetch(url, options)
-    resp
-      .json()
-      .then((res: T) => {
-        setResponseData(res)
-        setLoading(false)
-      })
-      .catch(err => {
-        setErrors(err)
-        setLoading(false)
-      })
+  const [loading, setLoading] = useState<boolean>(false)
+  const [errors, setErrors] = useState<any>()
+
+  const defaultOptions = {
+    headers: new Headers({
+      'Content-Type': 'application/json'
+    })
   }
 
+  const makeFetch = useCallback(() => {
+    const fetchData = async (inputOptions = {}) => {
+      controller.current = new AbortController()
+      controller.current.signal.onabort = onAbort
+
+      setLoading(true)
+      setErrors(undefined)
+
+      try {
+        const resp = await fetch(url, {
+          ...defaultOptions,
+          ...options,
+          ...inputOptions
+        })
+        res.current = resp.clone()
+        res.current.data = await resp.json()
+        data.current = res.current.data
+      } catch (err) {
+        setErrors(err)
+        throw err
+      } finally {
+        controller.current = undefined
+        setLoading(false)
+      }
+
+      return data.current
+    }
+
+    return fetchData
+  }, [url, options])
+
+  // onMount or onUpdate
   useEffect(() => {
-    setLoading(true)
-    fetchData()
+    if (params && Array.isArray(params)) {
+      setLoading(true)
+      useCallback(makeFetch(), [makeFetch])
+    }
   }, params)
 
-  return { loading, errors, data: responseData }
+  // abort on unmount
+  useEffect(() => () => controller.current && controller.current.abort(), [])
+
+  return {
+    loading,
+    errors,
+    data: data.current,
+    response: res.current,
+    run: (options = {}) => makeFetch()(options)
+  }
 }
