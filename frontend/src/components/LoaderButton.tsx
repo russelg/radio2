@@ -19,6 +19,7 @@ const spanStyle = css`
 const LoaderButton: FunctionComponent<LoaderButtonProps> = ({
   children,
   loading,
+  block,
   ...rest
 }) => {
   const [showLoader, setShowLoader] = useState(false)
@@ -45,16 +46,15 @@ const LoaderButton: FunctionComponent<LoaderButtonProps> = ({
   const fadeOutProps = useSpring({ opacity: showLoader ? 1 : 0 })
   const fadeInProps = useSpring({ opacity: showLoader ? 0 : 1 })
 
-  const block = false
-
   return (
     <Button {...rest} block={block}>
       {!(block && !showLoader) && (
         <animated.span style={fadeOutProps}>
           <Spinner
-            className={cx(buttonStyle, 'position-relative', {
+            className={cx('position-relative', {
               visible: showLoader,
-              invisible: !showLoader
+              invisible: !showLoader,
+              [buttonStyle]: !block
             })}
             size="sm"
             // type="grow"
@@ -63,9 +63,10 @@ const LoaderButton: FunctionComponent<LoaderButtonProps> = ({
       )}
       {!(block && showLoader) && (
         <animated.span
-          className={cx(spanStyle, {
+          className={cx({
             invisible: showLoader,
-            visible: !showLoader
+            visible: !showLoader,
+            [spanStyle]: !block
           })}
           style={fadeInProps}>
           {children}

@@ -10,6 +10,7 @@ import { Button, Form, FormFeedback, FormGroup, Input } from 'reactstrap'
 import { Description } from '/api/Schemas'
 import { auth } from '/store'
 import LoaderSpinner from './LoaderSpinner'
+import LoaderButton from './LoaderButton'
 
 const formControlStyle = css`
   .form-control {
@@ -89,12 +90,13 @@ const LoginForm: FunctionComponent = () => {
           {error !== null ? (error! as Description).toString() : ''}
         </FormFeedback>
       </FormGroup>
-      <Button
+      <LoaderButton
         color="success"
         block
-        disabled={error !== null || !validateForm()}>
-        {submitting ? <LoaderSpinner size="sm" /> : 'Login'}
-      </Button>
+        disabled={error !== null || !validateForm()}
+        loading={submitting}>
+        Login
+      </LoaderButton>
     </Form>
   )
 }

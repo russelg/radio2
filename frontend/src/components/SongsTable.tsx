@@ -22,13 +22,9 @@ interface Props {
   downloads: boolean
   isAdmin: boolean
   loggedIn: boolean
-  deleteSong: (song: SongItem) => void
-  downloadSong: (song: SongItem) => void
-  requestSong: (song: SongItem) => void
-  favouriteSong: (song: SongItem, favourite?: boolean) => void
   updateSongMetadata: (song: SongItem, options: object) => void
   reloadPage: () => void
-  updateSong: (id: string, song: SongItem) => void
+  updateSong: (id: string, song: SongItem | null) => void
 }
 
 interface State {

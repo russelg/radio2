@@ -120,11 +120,7 @@ class Songs extends React.Component<Props, State> {
     this.handleFaves = this.handleFaves.bind(this)
     this.handlePage = this.handlePage.bind(this)
     this.sendAlert = this.sendAlert.bind(this)
-    this.requestSong = this.requestSong.bind(this)
-    this.favouriteSong = this.favouriteSong.bind(this)
-    this.deleteSong = this.deleteSong.bind(this)
     this.updateSongMetadata = this.updateSongMetadata.bind(this)
-    this.downloadSong = this.downloadSong.bind(this)
     this.reloadPage = this.reloadPage.bind(this)
     this.updateSong = this.updateSong.bind(this)
   }
@@ -273,50 +269,6 @@ class Songs extends React.Component<Props, State> {
     })
   }
 
-  requestSong(song: SongItem): void {
-    const { id } = song
-    fetch(`${API_BASE}/request`, {
-      method: 'PUT',
-      body: JSON.stringify({ id }),
-      headers: new Headers({
-        'Content-Type': 'application/json'
-      })
-    })
-      .then(res => res.json())
-      .then((result: ApiResponse<SongRequestJson>) => {
-        const error = result.error !== null
-        const msg = (result.description as string) || ''
-        this.sendAlert(msg, error)
-
-        if (!error) {
-          const { songs } = this.state
-          const stateSong: number = songs.findIndex(
-            element => element.id === id
-          )
-          songs[stateSong] = { ...song, meta: result.meta }
-          this.setState({ songs })
-        }
-      })
-  }
-
-  deleteSong(song: SongItem): void {
-    const { id } = song
-    fetch(`${API_BASE}/song/${id}`, { method: 'DELETE' })
-      .then(res => res.json())
-      .then((result: ApiBaseResponse) => {
-        const error = result.error !== null
-        const msg = result.description || ''
-        if (typeof msg === 'string') {
-          this.sendAlert(msg, error)
-        }
-
-        if (!error) {
-          const { songs } = this.state
-          this.setState({ songs: songs.filter(item => item !== song) })
-        }
-      })
-  }
-
   refreshSong(song: string): void {
     fetch(`${API_BASE}/song/${song}`, { method: 'GET' })
       .then(res => res.json())
@@ -328,71 +280,6 @@ class Songs extends React.Component<Props, State> {
         }
 
         this.setState({ songs: [result, ...songs] })
-      })
-  }
-
-  downloadSong(song: SongItem): void {
-    const { id } = song
-    fetch(`${API_BASE}/auth/download`, {
-      method: 'POST',
-      body: JSON.stringify({ id }),
-      headers: new Headers({
-        'Content-Type': 'application/json'
-      })
-    })
-      .then(response => {
-        response
-          .clone()
-          .json()
-          .then((resp: ApiResponse<SongDownloadJson>) => {
-            if ('download_token' in resp) {
-              const token = resp.download_token
-              const link = document.createElement('a')
-              document.body.appendChild(link)
-              link.href = `${API_BASE}/download?token=${token}`
-              link.setAttribute('type', 'hidden')
-              link.click()
-            } else {
-              const error = resp.error !== null
-              const msg = resp.description || ''
-              this.sendAlert(`Error downloading: ${msg}`, error)
-            }
-          })
-      })
-      .catch(error => {
-        throw error
-      })
-  }
-
-  favouriteSong(song: SongItem, unfavourite = false): void {
-    const { id, meta } = song
-    const { songs } = this.state
-
-    let method = 'PUT'
-    if (unfavourite) method = 'DELETE'
-
-    fetch(`${API_BASE}/favourites`, {
-      method,
-      body: JSON.stringify({ id }),
-      headers: new Headers({
-        'Content-Type': 'application/json'
-      })
-    })
-      .then(res => res.json())
-      .then((result: ApiBaseResponse) => {
-        const error = result.error !== null
-        const msg = result.description || ''
-        if (typeof msg === 'string') {
-          this.sendAlert(msg, error)
-        }
-
-        if (!error) {
-          const stateSong = songs.findIndex(element => element.id === id)
-          meta.favourited = !meta.favourited
-          songs[stateSong] = { ...song, meta }
-        }
-
-        this.setState({ songs })
       })
   }
 
@@ -427,11 +314,16 @@ class Songs extends React.Component<Props, State> {
       })
   }
 
-  updateSong(id: string, song: SongItem) {
+  updateSong(id: string, song: SongItem | null) {
     console.log('updating:', { id, song })
-    const songs = [...this.state.songs]
+    let songs = [...this.state.songs]
     const stateSong: number = songs.findIndex(element => element.id === id)
-    songs[stateSong] = { ...songs[stateSong], ...song }
+    if (song !== null) {
+      songs[stateSong] = { ...songs[stateSong], ...song }
+    } else {
+      // remove song if null
+      songs = songs.filter(item => item !== songs[stateSong])
+    }
     this.setState({ songs })
   }
 
@@ -657,16 +549,12 @@ class Songs extends React.Component<Props, State> {
                 }}>
                 <SongsTable
                   songs={this.state.songs}
-                  requestSong={this.requestSong}
-                  favouriteSong={this.favouriteSong}
-                  deleteSong={this.deleteSong}
                   updateSongMetadata={this.updateSongMetadata}
                   downloads={
                     settings.downloads_enabled ||
                     (auth.admin && this.state.show_admin)
                   }
                   isAdmin={auth.admin ? this.state.show_admin : false}
-                  downloadSong={this.downloadSong}
                   loggedIn={auth.logged_in}
                   reloadPage={this.reloadPage}
                   updateSong={this.updateSong}
