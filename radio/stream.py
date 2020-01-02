@@ -25,30 +25,47 @@ class ShoutInstance:
     src: io.BufferedReader
 
     @property
+    def format(self) -> str:
+        return "MP3" if self.is_mp3 else "OGG"
+
+    @property
     def is_mp3(self) -> bool:
         return self.shout.format == pylibshout.SHOUT_FORMAT_MP3
 
     def connect(self):
         try:
             self.shout.open()
+            app.logger.info(
+                "%s: Connected to Icecast on %s", self.format, self.shout.mount
+            )
+        except pylibshout.ShoutException as e:
+            app.logger.error("Failed to connect to Icecast server. (%s)", e)
+
+    def disconnect(self):
+        try:
+            self.shout.close()
+            app.logger.info(
+                "%s: Disconnected from Icecast on %s", self.format, self.shout.mount
+            )
         except pylibshout.ShoutException:
-            app.logger.exception("Failed to connect to Icecast server.")
+            pass
 
     @property
     def connected(self) -> bool:
         try:
-            return self._shout.connected() == -7
+            return self.shout.connected() == -7
         except AttributeError:
             return False
 
     def reset(self):
+        self.disconnect()
         inst = ShoutInstance.initialize(app.config, self.is_mp3)
         self.shout = inst.shout
         self.connect()
 
     @staticmethod
     def initialize(config, mp3):
-        shout = pylibshout.Shout()
+        shout = pylibshout.Shout(tag_fix=False)
 
         # Stream connection settings
         shout.protocol = pylibshout.SHOUT_PROTOCOL_HTTP
@@ -86,6 +103,9 @@ class Worker(multiprocessing.Process):
         self.song_path = args[1]
 
     def run(self):
+        # reset this instance for a clean slate?
+        # self.instance.reset()
+
         song_path = self.song_path
         start_time = time.time()
 
@@ -119,21 +139,23 @@ class Worker(multiprocessing.Process):
         sent_bytes = 0
         if self.instance.src:
             buffer = self.instance.src.read(4096)
-            sent_bytes = len(buffer)
             while buffer:
-                sent_bytes += len(buffer)
                 while True:
                     try:
                         self.instance.shout.send(buffer)
+                        sent_bytes += len(buffer)
                         self.instance.shout.sync()
                         break
                     except pylibshout.ShoutException:
-                        app.logger.exception("stream died, reset shout instance")
+                        app.logger.warning(
+                            "%s: stream died, resetting shout instance...",
+                            self.instance.format,
+                        )
                         self.instance.reset()
                         time.sleep(3)
                         continue
 
-                buffer = self.instance.src.read(512)
+                buffer = self.instance.src.read(1024)
 
         if ffmpeg:
             ffmpeg.wait()
@@ -143,9 +165,8 @@ class Worker(multiprocessing.Process):
         finish_time = time.time()
         kbps = int(sent_bytes * 0.008 / (finish_time - start_time))
         duration = int(finish_time - start_time)
-        ext = "MP3" if self.instance.is_mp3 else "OGG"
         app.logger.info(
-            f"[{ext}] Sent {sent_bytes} bytes in {duration} seconds ({kbps} kbps)"
+            f"{self.instance.format}: Sent {sent_bytes} bytes in {duration} seconds ({kbps} kbps)"
         )
 
 
@@ -163,7 +184,7 @@ def run():
         nxt_song = next_song()
         if nxt_song is None:
             time.sleep(10)
-            app.logger.info("No song to play, waiting...")
+            app.logger.warning("No song to play, waiting...")
             continue
 
         song = os.path.join(app.config["PATH_MUSIC"], nxt_song)
