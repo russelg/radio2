@@ -1,28 +1,32 @@
 import io
 import logging
+import multiprocessing
 import os
 import subprocess
-import multiprocessing
 import time
-from dataclasses import dataclass
-from typing import List
+from typing import IO, List
 
 from radio.api import app
 from radio.common.utils import get_metadata, next_song
 
 # try import pylibshout from env first
 try:
-    import pylibshout
+    import pylibshout  # type: ignore
 except ImportError:
-    from radio.pylibshout import pylibshout
+    from radio import pylibshout
 
-app.logger.setLevel(logging.INFO)
+logging.basicConfig(
+    level=logging.NOTSET,
+    format="%(asctime)s - %(name)s:%(process)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger("stream")
 
 
-@dataclass
 class ShoutInstance:
-    shout: pylibshout.Shout
-    src: io.BufferedReader
+    def __init__(self, config: dict, mp3: bool):
+        self.config = config
+        self.mp3 = mp3
+        self.shout = self.initialize_libshout(config, mp3)
 
     @property
     def format(self) -> str:
@@ -35,16 +39,14 @@ class ShoutInstance:
     def connect(self):
         try:
             self.shout.open()
-            app.logger.info(
-                "%s: Connected to Icecast on %s", self.format, self.shout.mount
-            )
+            logger.info("%s: Connected to Icecast on %s", self.format, self.shout.mount)
         except pylibshout.ShoutException as e:
-            app.logger.error("Failed to connect to Icecast server. (%s)", e)
+            logger.error("Failed to connect to Icecast server. (%s)", e)
 
     def disconnect(self):
         try:
             self.shout.close()
-            app.logger.info(
+            logger.info(
                 "%s: Disconnected from Icecast on %s", self.format, self.shout.mount
             )
         except pylibshout.ShoutException:
@@ -59,12 +61,11 @@ class ShoutInstance:
 
     def reset(self):
         self.disconnect()
-        inst = ShoutInstance.initialize(app.config, self.is_mp3)
-        self.shout = inst.shout
+        self.__init__(self.config, self.is_mp3)
         self.connect()
 
     @staticmethod
-    def initialize(config, mp3):
+    def initialize_libshout(config: dict, mp3: bool) -> pylibshout.Shout:
         shout = pylibshout.Shout(tag_fix=False)
 
         # Stream connection settings
@@ -88,7 +89,7 @@ class ShoutInstance:
         shout.genre = config["ICECAST_GENRE"]
         shout.url = config["ICECAST_URL"]
 
-        return ShoutInstance(shout, None)
+        return shout
 
 
 class Worker(multiprocessing.Process):
@@ -99,63 +100,73 @@ class Worker(multiprocessing.Process):
         self.args = args
         self.kwargs = kwargs
 
-        self.instance = args[0]
-        self.song_path = args[1]
+        self.queue = multiprocessing.JoinableQueue()
+        self.config = args[0]
+        self.is_mp3 = args[1]
 
-    def run(self):
-        # reset this instance for a clean slate?
-        # self.instance.reset()
+        self.instance = ShoutInstance(self.config, self.is_mp3)
 
-        song_path = self.song_path
+    def put_queue(self, song_path: str):
+        self.queue.put(song_path)
+
+    def join_queue(self):
+        self.queue.join()
+
+    def stream(self, song_path: str):
         start_time = time.time()
-
         meta = get_metadata(song_path)
-        data = meta["artist"] + " - " + meta["title"]
+        data = ""
+        if meta:
+            data = f"{meta['artist']} - {meta['title']}"
 
         ffmpeg = None
         song = open(song_path, "rb")
         devnull = open(os.devnull, "w")
 
-        self.instance.src = song
+        src: IO = song
+
+        # pass ogg thru ffmpeg if mp3 wanted
         if self.instance.is_mp3:
             self.instance.shout.metadata = {"song": data.encode("utf-8")}
             ffmpeg = subprocess.Popen(
                 [
-                    app.config["PATH_FFMPEG_BINARY"],
+                    self.config["PATH_FFMPEG_BINARY"],
                     "-i",
                     "-",
                     "-f",
                     "mp3",
                     "-ab",
-                    f'{app.config["TRANSCODE_BITRATE"]}k',
+                    f'{self.config["TRANSCODE_BITRATE"]}k',
                     "-",
                 ],
                 stdin=song,
                 stdout=subprocess.PIPE,
                 stderr=devnull,
             )
-            self.instance.src = ffmpeg.stdout
+            src = ffmpeg.stdout
 
         sent_bytes = 0
-        if self.instance.src:
-            buffer = self.instance.src.read(4096)
+        retries = 0
+        if src:
+            buffer = src.read(4096)
             while buffer:
-                while True:
+                while retries < 3:
                     try:
                         self.instance.shout.send(buffer)
                         sent_bytes += len(buffer)
                         self.instance.shout.sync()
                         break
                     except pylibshout.ShoutException:
-                        app.logger.warning(
+                        # keep trying to connect to
+                        logger.warning(
                             "%s: stream died, resetting shout instance...",
                             self.instance.format,
                         )
                         self.instance.reset()
-                        time.sleep(3)
+                        time.sleep(1)
+                        retries += 1
                         continue
-
-                buffer = self.instance.src.read(1024)
+                buffer = src.read(1024)
 
         if ffmpeg:
             ffmpeg.wait()
@@ -165,37 +176,45 @@ class Worker(multiprocessing.Process):
         finish_time = time.time()
         kbps = int(sent_bytes * 0.008 / (finish_time - start_time))
         duration = int(finish_time - start_time)
-        app.logger.info(
+        logger.info(
             f"{self.instance.format}: Sent {sent_bytes} bytes in {duration} seconds ({kbps} kbps)"
         )
 
+    def run(self):
+        self.instance.connect()
+        while True:
+            song_path = self.queue.get(block=True)
+            logger.info(f'{self.instance.format}: Got new file "{song_path}"')
+            if song_path is None:
+                break
+            self.stream(song_path)
+            self.queue.task_done()
+
 
 def run():
-    shout_instances: List[ShoutInstance] = []
-    shout_instances.append(ShoutInstance.initialize(app.config, False))
+    workers: List[Worker] = []
+    workers.append(Worker(args=(app.config, False)))
     if app.config["ICECAST_TRANSCODE"]:
-        shout_instances.append(ShoutInstance.initialize(app.config, True))
+        workers.append(Worker(args=(app.config, True)))
 
-    for instance in shout_instances:
-        instance.connect()
+    for worker in workers:
+        worker.daemon = True
+        worker.start()
 
     while True:
-        jobs = []
         nxt_song = next_song()
         if nxt_song is None:
             time.sleep(10)
-            app.logger.warning("No song to play, waiting...")
+            logger.warning("No song to play, waiting...")
             continue
 
         song = os.path.join(app.config["PATH_MUSIC"], nxt_song)
-        app.logger.info(f'streaming file "{song}"')
-        for instance in shout_instances:
-            worker = Worker(args=(instance, song))
-            jobs.append(worker)
-            worker.start()
+        logger.info(f'streaming file "{song}"')
+        for worker in workers:
+            worker.put_queue(song)
 
-        for job in jobs:
-            job.join()
+        for worker in workers:
+            worker.join_queue()
 
 
 if __name__ == "__main__":
