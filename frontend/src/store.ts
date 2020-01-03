@@ -9,10 +9,6 @@ import {
   ApiBaseResponse
 } from '/api/Schemas'
 
-// if (!localStorage.getItem('volume')) {
-//   localStorage.setItem('volume', '80')
-// }
-
 export const API_BASE: string = '/api/v1'
 
 const config = {
@@ -79,9 +75,9 @@ export const auth = store({
 
     const r: ApiResponse<LoginJson> = await response.clone().json()
     if ('access_token' in r && 'refresh_token' in r) {
-      this.refresh_token = r.refresh_token
+      auth.refresh_token = r.refresh_token
       config.parseAccessToken(response)
-      authorize(this.refresh_token, this.access_token)
+      authorize(auth.refresh_token, auth.access_token)
     }
 
     return r
@@ -106,11 +102,11 @@ export const auth = store({
 
   logout(): void {
     clear()
-    this.username = ''
-    this.logged_in = false
-    this.admin = false
-    this.access_token = ''
-    this.refresh_token = ''
+    auth.username = ''
+    auth.logged_in = false
+    auth.admin = false
+    auth.access_token = ''
+    auth.refresh_token = ''
   }
 })
 
@@ -133,12 +129,12 @@ export const settings: SettingsStore = store({
   downloads_enabled: false,
   uploads_enabled: false,
 
-  updateSettings(settings: SettingsJson): void {
-    Object.assign(this, settings)
+  updateSettings(inSettings: SettingsJson): void {
+    Object.assign(settings, inSettings)
   },
 
   get stream_url(): string {
-    return this.icecast.url + this.icecast.mount
+    return settings.icecast.url + settings.icecast.mount
   }
 } as SettingsStore)
 
@@ -225,12 +221,12 @@ export const playingState: PlayingStore = store({
   playing: false,
 
   update(info: NowPlayingJson): void {
-    Object.assign(this.info, info)
+    Object.assign(playingState.info, info)
   },
 
   progressParse(): void {
-    const { info, sync_offset } = this
-    this.radioUpdate(
+    const { info, sync_offset } = playingState
+    playingState.radioUpdate(
       info.start_time + sync_offset,
       info.end_time + sync_offset,
       info.current
@@ -238,7 +234,7 @@ export const playingState: PlayingStore = store({
   },
 
   radioUpdate(start: number, end: number, cur: number): void {
-    const { radio } = this
+    const { radio } = playingState
 
     let localEnd = end
     let localStart = start
@@ -260,12 +256,12 @@ export const playingState: PlayingStore = store({
   },
 
   get progress(): number {
-    const { radio } = this
+    const { radio } = playingState
     return radio.update_progress + radio.update_progress_inc
   },
 
   applyProgress(): void {
-    const { radio } = this
+    const { radio } = playingState
 
     if (radio.update_progress > 0) {
       radio.update_progress = radio.update_progress + radio.update_progress_inc
@@ -275,7 +271,7 @@ export const playingState: PlayingStore = store({
   },
 
   periodicUpdate(func: () => void): void {
-    const { info, radio, playing } = this
+    const { info, radio, playing } = playingState
 
     if (playing) {
       document.title = `▶ ${info.title} - ${info.artist} | ${settings.title}`
@@ -283,7 +279,7 @@ export const playingState: PlayingStore = store({
       document.title = settings.title
     }
 
-    this.applyProgress()
+    playingState.applyProgress()
     radio.counter = radio.counter + 0.5
     radio.current_pos = radio.current_pos + 0.5
 
@@ -294,6 +290,6 @@ export const playingState: PlayingStore = store({
   },
 
   togglePlaying(): void {
-    this.playing = !this.playing
+    playingState.playing = !playingState.playing
   }
 } as PlayingStore)
