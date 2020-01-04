@@ -17,10 +17,12 @@ import {
   NavItem,
   NavLink
 } from 'reactstrap'
+import LoaderSkeleton from '/components/LoaderSkeleton'
 import LoggedInDropdown from '/components/LoggedInDropdown'
 import LoginDropdown from '/components/LoginDropdown'
 import ThemeChooser from '/components/ThemeChooser'
 import { auth } from '/store'
+import { containerWidthStyle } from '/utils'
 
 const flexGrow = (val: number) => css`
   flex-grow: ${val};
@@ -38,7 +40,7 @@ const navbar = css`
 
 interface NavbarProps extends RouteComponentProps<any> {
   title: string
-  styles: { [k: string]: string }
+  styles: { [k: string]: string } | null
   currentStyle?: string
 }
 
@@ -65,9 +67,11 @@ const Navbar: FunctionComponent<NavbarProps> = ({
       expand="lg"
       dark
       className={cx(navbar, 'fixed-top')}>
-      <Container>
+      <Container className={containerWidthStyle}>
         <NavbarBrand to="/" activeClassName="active" tag={RRNavLink}>
-          {title}
+          <LoaderSkeleton loading={title === ''} width={100}>
+            {() => title}
+          </LoaderSkeleton>
         </NavbarBrand>
         {collapsed && (
           <Collapse
@@ -89,12 +93,14 @@ const Navbar: FunctionComponent<NavbarProps> = ({
             {!collapsed && songsButton}
             {!auth.logged_in && <LoginDropdown />}
             {auth.logged_in && <LoggedInDropdown />}
-            <NavItem>
-              <NavLink>
-                <Label htmlFor="theme_chooser">Style</Label>
-                <ThemeChooser className="ml-2" styles={styles} />
-              </NavLink>
-            </NavItem>
+            {styles && (
+              <NavItem>
+                <NavLink>
+                  <Label htmlFor="theme_chooser">Style</Label>
+                  <ThemeChooser className="ml-2" styles={styles} />
+                </NavLink>
+              </NavItem>
+            )}
           </Nav>
         </Collapse>
       </Container>

@@ -1,8 +1,11 @@
-init: setup build install
+init: setup pull build install
 
 setup:
 	docker volume create frontend_nodemodules
 	python -m tools.generate_icecast_xml
+
+pull: 
+	docker-compose pull caddy icecast db
 
 build:
 	docker-compose build
@@ -15,8 +18,8 @@ frontend-install:
 dev:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 
-batch-add:
-	docker-compose run server poetry run python -m tools.batch_add
-
 prod:
 	docker-compose up -d
+
+batch-add:
+	docker-compose run server poetry run python -m tools.batch_add

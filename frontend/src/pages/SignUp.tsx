@@ -22,7 +22,6 @@ import {
 import { InputType } from 'reactstrap/lib/Input'
 import * as yup from 'yup'
 import Dialog from '/components/Dialog'
-import '/pages/Home.css'
 import { auth } from '/store'
 
 export interface FormInputProps {

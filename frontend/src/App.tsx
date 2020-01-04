@@ -12,6 +12,8 @@ import Loader from '/components/Loader'
 import LoaderSpinner from '/components/LoaderSpinner'
 import Navbar from '/components/Navbar'
 import { API_BASE, playingState, settings } from '/store'
+import { css, cx } from 'emotion'
+import { Collapse } from 'reactstrap'
 
 toast.configure({
   autoClose: 2000,
@@ -31,6 +33,16 @@ interface State {
   loaded: boolean
 }
 
+const switchStyle = css`
+  position: relative;
+
+  > div {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+  }
+`
+
 class App extends React.Component<Props, State> {
   intervalId?: any = undefined
   player: React.RefObject<ReactHowler>
@@ -41,19 +53,7 @@ class App extends React.Component<Props, State> {
 
   constructor(props: Props) {
     super(props)
-
     this.player = React.createRef()
-
-    if (localStorage.getItem('css')) {
-      const customCSS: HTMLLinkElement | null = document.querySelector(
-        '#change_stylesheet'
-      )
-
-      if (customCSS instanceof HTMLLinkElement) {
-        customCSS.href = localStorage.getItem('css') || ''
-      }
-    }
-
     this.togglePlaying = this.togglePlaying.bind(this)
   }
 
@@ -111,18 +111,19 @@ class App extends React.Component<Props, State> {
   }
 
   render() {
-    if (settings.title === '') return <Loader />
+    const miniPlayerVisible =
+      playingState.playing && playingState.info.title !== ''
 
     return (
       <Router>
         <ErrorBoundary>
           <div className="h-100">
             <Navbar title={settings.title} styles={settings.styles}>
-              {playingState.playing && playingState.info.title !== '' && (
+              <Collapse isOpen={miniPlayerVisible}>
                 <Suspense fallback={<LoaderSpinner />}>
-                  <MiniPlayer />
+                  {miniPlayerVisible && <MiniPlayer />}
                 </Suspense>
-              )}
+              </Collapse>
             </Navbar>
 
             <ReactHowler
@@ -138,7 +139,7 @@ class App extends React.Component<Props, State> {
               atEnter={{ opacity: 0 }}
               atLeave={{ opacity: 0 }}
               atActive={{ opacity: 1 }}
-              className="switch-wrapper h-100">
+              className={cx(switchStyle, 'h-100')}>
               <Route
                 path="/"
                 exact

@@ -3,7 +3,6 @@ import { view } from 'react-easy-state'
 import { Redirect } from 'react-router-dom'
 import Dialog from '/components/Dialog'
 import LoginForm from '/components/LoginForm'
-import '/pages/Home.css'
 import { auth } from '/store'
 
 class SignIn extends React.Component {

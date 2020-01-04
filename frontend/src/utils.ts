@@ -2,7 +2,22 @@ import format from 'date-fns/format'
 import formatDistanceToNow from 'date-fns/formatDistanceToNow'
 import fromUnixTime from 'date-fns/fromUnixTime'
 import parseISO from 'date-fns/parseISO'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { css } from 'emotion'
+
+export const containerWidthStyle = css`
+  @media (min-width: 992px) {
+    width: 960px;
+  }
+
+  @media (min-width: 1200px) {
+    width: 960px;
+  }
+`
+
+export const navbarMarginStyle = css`
+  margin-top: 8rem;
+`
 
 export function readableFilesize(size: number): string {
   let i = -1
@@ -16,11 +31,22 @@ export function readableFilesize(size: number): string {
 }
 
 export function readableSeconds(seconds: number): string {
-  return format(fromUnixTime(Math.max(0, seconds)), 'm:ss')
+  return format(fromUnixTime(Math.max(0, Math.floor(seconds))), 'm:ss')
 }
 
 export function fuzzyTime(time: string): string {
   return formatDistanceToNow(parseISO(time), { addSuffix: true })
+}
+
+export const useIsMounted = () => {
+  const isMounted = useRef(false)
+  useEffect(() => {
+    isMounted.current = true
+    return () => {
+      isMounted.current = false
+    }
+  }, [])
+  return isMounted
 }
 
 export function useLocalStorage(key: string, initialValue: any) {

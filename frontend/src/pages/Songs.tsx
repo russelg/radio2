@@ -37,9 +37,10 @@ import {
 import Error from '/components/Error'
 import LoaderSpinner from '/components/LoaderSpinner'
 import SongsTable from '/components/SongsTable'
-import '/pages/Home.css'
 import '/pages/Songs.css'
 import { API_BASE, auth, settings } from '/store'
+import { navbarMarginStyle, containerWidthStyle } from '/utils'
+import { cx } from 'emotion'
 
 registerPlugin(FilePondPluginFileValidateType)
 
@@ -351,7 +352,7 @@ class Songs extends React.Component<Props, State> {
 
     // @ts-ignore
     return (
-      <Container className="content-panel">
+      <Container className={cx(containerWidthStyle, navbarMarginStyle)}>
         {auth.admin && (
           <Row>
             <Col>

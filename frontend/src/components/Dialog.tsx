@@ -1,13 +1,15 @@
 import React, { FunctionComponent } from 'react'
 import { view } from 'react-easy-state'
 import { Card, CardBody, CardTitle, Col, Container, Row } from 'reactstrap'
+import { containerWidthStyle, navbarMarginStyle } from '/utils'
+import { cx } from 'emotion'
 
 export interface DialogProps {
   title: string
 }
 
 const Dialog: FunctionComponent<DialogProps> = ({ title, children }) => (
-  <Container className="content-panel">
+  <Container className={cx(containerWidthStyle, navbarMarginStyle)}>
     <Row className="align-items-center">
       <Col lg={{ size: 8, offset: 2 }}>
         <Card>

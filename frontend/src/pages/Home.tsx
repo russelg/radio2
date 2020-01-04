@@ -19,12 +19,20 @@ import {
   ModalFooter,
   ModalHeader,
   Progress,
-  Row
+  Row,
+  Collapse
 } from 'reactstrap'
-import { SongListItem, NowPlayingJson } from '/api/Schemas'
-import '/pages/Home.css'
-import { playingState, settings, RadioStore } from '/store'
-import { fuzzyTime, readableFilesize, readableSeconds } from '/utils'
+import { NowPlayingJson, SongListItem } from '/api/Schemas'
+import LoaderSkeleton from '/components/LoaderSkeleton'
+import { playingState, RadioStore, settings } from '/store'
+import {
+  fuzzyTime,
+  readableFilesize,
+  readableSeconds,
+  containerWidthStyle,
+  navbarMarginStyle
+} from '/utils'
+import { css } from 'emotion'
 
 interface HomeProps {
   togglePlaying: () => void
@@ -62,10 +70,14 @@ const UsageModal: FunctionComponent<UsageModalProps> = view(
               <a href={`${settings.stream_url}.ogg`}>Direct Stream Link</a>
             </li>
             <li>
-              <a href={`${settings.stream_url}.m3u`}>Stream .m3u Playlist</a>
+              <a href={`${settings.stream_url}.ogg.m3u`}>
+                Stream .m3u Playlist
+              </a>
             </li>
             <li>
-              <a href={`${settings.stream_url}.xspf`}>Stream .xspf Playlist</a>
+              <a href={`${settings.stream_url}.ogg.xspf`}>
+                Stream .xspf Playlist
+              </a>
             </li>
           </ul>
           <h3>Requesting Songs</h3>
@@ -100,33 +112,39 @@ interface SongListProps {
 
 const SongList: FunctionComponent<SongListProps> = view(
   ({ songs, title, alignment, children }) => {
+    const flipped = alignment === 'left' ? 'right' : 'left'
+
     return (
       <>
         <h4 className="text-center mb-4">{title}</h4>
-        {songs.length > 0 ? (
-          <ListGroup>
-            {songs.map((item: SongListItem) => {
-              const flipped = alignment === 'left' ? 'right' : 'left'
+        <ListGroup>
+          {// show placeholders if songs has not loaded
+          (songs.length > 0 ? songs : Array(4).fill(null)).map(
+            (item: SongListItem | null, idx: number) => {
               return (
                 <ListGroupItem
-                  key={item.time}
+                  key={item ? item.time : idx}
                   className="clearfix p-4"
-                  active={item.requested}>
+                  active={item ? item.requested : undefined}>
                   <Col
                     xs="8"
                     className={`float-${alignment} text-${alignment}`}>
-                    {item.artist} - {item.title}
+                    <LoaderSkeleton loading={item === null} count={2}>
+                      {() => `${item!.artist} - ${item!.title}`}
+                    </LoaderSkeleton>
                   </Col>
                   <Col xs="4" className={`float-${flipped} text-${flipped}`}>
-                    <span title={item.time}>{fuzzyTime(item.time)}</span>
+                    <LoaderSkeleton loading={item === null}>
+                      {() => (
+                        <span title={item!.time}>{fuzzyTime(item!.time)}</span>
+                      )}
+                    </LoaderSkeleton>
                   </Col>
                 </ListGroupItem>
               )
-            })}
-          </ListGroup>
-        ) : (
-          <p className="text-center text-muted">{children}</p>
-        )}
+            }
+          )}
+        </ListGroup>
       </>
     )
   }
@@ -137,13 +155,31 @@ const Branding: FunctionComponent<{
 }> = view(({ info }) => {
   return (
     <>
-      <h2>{settings.title}</h2>
+      <h2>
+        <LoaderSkeleton loading={settings.title === ''} width={300}>
+          {() => settings.title}
+        </LoaderSkeleton>
+      </h2>
       <h5 className="text-muted mb-0">
-        Currently spinning <b>{info.total_songs}</b> songs, with{' '}
-        <b>{info.total_plays}</b> total plays.
+        <LoaderSkeleton
+          loading={!(info.total_songs && info.total_plays)}
+          width="80%">
+          {() => (
+            <>
+              Currently spinning <b>{info.total_songs}</b> songs, with{' '}
+              <b>{info.total_plays}</b> total plays.
+            </>
+          )}
+        </LoaderSkeleton>
       </h5>
       <small className="text-muted">
-        That's <b>{readableFilesize(info.total_size)}</b> of music!
+        <LoaderSkeleton loading={!info.total_size} width="30%">
+          {() => (
+            <>
+              That's <b>{readableFilesize(info.total_size)}</b> of music!
+            </>
+          )}
+        </LoaderSkeleton>
       </small>
     </>
   )
@@ -156,24 +192,27 @@ const BigProgress: FunctionComponent<{
   return (
     <>
       <h2 className="pb-2 text-center">
-        {info.title ? (
-          <span>
-            {info.artist} - {info.title}
-          </span>
-        ) : (
-          <span className="text-muted">No song currently playing.</span>
-        )}
+        <LoaderSkeleton loading={!info.title} width="50%">
+          {() => `${info.artist} - ${info.title}`}
+        </LoaderSkeleton>
       </h2>
       <Progress value={playingState.progress} />
       <Row>
         <Col
           sm={{ size: 5, offset: 1 }}
           className="text-muted text-center pt-3 order-last order-sm-first">
-          Listeners: {info.listeners}
+          <LoaderSkeleton loading={!info.title} width="20%">
+            {() => `Listeners: ${info.listeners}`}
+          </LoaderSkeleton>
         </Col>
         <Col sm={{ size: 5 }} className="text-muted text-center pt-3">
-          {readableSeconds(radio.current_pos)} /{' '}
-          {readableSeconds(radio.current_len)}
+          <LoaderSkeleton loading={!radio.current_len} width="20%">
+            {() =>
+              `${readableSeconds(radio.current_pos)} / ${readableSeconds(
+                radio.current_len
+              )}`
+            }
+          </LoaderSkeleton>
         </Col>
       </Row>
     </>
@@ -211,10 +250,10 @@ const Controls: FunctionComponent<HomeProps> = view(({ togglePlaying }) => {
             <DropdownItem tag="a" href={`${settings.stream_url}.ogg`}>
               Direct Stream Link
             </DropdownItem>
-            <DropdownItem tag="a" href={`${settings.stream_url}.m3u`}>
+            <DropdownItem tag="a" href={`${settings.stream_url}.ogg.m3u`}>
               Stream .m3u Playlist
             </DropdownItem>
-            <DropdownItem tag="a" href={`${settings.stream_url}.xspf`}>
+            <DropdownItem tag="a" href={`${settings.stream_url}.ogg.xspf`}>
               Stream .xspf Playlist
             </DropdownItem>
             <DropdownItem divider />
@@ -223,7 +262,9 @@ const Controls: FunctionComponent<HomeProps> = view(({ togglePlaying }) => {
         </Dropdown>
       </ButtonGroup>
       <UsageModal open={showModal} toggle={toggleModal} />
-      {playingState.playing && <VolumeControl />}
+      <Collapse isOpen={playingState.playing}>
+        <VolumeControl />
+      </Collapse>
     </>
   )
 })
@@ -257,11 +298,16 @@ const VolumeControl: FunctionComponent = view(() => {
   )
 })
 
+const homeStyle = css`
+  ${navbarMarginStyle};
+  ${containerWidthStyle};
+`
+
 const Home: FunctionComponent<HomeProps> = ({ togglePlaying }) => {
   const { info, radio } = playingState
 
   return (
-    <Container className="content-panel">
+    <Container className={homeStyle}>
       <Row>
         <Col>
           <Row>

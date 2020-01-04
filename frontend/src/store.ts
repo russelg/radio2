@@ -120,7 +120,7 @@ export interface SettingsStore extends SettingsJson {
 
 export const settings: SettingsStore = store({
   css: '',
-  styles: {} as { [k: string]: string },
+  styles: null as { [k: string]: string } | null,
   icecast: {
     mount: '',
     url: ''
@@ -146,7 +146,6 @@ export interface RadioStore {
   update_old_progress: number
   current_pos: number
   current_len: number
-  afk: string
   current_title: string
   current_artist: string
   cur_time: number
@@ -196,7 +195,6 @@ export const playingState: PlayingStore = store({
     update_old_progress: 0.0,
     current_pos: 0,
     current_len: 0,
-    afk: 'init',
     current_title: '',
     current_artist: '',
     cur_time: 0,
@@ -280,10 +278,13 @@ export const playingState: PlayingStore = store({
     }
 
     playingState.applyProgress()
-    radio.counter = radio.counter + 0.5
-    radio.current_pos = radio.current_pos + 0.5
+    // only progress if song exists
+    if (playingState.info.id !== '') {
+      radio.counter = radio.counter + 0.5
+      radio.current_pos = radio.current_pos + 0.5
+    }
 
-    if (radio.counter >= 3.5 || radio.current_pos >= radio.current_len) {
+    if (radio.counter >= 3 || radio.current_pos >= radio.current_len) {
       radio.counter = 0.0
       func()
     }

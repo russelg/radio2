@@ -87,7 +87,7 @@ const RequestButton: FunctionComponent<SongRowProps> = ({
 
   return (
     <>
-      <div className="disabled-button-wrapper" ref={tooltipRef}>
+      <div className="disabled-button-wrapper mt-1" ref={tooltipRef}>
         <LoaderButton
           loading={loading}
           disabled={!song.meta.requestable}
@@ -137,7 +137,7 @@ const FavouriteButton: FunctionComponent<SongRowProps> = ({
 
   return (
     <>
-      <div ref={tooltipRef}>
+      <div ref={tooltipRef} className="mt-1">
         <LoaderButton
           loading={loading}
           color={song.meta.favourited ? 'danger' : undefined}
@@ -195,7 +195,7 @@ const DownloadButton: FunctionComponent<SongRowButtonProps> = ({ song }) => {
 
   return (
     <>
-      <div ref={tooltipRef}>
+      <div ref={tooltipRef} className="mt-1">
         <LoaderButton loading={loading} onClick={downloadSong}>
           <FontAwesomeIcon fixedWidth icon={faDownload} />
         </LoaderButton>
@@ -247,7 +247,7 @@ const DeleteButton: FunctionComponent<SongRowProps> = ({
 
   return (
     <>
-      <div ref={tooltipRef}>
+      <div ref={tooltipRef} className="mt-1">
         <LoaderButton
           color={confirming ? 'danger' : 'warning'}
           loading={loading}
@@ -360,8 +360,8 @@ const SongRow: FunctionComponent<SongRowProps> = ({ song, updateSong }) => {
           song.title
         )}
       </td>
-      <td className="col text-right">
-        <Form inline className="justify-content-end">
+      <td className="col text-right d-flex align-items-center justify-content-end">
+        <Form inline className="justify-content-center mt-n1">
           <RequestButton song={song} updateSong={updateSong} />
           {auth.logged_in && (
             <>
