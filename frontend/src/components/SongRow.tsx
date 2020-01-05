@@ -30,12 +30,25 @@ import LoaderSpinner from '/components/LoaderSpinner'
 import { API_BASE, auth, settings } from '/store'
 import { readableFilesize, useLocalStorage } from '/utils'
 
+const disabledButtonStyle = css`
+  display: inline-block;
+  cursor: not-allowed;
+
+  .btn[disabled] {
+    pointer-events: none;
+  }
+`
+
 interface SongRowButtonProps {
   song: SongItem
 }
 
-interface SongRowProps extends SongRowButtonProps {
+interface SongRowUpdateProps extends SongRowButtonProps {
   updateSong: (id: string, song: SongItem | null) => void
+}
+
+interface SongRowProps extends SongRowUpdateProps {
+  showAdmin: boolean
 }
 
 const handleResponse = <T extends ApiBaseResponse>(result: T): Promise<T> => {
@@ -63,7 +76,7 @@ const handleError = <T extends ApiBaseResponse>(result: T) => {
   }
 }
 
-const RequestButton: FunctionComponent<SongRowProps> = ({
+const RequestButton: FunctionComponent<SongRowUpdateProps> = ({
   song,
   updateSong
 }) => {
@@ -87,7 +100,7 @@ const RequestButton: FunctionComponent<SongRowProps> = ({
 
   return (
     <>
-      <div className="disabled-button-wrapper mt-1" ref={tooltipRef}>
+      <div className={cx(disabledButtonStyle, 'mt-1')} ref={tooltipRef}>
         <LoaderButton
           loading={loading}
           disabled={!song.meta.requestable}
@@ -111,7 +124,7 @@ const RequestButton: FunctionComponent<SongRowProps> = ({
   )
 }
 
-const FavouriteButton: FunctionComponent<SongRowProps> = ({
+const FavouriteButton: FunctionComponent<SongRowUpdateProps> = ({
   song,
   updateSong
 }) => {
@@ -211,7 +224,7 @@ const DownloadButton: FunctionComponent<SongRowButtonProps> = ({ song }) => {
   )
 }
 
-const DeleteButton: FunctionComponent<SongRowProps> = ({
+const DeleteButton: FunctionComponent<SongRowUpdateProps> = ({
   song,
   updateSong
 }) => {
@@ -291,7 +304,7 @@ const DeleteButton: FunctionComponent<SongRowProps> = ({
   )
 }
 
-interface EditableValueProps extends SongRowProps {
+interface EditableValueProps extends SongRowUpdateProps {
   field: 'artist' | 'title'
 }
 
@@ -340,8 +353,11 @@ const EditableValue: FunctionComponent<EditableValueProps> = ({
   )
 }
 
-const SongRow: FunctionComponent<SongRowProps> = ({ song, updateSong }) => {
-  const [showAdmin, _] = useLocalStorage('show_admin', false)
+const SongRow: FunctionComponent<SongRowProps> = ({
+  song,
+  updateSong,
+  showAdmin
+}) => {
   const admin = auth.admin && showAdmin
 
   return (

@@ -3,6 +3,7 @@ import React, { FunctionComponent, useEffect, useState } from 'react'
 import { view } from 'react-easy-state'
 import { animated, useSpring } from 'react-spring'
 import { Button, ButtonProps, Spinner } from 'reactstrap'
+import { useDelayedLoader } from '/utils'
 
 interface LoaderButtonProps extends ButtonProps {
   loading: boolean
@@ -22,26 +23,7 @@ const LoaderButton: FunctionComponent<LoaderButtonProps> = ({
   block,
   ...rest
 }) => {
-  const [showLoader, setShowLoader] = useState(false)
-
-  useEffect(() => {
-    if (loading) {
-      setShowLoader(true)
-    }
-
-    // Show loader a bits longer to avoid loading flash
-    if (!loading && showLoader) {
-      const timeout = setTimeout(() => {
-        setShowLoader(false)
-      }, 400)
-
-      return () => {
-        clearTimeout(timeout)
-      }
-    }
-
-    return () => {}
-  }, [loading, showLoader])
+  const [showLoader, _] = useDelayedLoader(loading)
 
   const fadeOutProps = useSpring({ opacity: showLoader ? 1 : 0 })
   const fadeInProps = useSpring({ opacity: showLoader ? 0 : 1 })

@@ -7,7 +7,7 @@ import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
 import { faUser } from '@fortawesome/free-solid-svg-icons/faUser'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { Formik } from 'formik'
-import React from 'react'
+import React, { FunctionComponent, useState, useCallback } from 'react'
 import { view } from 'react-easy-state'
 import { Link, Redirect } from 'react-router-dom'
 import {
@@ -23,6 +23,7 @@ import { InputType } from 'reactstrap/lib/Input'
 import * as yup from 'yup'
 import Dialog from '/components/Dialog'
 import { auth } from '/store'
+import LoaderButton from '/components/LoaderButton'
 
 export interface FormInputProps {
   icon?: IconName | [IconPrefix, IconName] | IconLookup
@@ -36,7 +37,7 @@ export interface FormInputProps {
   invalidError?: string
 }
 
-function FormInput(props: FormInputProps) {
+const FormInput: FunctionComponent<FormInputProps> = props => {
   return (
     <FormGroup>
       <InputGroup size="lg">
@@ -97,116 +98,107 @@ export interface SignUpFormInputs {
   confirmPassword: string
 }
 
-class SignUp extends React.Component {
-  state = {
-    username: '',
-    password: '',
-    confirmPassword: '',
-    registered: false
-  }
+const SignUp: FunctionComponent = () => {
+  const [registered, setRegistered] = useState<boolean | string>(false)
 
-  constructor(props: {}) {
-    super(props)
-  }
+  if (auth.logged_in) return <Redirect to="/" />
 
-  render() {
-    if (auth.logged_in) return <Redirect to="/" />
+  const onSubmit = useCallback(
+    (values: SignUpFormInputs, { setSubmitting, setErrors }) => {
+      auth
+        .register(values.username, values.password)
+        .then(msg => {
+          setRegistered(msg)
+        })
+        .catch(error => {
+          setErrors({ username: error.message })
+        })
+      setSubmitting(false)
+    },
+    [setRegistered]
+  )
 
-    // let errors = schemaErrors(schema, this.state)
-    return (
-      <Dialog title="Sign Up">
-        <>
-          {' '}
-          {this.state.registered === false && (
-            <Formik
-              initialValues={
-                {
-                  username: '',
-                  password: '',
-                  confirmPassword: ''
-                } as SignUpFormInputs
-              }
-              validate={schemaErrors}
-              onSubmit={(
-                values: SignUpFormInputs,
-                { setSubmitting, setErrors }
-              ) => {
-                auth
-                  .register(values.username, values.password)
-                  .then(msg => {
-                    this.setState({ registered: msg })
-                  })
-                  .catch(error => {
-                    setErrors({ username: error.message })
-                  })
-                setSubmitting(false)
-              }}
-              render={({
-                values,
-                errors,
-                touched,
-                handleChange,
-                handleBlur,
-                handleSubmit,
-                isSubmitting
-              }) => (
-                <Form
-                  onSubmit={handleSubmit}
-                  className="text-center px-4 py-3"
-                  autoComplete="new-password">
-                  <FormInput
-                    icon={faUser}
-                    placeholder="username"
-                    name="username"
-                    value={values.username}
-                    onBlur={handleBlur}
-                    onChange={handleChange}
-                    invalidError={errors.username}
-                    invalid={touched.username ? !!errors.username : false}
-                  />
-                  <FormInput
-                    icon={faLock}
-                    placeholder="password"
-                    name="password"
-                    type="password"
-                    value={values.password}
-                    onBlur={handleBlur}
-                    onChange={handleChange}
-                    invalidError={errors.password}
-                    invalid={touched.password ? !!errors.password : false}
-                  />
-                  <FormInput
-                    icon={faLock}
-                    placeholder="confirm password"
-                    name="confirmPassword"
-                    type="password"
-                    value={values.confirmPassword}
-                    onBlur={handleBlur}
-                    onChange={handleChange}
-                    invalidError={errors.confirmPassword}
-                    invalid={
-                      touched.confirmPassword || touched.password
-                        ? !!errors.confirmPassword
-                        : false
-                    }
-                  />
-                  <Button type="submit" disabled={isSubmitting}>
-                    Submit
-                  </Button>
-                </Form>
-              )}
-            />
-          )}
-          {this.state.registered && (
-            <h2>
-              {this.state.registered}! You may now{' '}
-              <Link to="/sign-in">sign in</Link>.
-            </h2>
-          )}
-        </>
-      </Dialog>
-    )
-  }
+  return (
+    <Dialog title="Sign Up">
+      <>
+        {registered === false && (
+          <Formik
+            initialValues={
+              {
+                username: '',
+                password: '',
+                confirmPassword: ''
+              } as SignUpFormInputs
+            }
+            validate={schemaErrors}
+            onSubmit={onSubmit}
+            render={({
+              values,
+              errors,
+              touched,
+              handleChange,
+              handleBlur,
+              handleSubmit,
+              isSubmitting
+            }) => (
+              <Form
+                onSubmit={handleSubmit}
+                className="text-center px-4 py-3"
+                autoComplete="new-password">
+                <FormInput
+                  icon={faUser}
+                  placeholder="username"
+                  name="username"
+                  value={values.username}
+                  onBlur={handleBlur}
+                  onChange={handleChange}
+                  invalidError={errors.username}
+                  invalid={touched.username ? !!errors.username : false}
+                />
+                <FormInput
+                  icon={faLock}
+                  placeholder="password"
+                  name="password"
+                  type="password"
+                  value={values.password}
+                  onBlur={handleBlur}
+                  onChange={handleChange}
+                  invalidError={errors.password}
+                  invalid={touched.password ? !!errors.password : false}
+                />
+                <FormInput
+                  icon={faLock}
+                  placeholder="confirm password"
+                  name="confirmPassword"
+                  type="password"
+                  value={values.confirmPassword}
+                  onBlur={handleBlur}
+                  onChange={handleChange}
+                  invalidError={errors.confirmPassword}
+                  invalid={
+                    touched.confirmPassword || touched.password
+                      ? !!errors.confirmPassword
+                      : false
+                  }
+                />
+                <LoaderButton
+                  type="submit"
+                  disabled={isSubmitting}
+                  loading={isSubmitting}>
+                  Create Account
+                </LoaderButton>
+              </Form>
+            )}
+          />
+        )}
+        {registered !== false && (
+          <h2>
+            {registered}! You may now <Link to="/sign-in">sign in</Link>.
+          </h2>
+        )}
+      </>
+    </Dialog>
+  )
 }
 
 export default view(SignUp)

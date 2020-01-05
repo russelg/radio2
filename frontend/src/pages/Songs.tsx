@@ -1,15 +1,22 @@
+import { cx } from 'emotion'
 // @ts-ignore
 import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type'
 import 'filepond/dist/filepond.min.css'
-import queryString from 'query-string'
-import React from 'react'
+import React, {
+  FormEvent,
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState
+} from 'react'
 import { AsyncTypeahead, Highlighter } from 'react-bootstrap-typeahead'
-import 'react-bootstrap-typeahead/css/Typeahead.css'
 import 'react-bootstrap-typeahead/css/Typeahead-bs4.css'
+import 'react-bootstrap-typeahead/css/Typeahead.css'
 import { view } from 'react-easy-state'
-import { FilePond, registerPlugin } from 'react-filepond'
+import { File as FilePondFile, FilePond, registerPlugin } from 'react-filepond'
 import Pagination from 'react-js-pagination'
-import { RouteComponentProps, withRouter } from 'react-router-dom'
+import { RouteComponentProps, useHistory, withRouter } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import {
   Button,
@@ -24,553 +31,500 @@ import {
   Row
 } from 'reactstrap'
 import {
+  NumberParam,
+  stringify,
+  StringParam,
+  useQueryParams
+} from 'use-query-params'
+import {
   ApiBaseResponse,
   ApiResponse,
   AutocompleteItemJson,
   AutocompleteJson,
   Description,
-  SongDownloadJson,
   SongItem,
-  SongRequestJson,
   SongsJson
 } from '/api/Schemas'
 import Error from '/components/Error'
 import LoaderSpinner from '/components/LoaderSpinner'
 import SongsTable from '/components/SongsTable'
-import '/pages/Songs.css'
 import { API_BASE, auth, settings } from '/store'
-import { navbarMarginStyle, containerWidthStyle } from '/utils'
-import { cx } from 'emotion'
+import {
+  containerWidthStyle,
+  navbarMarginStyle,
+  useDelayedLoader,
+  useLocalStorage
+} from '/utils'
 
 registerPlugin(FilePondPluginFileValidateType)
 
-export interface ParsedQueryParams {
-  page: number
-  query?: string | null
-  user?: string | null
-  [key: string]: unknown
+interface SongUploadFormProps {
+  refreshSong: (song: string) => void
 }
 
-export interface PageChangeOptions {
-  query?: string | null
-  user?: string | null
-  history?: boolean
-  force_refresh?: boolean
-  favourites?: boolean
+const SongUploadForm: FunctionComponent<SongUploadFormProps> = ({
+  refreshSong
+}) => {
+  const pond = useRef<FilePond>(null)
+  const [files, setFiles] = useState<FilePondFile[]>([])
+
+  const server = {
+    process: {
+      url: `${API_BASE}/upload`,
+      onload: (response: string) => {
+        const json: { id: string } = JSON.parse(response)
+        return json.id
+      },
+      headers: {
+        Authorization: `Bearer ${auth.access_token}`
+      }
+    }
+  }
+
+  const onupdatefiles = useCallback(
+    fileItems => {
+      setFiles(fileItems)
+    },
+    [setFiles]
+  )
+
+  const onprocessfile = useCallback(
+    (err, file) => {
+      if (!err) {
+        // @ts-ignore
+        toast('Song uploaded!', { type: 'success' })
+        refreshSong(file.serverId)
+
+        // remove file after uploaded
+        pond.current && pond.current.removeFile(file.id)
+        setFiles(files => files.filter(itm => itm.file !== file.file))
+      } else {
+        let msg = 'Song upload failed'
+        // @ts-ignore
+        if (err.code === 413) msg += ' (file too large)'
+        toast(msg, { type: 'error' })
+      }
+    },
+    [refreshSong, setFiles]
+  )
+
+  return (
+    <FilePond
+      ref={pond}
+      name="song"
+      acceptedFileTypes={['audio/*']}
+      files={files}
+      allowMultiple={true}
+      maxFiles={10}
+      instantUpload={true}
+      // @ts-ignore
+      server={server}
+      onupdatefiles={onupdatefiles}
+      onprocessfile={onprocessfile}
+    />
+  )
 }
 
-export interface Props extends RouteComponentProps<any> {
+interface SongsQuery {
+  query?: string | null
+  page?: number | null
+  user?: string | null
+}
+
+function getApiUrl(params: SongsQuery, favourites: boolean): string {
+  const options = { ...params }
+  const endpoint = favourites && options.user ? 'favourites' : 'songs'
+
+  // remove page from the query should it be 1 (the default)
+  if (params.page === 1) delete params.page
+  if (params.query === null) delete params.query
+  if (params.user === null) delete params.user
+
+  return `/${endpoint}?${stringify(params)}`
+}
+
+interface SearchFieldProps {
+  query?: string
+  setQuery: (query: string) => void
+}
+
+const SearchField: FunctionComponent<SearchFieldProps> = ({
+  query = '',
+  setQuery
+}) => {
+  const [input, setInput] = useState<string>(query)
+  const [loading, setLoading] = useState<boolean>(false)
+  const [options, setOptions] = useState<AutocompleteItemJson[]>([])
+
+  const [typeahead, setTypeahead] = useState<any>(null)
+
+  const onSubmit = useCallback(
+    event => {
+      event.preventDefault()
+      setQuery(input)
+    },
+    [setQuery, input]
+  )
+
+  const onChange = useCallback(
+    (selected: AutocompleteItemJson[]) => {
+      const res: AutocompleteItemJson = selected[0] || {
+        result: ''
+      }
+      setInput(res.result)
+    },
+    [setInput]
+  )
+
+  const onKeyDown = useCallback(
+    (event: any) => {
+      // only submit on enter if the user has not selected a typeahead option
+      if (event.keyCode === 13 && input === event.target.defaultValue) {
+        event.preventDefault()
+        setQuery(input)
+      }
+    },
+    [setQuery, input]
+  )
+
+  const onSearch = useCallback(
+    (query: string) => {
+      setLoading(true)
+      fetch(`${API_BASE}/autocomplete?query=${query}`)
+        .then(resp => resp.json())
+        .then((json: ApiResponse<AutocompleteJson>) => {
+          setLoading(false)
+          setOptions(json.suggestions)
+        })
+    },
+    [setLoading, setOptions]
+  )
+
+  const renderMenuItemChildren = useCallback(
+    (result: AutocompleteItemJson, props) => (
+      <span>
+        <b>{result.type}</b>:&nbsp;
+        <Highlighter search={props.text || ''}>{result.result}</Highlighter>
+      </span>
+    ),
+    []
+  )
+
+  useEffect(() => {
+    setInput(query)
+    if (typeahead) {
+      const instance = typeahead.getInstance()
+      instance.setState({ text: query })
+      if (query === '') instance.clear()
+    }
+  }, [query, typeahead])
+
+  return (
+    <Form onSubmit={onSubmit}>
+      <InputGroup>
+        <AsyncTypeahead
+          id="search"
+          labelKey="result"
+          filterBy={['result']}
+          renderMenuItemChildren={renderMenuItemChildren}
+          onInputChange={setInput}
+          onChange={onChange}
+          onKeyDown={onKeyDown}
+          isLoading={loading}
+          onSearch={onSearch}
+          placeholder="Search"
+          options={options}
+          defaultInputValue={input}
+          highlightOnlyResult={false}
+          minLength={1}
+          selectHintOnEnter={false}
+          caseSensitive={false}
+          ref={typeahead => setTypeahead(typeahead)}
+        />
+        <InputGroupAddon addonType="append">
+          <Button>Search</Button>
+        </InputGroupAddon>
+      </InputGroup>
+    </Form>
+  )
+}
+
+interface ShowAdminToggleProps {
+  showAdmin: boolean
+  toggle: (value: boolean) => void
+}
+
+const ShowAdminToggle: FunctionComponent<ShowAdminToggleProps> = ({
+  showAdmin,
+  toggle
+}) => {
+  return (
+    <Row>
+      <Col>
+        <Form>
+          <FormGroup check>
+            <Label check>
+              <Input
+                type="checkbox"
+                checked={showAdmin}
+                onChange={event => toggle(event.currentTarget.checked)}
+              />{' '}
+              Enable admin-only functionality
+            </Label>
+          </FormGroup>
+        </Form>
+        <hr />
+      </Col>
+    </Row>
+  )
+}
+
+interface LoadFavesFieldProps {
+  queryParam: SongsQuery
+}
+
+const LoadFavesField: FunctionComponent<LoadFavesFieldProps> = ({
+  queryParam
+}) => {
+  const history = useHistory()
+  const [userInput, setUserInput] = useState<string>(queryParam.user || '')
+
+  const handleFaves = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault()
+      const url = getApiUrl(
+        { ...queryParam, user: userInput || auth.username || undefined },
+        true
+      )
+      history.push(url)
+    },
+    [queryParam, userInput, history]
+  )
+
+  return (
+    <Form onSubmit={handleFaves}>
+      <InputGroup>
+        <Input
+          placeholder="Username"
+          value={userInput || undefined}
+          onChange={event => {
+            setUserInput(event.currentTarget.value)
+          }}
+        />
+        <InputGroupAddon addonType="append">
+          <Button>Load Faves</Button>
+        </InputGroupAddon>
+      </InputGroup>
+    </Form>
+  )
+}
+
+export interface SongsProps {
   favourites: boolean
 }
 
-export interface State {
+interface PaginationState {
+  per_page: number
   page: number
-  pagination: {
-    per_page: number
-    page: number
-    pages: number
-    total_count: number
-  }
-  songs: SongItem[]
-  loaded: boolean
-  error: Description | null
-  query?: string | null
-  typeaheadLoading: boolean
-  typeahead: any[]
-  user?: string | null
-  files: any[]
-  show_admin: boolean
-  location: URL
+  pages: number
+  total_count: number
 }
 
-class Songs extends React.Component<Props, State> {
-  state = {
-    page: 0,
-    pagination: {
-      per_page: 50,
-      page: 1,
-      pages: 1,
-      total_count: 0
-    },
-    songs: [] as SongItem[],
-    loaded: false,
-    error: null,
-    query: null,
-    typeaheadLoading: false,
-    typeahead: [],
-    user: null,
-    files: [],
-    show_admin: localStorage.getItem('show_admin') === 'true',
-    location: new URL(window.location.href)
-  }
+const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
+  // request related state
+  const [paginationState, setPaginationState] = useState<PaginationState>({
+    per_page: 25,
+    page: 1,
+    pages: 1,
+    total_count: 0
+  })
+  const [songs, setSongs] = useState<SongItem[]>([])
+  const [loading, setLoading] = useDelayedLoader(false)
+  const [error, setError] = useState<Description | undefined>(undefined)
 
-  unlisten: any
-  pond: FilePond | null
+  // user controlled state
+  const [showAdmin, setShowAdmin] = useLocalStorage('show_admin', false)
+  const [queryParam, setQueryParam] = useQueryParams({
+    query: StringParam,
+    page: NumberParam,
+    user: StringParam
+  })
+  const { query = undefined, page = 1, user = undefined } = queryParam
 
-  constructor(props: Props) {
-    super(props)
-
-    this.state.page = Songs.getSearchComponents(props.location.search).page
-    this.pond = null
-
-    this.handleAdminChange = this.handleAdminChange.bind(this)
-    this.handlePageChange = this.handlePageChange.bind(this)
-    this.handleSearchChange = this.handleSearchChange.bind(this)
-    this.handleFavesChange = this.handleFavesChange.bind(this)
-    this.handleSearch = this.handleSearch.bind(this)
-    this.handleFaves = this.handleFaves.bind(this)
-    this.handlePage = this.handlePage.bind(this)
-    this.sendAlert = this.sendAlert.bind(this)
-    this.updateSongMetadata = this.updateSongMetadata.bind(this)
-    this.reloadPage = this.reloadPage.bind(this)
-    this.updateSong = this.updateSong.bind(this)
-  }
-
-  static getSearchComponents(search?: string): ParsedQueryParams {
-    const parsed = new URLSearchParams(search || '')
-    const page = parseInt(parsed.get('page') || '1', 10) || 1
-    const query = parsed.get('query') || undefined
-    const user = parsed.get('user') || undefined
-
-    return { page, query, user }
-  }
-
-  sendAlert(msg: string, error: boolean): void {
-    toast(msg, {
-      type: error ? 'error' : 'success'
-    })
-  }
-
-  firePageChange(search?: string): void {
-    const propSearch = this.props.location.search
-    const { page, query, user } = Songs.getSearchComponents(
-      search !== undefined ? search : propSearch
-    )
-
-    this.handlePageChange(page, { user, query, history: false })
-    this.getPage(page, { query, user })
-  }
-
-  componentWillUnmount(): void {
-    if (this.unlisten !== null) this.unlisten()
-  }
-
-  componentDidMount(): void {
-    this.unlisten = this.props.history.listen(location => {
-      if (location.pathname === this.state.location.pathname) {
-        const url = new URL(window.location.href)
-        url.search = location.search
-        url.pathname = location.pathname
-
-        this.setState({ location: url })
-        this.firePageChange(url.search)
-      }
-    })
-
-    this.reloadPage()
-  }
-
-  reloadPage(): void {
-    this.firePageChange()
-  }
-
-  getUrl(params: ParsedQueryParams, favourites: boolean = false): string {
-    // remove page from the query should it be 1 (the default)
-    if (params.page === 1) delete params.page
-
-    if (params.query === null) delete params.query
-    if (params.user === null) delete params.user
-
-    if ((this.props.favourites || favourites) && params.user) {
-      return `favourites?${queryString.stringify(params)}`
-    }
-
-    return `songs?${queryString.stringify(params)}`
-  }
-
-  handlePageChange(
-    page: number,
-    {
-      query = undefined,
-      history = true,
-      user = undefined,
-      force_refresh = true,
-      favourites = false
-    }: PageChangeOptions
-  ): void {
-    this.setState({ page, query, user, loaded: !force_refresh })
-
-    const url = this.getUrl({ page, query, user }, favourites)
-    if (history) this.props.history.push(`/${url}`)
-  }
-
-  getPage(
-    page: number,
-    {
-      query = undefined,
-      user = undefined
-    }: { query?: string | null; user?: string | null }
-  ): void {
-    const url = this.getUrl({ page, query, user })
-    this.setState({ loaded: false })
-    fetch(`${API_BASE}/${url}`)
-      .then(async res => {
-        if (res.status !== 200) {
-          const json: ApiResponse<SongsJson> = await res.clone().json()
-          this.setState({ error: json.description, loaded: false })
-          return
+  const updateSong = useCallback(
+    (id: string, song: SongItem | null) => {
+      let songsCopy = [...songs]
+      const stateSong: number = songsCopy.findIndex(
+        element => element.id === id
+      )
+      if (stateSong > -1) {
+        console.log('updating:', { id, song })
+        if (song !== null) {
+          songsCopy[stateSong] = { ...songsCopy[stateSong], ...song }
+        } else {
+          // remove song if null
+          songsCopy = songsCopy.filter(item => item !== songs[stateSong])
         }
-        return res.json()
+        setSongs(songsCopy)
+      }
+    },
+    [songs]
+  )
+
+  const refreshSong = useCallback(
+    (song: string): void => {
+      fetch(`${API_BASE}/song/${song}`, { method: 'GET' })
+        .then(res => res.json())
+        .then((result: ApiResponse<SongItem>) => {
+          // update existing song if it exists
+          updateSong(song, result)
+          setSongs([result, ...songs])
+        })
+    },
+    [songs]
+  )
+
+  const pagination = (
+    <Pagination
+      activePage={page || 1}
+      itemsCountPerPage={paginationState.per_page}
+      totalItemsCount={paginationState.total_count}
+      pageRangeDisplayed={paginationState.total_count}
+      onChange={pageNumber => {
+        setQueryParam({ page: pageNumber }, 'push')
+      }}
+      itemClass="page-item"
+      linkClass="page-link"
+      prevPageText="«"
+      firstPageText="First"
+      lastPageText="Last"
+      nextPageText="»"
+      innerClass="pagination justify-content-center"
+    />
+  )
+
+  const loadSongs = useCallback(() => {
+    setLoading(true)
+    fetch(API_BASE + getApiUrl({ page, user, query }, favourites), {
+      method: 'GET'
+    })
+      .then(res => {
+        setLoading(false)
+        return res.clone().json()
       })
-      .then((result: ApiResponse<SongsJson>) => {
-        if (result !== undefined) {
-          this.setState({
-            page,
-            pagination: result.pagination,
-            songs: result.songs,
-            query: result.query,
-            loaded: true
+      .then((result?: ApiResponse<SongsJson>) => {
+        if (result === undefined) {
+          return Promise.reject({
+            description: 'Error occured while loading response'
           })
         }
+        return result.error !== null
+          ? Promise.reject(result)
+          : Promise.resolve(result)
       })
-  }
-
-  handleAdminChange(event: React.FormEvent<EventTarget>): void {
-    const target = event.target as HTMLInputElement
-    localStorage.setItem('show_admin', target.checked.toString())
-    this.setState({ show_admin: target.checked })
-  }
-
-  handleSearchChange(event: React.FormEvent<EventTarget>): void {
-    const target = event.target as HTMLInputElement
-    this.setState({ query: target.value || '' })
-  }
-
-  handleFavesChange(event: React.FormEvent<EventTarget>): void {
-    const target = event.target as HTMLInputElement
-    this.setState({ user: target.value || '' })
-  }
-
-  handleSearch(event: React.FormEvent<EventTarget>): void {
-    event.preventDefault()
-    this.handlePage(1)
-  }
-
-  handleFaves(event: React.FormEvent<EventTarget>): void {
-    event.preventDefault()
-    if (this.state.user !== undefined || auth.username) this.handlePage(1, true)
-  }
-
-  handlePage(i: number, favourites: boolean = false): void {
-    this.handlePageChange(i, {
-      favourites,
-      query: this.state.query,
-      history: true,
-      user: this.state.user
-    })
-  }
-
-  refreshSong(song: string): void {
-    fetch(`${API_BASE}/song/${song}`, { method: 'GET' })
-      .then(res => res.json())
-      .then((result: ApiResponse<SongItem>) => {
-        const { songs } = this.state
-        const stateSong = songs.findIndex(element => element.id === song)
-        if (stateSong > -1) {
-          songs[stateSong] = { ...songs[stateSong], ...result }
+      .then(result => {
+        setSongs(result.songs)
+        setPaginationState(result.pagination)
+      })
+      .catch((result: ApiBaseResponse) => {
+        if (result) {
+          const msg = 'description' in result ? result.description : null
+          if (msg) setError(msg)
         }
-
-        this.setState({ songs: [result, ...songs] })
       })
+  }, [page, user, query, favourites])
+
+  // update request url on query change
+  useEffect(() => {
+    loadSongs()
+  }, [page, user, query, favourites, auth.username])
+
+  if (error && error !== '') {
+    return <Error large error={error} errorInfo={{}} />
   }
 
-  updateSongMetadata(
-    song: SongItem,
-    options: { artist?: string; title?: string }
-  ): void {
-    const { id } = song
-    const { songs } = this.state
-
-    fetch(`${API_BASE}/song/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(options),
-      headers: new Headers({
-        'Content-Type': 'application/json'
-      })
-    })
-      .then(res => res.json())
-      .then((result: ApiResponse<SongItem>) => {
-        const error = result.error !== null
-        const msg = result.description || ''
-        if (typeof msg === 'string') {
-          this.sendAlert(msg, error)
-        }
-
-        if (!error) {
-          const stateSong = songs.findIndex(element => element.id === id)
-          songs[stateSong] = { ...song, ...result }
-        }
-
-        this.setState({ songs })
-      })
-  }
-
-  updateSong(id: string, song: SongItem | null) {
-    console.log('updating:', { id, song })
-    let songs = [...this.state.songs]
-    const stateSong: number = songs.findIndex(element => element.id === id)
-    if (song !== null) {
-      songs[stateSong] = { ...songs[stateSong], ...song }
-    } else {
-      // remove song if null
-      songs = songs.filter(item => item !== songs[stateSong])
-    }
-    this.setState({ songs })
-  }
-
-  render() {
-    if (this.state.error && this.state.error !== '') {
-      return <Error errors={this.state.error} />
-    }
-
-    const pagination = (
-      <Pagination
-        activePage={this.state.page}
-        itemsCountPerPage={this.state.pagination.per_page}
-        totalItemsCount={this.state.pagination.total_count}
-        pageRangeDisplayed={this.state.pagination.total_count}
-        onChange={this.handlePage}
-        itemClass="page-item"
-        linkClass="page-link"
-        prevPageText="«"
-        firstPageText="First"
-        lastPageText="Last"
-        nextPageText="»"
-        innerClass="pagination justify-content-center"
-      />
-    )
-
-    // @ts-ignore
-    return (
-      <Container className={cx(containerWidthStyle, navbarMarginStyle)}>
-        {auth.admin && (
-          <Row>
-            <Col>
-              <Form>
-                <FormGroup check>
-                  <Label check>
-                    <Input
-                      type="checkbox"
-                      checked={this.state.show_admin}
-                      onChange={this.handleAdminChange}
-                    />{' '}
-                    Enable admin-only functionality
-                  </Label>
-                </FormGroup>
-              </Form>
-              <hr />
-            </Col>
-          </Row>
-        )}
-        {(settings.uploads_enabled ||
-          (auth.admin && this.state.show_admin)) && (
-          <Row>
-            <Col>
-              <FilePond
-                ref={ref => (this.pond = ref)}
-                name="song"
-                acceptedFileTypes={['audio/*']}
-                files={this.state.files}
-                allowMultiple={true}
-                maxFiles={10}
-                instantUpload={true}
-                // @ts-ignore
-                server={{
-                  process: {
-                    url: `${API_BASE}/upload`,
-                    onload: (response: string) => {
-                      const json: { id: string } = JSON.parse(response)
-                      return json.id
-                    },
-                    headers: {
-                      Authorization: `Bearer ${auth.access_token}`
-                    }
-                  },
-                  fetch: '',
-                  revert: '',
-                  load: '',
-                  restore: ''
-                }}
-                onupdatefiles={fileItems => {
-                  this.setState({
-                    files: fileItems.map(fileItem => fileItem.file)
-                  })
-                }}
-                onprocessfile={(err, file) => {
-                  if (!err) {
-                    // @ts-ignore
-                    const uploadedId = String(file.serverId)
-                    this.sendAlert('Song uploaded!', false)
-                    this.refreshSong(uploadedId)
-
-                    // remove file after uploaded
-                    this.pond!.removeFile(file.id)
-                    this.setState({
-                      files: this.state.files.filter(itm => itm !== file.file)
-                    })
-                  } else {
-                    let msg = 'Song upload failed'
-                    // @ts-ignore
-                    if (err.code === 413) msg += ' (file too large)'
-                    this.sendAlert(msg, true)
-                  }
-                }}
-              />
-              <hr />
-            </Col>
-          </Row>
-        )}
+  return (
+    <Container className={cx(containerWidthStyle, navbarMarginStyle)}>
+      {auth.admin && (
+        <ShowAdminToggle showAdmin={showAdmin} toggle={setShowAdmin} />
+      )}
+      {(settings.uploads_enabled || (auth.admin && showAdmin)) && (
         <Row>
           <Col>
-            <Form onSubmit={this.handleFaves}>
-              <InputGroup>
-                <Input
-                  placeholder="Username"
-                  value={this.state.user || ''}
-                  onChange={this.handleFavesChange}
-                />
-                <InputGroupAddon addonType="append">
-                  <Button>Load Faves</Button>
-                </InputGroupAddon>
-              </InputGroup>
-            </Form>
-          </Col>
-          <Col>
-            <Form onSubmit={this.handleSearch}>
-              <InputGroup>
-                <AsyncTypeahead
-                  id="search"
-                  labelKey="result"
-                  filterBy={['result']}
-                  renderMenuItemChildren={(
-                    result: AutocompleteItemJson,
-                    props
-                  ) => (
-                    <span>
-                      <b>{result.type}</b>:&nbsp;
-                      <Highlighter search={props.text || ''}>
-                        {result.result}
-                      </Highlighter>
-                    </span>
-                  )}
-                  onInputChange={input => {
-                    const query = input || null
-                    this.setState({ query })
-                  }}
-                  onChange={(selected: AutocompleteItemJson[]) => {
-                    const res: AutocompleteItemJson = selected[0] || {
-                      result: ''
-                    }
-                    this.setState({ query: res.result })
-                  }}
-                  // @ts-ignore
-                  onKeyDown={(event: any) => {
-                    // only submit on enter if the user has not selected a typeahead option
-                    if (
-                      event.keyCode === 13 &&
-                      this.state.query === event.target.defaultValue
-                    ) {
-                      this.handleSearch(event)
-                    }
-                  }}
-                  isLoading={this.state.typeaheadLoading}
-                  onSearch={(query: string) => {
-                    this.setState({ typeaheadLoading: true })
-                    fetch(`${API_BASE}/autocomplete?query=${query}`)
-                      .then(resp => resp.json())
-                      .then((json: ApiResponse<AutocompleteJson>) =>
-                        this.setState({
-                          typeaheadLoading: false,
-                          typeahead: json.suggestions
-                        })
-                      )
-                  }}
-                  placeholder="Search"
-                  options={this.state.typeahead}
-                  defaultInputValue={this.state.query || ''}
-                  highlightOnlyResult={false}
-                  minLength={1}
-                  selectHintOnEnter={false}
-                  caseSensitive={false}
-                />
-                <InputGroupAddon addonType="append">
-                  <Button>Search</Button>
-                </InputGroupAddon>
-              </InputGroup>
-            </Form>
-          </Col>
-        </Row>
-        <Row>
-          <Col className="justify-content-center">
-            <hr />
-            {pagination}
+            <SongUploadForm refreshSong={refreshSong} />
             <hr />
           </Col>
         </Row>
-        <Row>
-          <Col
+      )}
+      <Row>
+        <Col xs={12} md={6}>
+          <LoadFavesField queryParam={queryParam} />
+        </Col>
+        <Col xs={12} md={6} className="mt-2 mt-md-0">
+          <SearchField
+            query={query}
+            setQuery={(query: string) => setQueryParam({ query })}
+          />
+        </Col>
+      </Row>
+      <Row>
+        <Col className="justify-content-center">
+          <hr />
+          {pagination}
+          <hr />
+        </Col>
+      </Row>
+      <Row>
+        <Col
+          style={{
+            minHeight: '16rem'
+          }}>
+          {loading && (
+            <LoaderSpinner
+              size={{
+                width: '8rem',
+                height: '8rem',
+                marginTop: '4rem'
+              }}
+              style={{
+                zIndex: 1,
+                position: 'absolute',
+                background: 'rgba(255,255,255,0.0)',
+                height: '100%',
+                left: '0'
+              }}
+            />
+          )}
+          <div
+            className="d-flex h-100"
             style={{
-              minHeight: '16rem'
+              opacity: !loading ? '1' : '0.10',
+              transition: 'opacity 0.15s ease-in-out'
             }}>
-            {this.state.loaded ? (
-              this.state.songs.length === 0 && (
-                <h2 className="mx-auto text-center">No results</h2>
-              )
-            ) : (
-              <LoaderSpinner
-                size={{
-                  width: '8rem',
-                  height: '8rem',
-                  marginTop: '4rem'
-                }}
-                style={{
-                  zIndex: 1,
-                  position: 'absolute',
-                  background: 'rgba(255,255,255,0.0)',
-                  height: '100%',
-                  left: '0'
-                }}
+            {!loading && songs.length === 0 && (
+              <h2 className="mx-auto text-center align-self-center">
+                No results
+              </h2>
+            )}
+            {songs.length !== 0 && (
+              <SongsTable
+                songs={songs}
+                updateSong={updateSong}
+                showAdmin={showAdmin}
               />
             )}
-            {this.state.songs.length !== 0 && (
-              <div
-                style={{
-                  opacity: this.state.loaded ? '1' : '0.10',
-                  transition: 'opacity 0.15s ease-in-out'
-                }}>
-                <SongsTable
-                  songs={this.state.songs}
-                  updateSongMetadata={this.updateSongMetadata}
-                  downloads={
-                    settings.downloads_enabled ||
-                    (auth.admin && this.state.show_admin)
-                  }
-                  isAdmin={auth.admin ? this.state.show_admin : false}
-                  loggedIn={auth.logged_in}
-                  reloadPage={this.reloadPage}
-                  updateSong={this.updateSong}
-                />
-              </div>
-            )}
-          </Col>
-        </Row>
-        <hr />
-        <Row>
-          <Col className="justify-content-center">{pagination}</Col>
-        </Row>
-      </Container>
-    )
-  }
+          </div>
+        </Col>
+      </Row>
+      <Row>
+        <Col>
+          <hr />
+          <div className="justify-content-center">{pagination}</div>
+          <hr />
+        </Col>
+      </Row>
+    </Container>
+  )
 }
 
-export default withRouter(view(Songs))
+export default view(Songs)

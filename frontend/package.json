@@ -1,10 +1,5 @@
 {
-  "browserslist": [
-    ">1%",
-    "not dead",
-    "not ie <= 11",
-    "not op_mini all"
-  ],
+  "browserslist": "> 1%, not dead",
   "dependencies": {
     "react": ">=15.0.0",
     "react-dom": ">=15.0.0"
@@ -69,6 +64,7 @@
     "tslint-config-standard": "^9.0.0",
     "tslint-react": "^4.1.0",
     "typescript": "^3.7.4",
+    "use-query-params": "^0.4.6",
     "yup": "^0.28.0"
   },
   "name": "radio-frontend",

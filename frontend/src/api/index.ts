@@ -6,6 +6,7 @@ export interface ApiHook<T> {
   errors: any
   response: Res<T>
   run: (options?: object) => Promise<any>
+  runUrl: (url: string, options?: object) => Promise<any>
 }
 
 export interface Res<T> extends Response {
@@ -33,7 +34,7 @@ export function useFetch<T>(
   }
 
   const makeFetch = useCallback(() => {
-    const fetchData = async (inputOptions = {}) => {
+    const fetchData = async (newUrl?: string, inputOptions = {}) => {
       controller.current = new AbortController()
       controller.current.signal.onabort = onAbort
 
@@ -41,7 +42,7 @@ export function useFetch<T>(
       setErrors(undefined)
 
       try {
-        const resp = await fetch(url, {
+        const resp = await fetch(newUrl || url, {
           ...defaultOptions,
           ...options,
           ...inputOptions
@@ -67,7 +68,7 @@ export function useFetch<T>(
   useEffect(() => {
     if (params && Array.isArray(params)) {
       setLoading(true)
-      useCallback(makeFetch(), [makeFetch])
+      makeFetch()(url, options)
     }
   }, params)
 
@@ -79,6 +80,7 @@ export function useFetch<T>(
     errors,
     data: data.current,
     response: res.current,
-    run: (options = {}) => makeFetch()(options)
+    run: (options = {}) => makeFetch()(url, options),
+    runUrl: (newUrl, options = {}) => makeFetch()(newUrl, options)
   }
 }

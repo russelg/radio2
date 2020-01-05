@@ -1,3 +1,4 @@
+import { css, cx } from 'emotion'
 import React, { lazy, Suspense } from 'react'
 import { view } from 'react-easy-state'
 import ReactHowler from 'react-howler'
@@ -6,14 +7,13 @@ import { BrowserRouter as Router, Route } from 'react-router-dom'
 import { AnimatedSwitch } from 'react-router-transition'
 import { toast, Zoom } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import { Collapse } from 'reactstrap'
+import { QueryParamProvider } from 'use-query-params'
 import { ApiResponse, NowPlayingJson, SettingsJson } from '/api/Schemas'
 import ErrorBoundary from '/components/ErrorBoundary'
-import Loader from '/components/Loader'
 import LoaderSpinner from '/components/LoaderSpinner'
 import Navbar from '/components/Navbar'
 import { API_BASE, playingState, settings } from '/store'
-import { css, cx } from 'emotion'
-import { Collapse } from 'reactstrap'
 
 toast.configure({
   autoClose: 2000,
@@ -116,78 +116,83 @@ class App extends React.Component<Props, State> {
 
     return (
       <Router>
-        <ErrorBoundary>
-          <div className="h-100">
-            <Navbar title={settings.title} styles={settings.styles}>
-              <Collapse isOpen={miniPlayerVisible}>
-                <Suspense fallback={<LoaderSpinner />}>
-                  {miniPlayerVisible && <MiniPlayer />}
-                </Suspense>
-              </Collapse>
-            </Navbar>
+        <QueryParamProvider ReactRouterRoute={Route}>
+          <ErrorBoundary>
+            <div className="h-100">
+              <Navbar title={settings.title} styles={settings.styles}>
+                <Collapse isOpen={miniPlayerVisible}>
+                  <Suspense fallback={<LoaderSpinner />}>
+                    {miniPlayerVisible && <MiniPlayer />}
+                  </Suspense>
+                </Collapse>
+              </Navbar>
 
-            <ReactHowler
-              src={[`${settings.stream_url}.ogg`, `${settings.stream_url}.mp3`]}
-              format={['ogg', 'mp3']}
-              preload={false}
-              html5={true}
-              playing={playingState.playing}
-              volume={playingState.volume / 100}
-              ref={this.player}
-            />
-            <AnimatedSwitch
-              atEnter={{ opacity: 0 }}
-              atLeave={{ opacity: 0 }}
-              atActive={{ opacity: 1 }}
-              className={cx(switchStyle, 'h-100')}>
-              <Route
-                path="/"
-                exact
-                render={props => (
-                  <Suspense fallback={<LoaderSpinner />}>
-                    <Home {...props} togglePlaying={this.togglePlaying} />
-                  </Suspense>
-                )}
+              <ReactHowler
+                src={[
+                  `${settings.stream_url}.ogg`,
+                  `${settings.stream_url}.mp3`
+                ]}
+                format={['ogg', 'mp3']}
+                preload={false}
+                html5={true}
+                playing={playingState.playing}
+                volume={playingState.volume / 100}
+                ref={this.player}
               />
-              <Route
-                path="/songs"
-                exact
-                render={props => (
-                  <Suspense fallback={<LoaderSpinner />}>
-                    <Songs {...props} favourites={false} />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/favourites"
-                exact
-                render={props => (
-                  <Suspense fallback={<LoaderSpinner />}>
-                    <Songs {...props} favourites={true} />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/sign-up"
-                exact
-                render={props => (
-                  <Suspense fallback={<LoaderSpinner />}>
-                    <SignUp />
-                  </Suspense>
-                )}
-              />
-              <Route
-                path="/sign-in"
-                exact
-                render={props => (
-                  <Suspense fallback={<LoaderSpinner />}>
-                    <SignIn />
-                  </Suspense>
-                )}
-              />
-            </AnimatedSwitch>
-          </div>
-        </ErrorBoundary>
+              <AnimatedSwitch
+                atEnter={{ opacity: 0 }}
+                atLeave={{ opacity: 0 }}
+                atActive={{ opacity: 1 }}
+                className={cx(switchStyle, 'h-100')}>
+                <Route
+                  path="/"
+                  exact
+                  render={props => (
+                    <Suspense fallback={<LoaderSpinner />}>
+                      <Home {...props} togglePlaying={this.togglePlaying} />
+                    </Suspense>
+                  )}
+                />
+                <Route
+                  path="/songs"
+                  exact
+                  render={props => (
+                    <Suspense fallback={<LoaderSpinner />}>
+                      <Songs {...props} favourites={false} />
+                    </Suspense>
+                  )}
+                />
+                <Route
+                  path="/favourites"
+                  exact
+                  render={props => (
+                    <Suspense fallback={<LoaderSpinner />}>
+                      <Songs {...props} favourites={true} />
+                    </Suspense>
+                  )}
+                />
+                <Route
+                  path="/sign-up"
+                  exact
+                  render={props => (
+                    <Suspense fallback={<LoaderSpinner />}>
+                      <SignUp />
+                    </Suspense>
+                  )}
+                />
+                <Route
+                  path="/sign-in"
+                  exact
+                  render={props => (
+                    <Suspense fallback={<LoaderSpinner />}>
+                      <SignIn />
+                    </Suspense>
+                  )}
+                />
+              </AnimatedSwitch>
+            </div>
+          </ErrorBoundary>
+        </QueryParamProvider>
       </Router>
     )
   }

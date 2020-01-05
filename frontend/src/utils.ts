@@ -38,6 +38,34 @@ export function fuzzyTime(time: string): string {
   return formatDistanceToNow(parseISO(time), { addSuffix: true })
 }
 
+export const useDelayedLoader = (
+  loading: boolean
+): [boolean, (value: boolean) => void] => {
+  const [localLoading, setLoading] = useState(loading)
+  const [showLoader, setShowLoader] = useState(loading)
+
+  useEffect(() => {
+    if (localLoading) {
+      setShowLoader(true)
+    }
+
+    // Show loader a bits longer to avoid loading flash
+    if (!localLoading && showLoader) {
+      const timeout = setTimeout(() => {
+        setShowLoader(false)
+      }, 400)
+
+      return () => {
+        clearTimeout(timeout)
+      }
+    }
+
+    return () => {}
+  }, [localLoading, showLoader])
+
+  return [showLoader, setLoading]
+}
+
 export const useIsMounted = () => {
   const isMounted = useRef(false)
   useEffect(() => {

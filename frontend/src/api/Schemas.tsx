@@ -3,7 +3,7 @@ export type Description = string | string[] | { [k: string]: string[] }
 export interface ApiBaseResponse {
   status_code: number
   error: string | null
-  description: Description
+  description?: Description
   message?: string
   _links?: {
     _self?: string

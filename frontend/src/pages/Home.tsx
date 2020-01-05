@@ -191,11 +191,11 @@ const BigProgress: FunctionComponent<{
 }> = view(({ info, radio }) => {
   return (
     <>
-      <h2 className="pb-2 text-center">
+      <h3 className="pb-2 text-center">
         <LoaderSkeleton loading={!info.title} width="50%">
           {() => `${info.artist} - ${info.title}`}
         </LoaderSkeleton>
-      </h2>
+      </h3>
       <Progress value={playingState.progress} />
       <Row>
         <Col

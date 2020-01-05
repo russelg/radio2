@@ -94,10 +94,17 @@ export const auth = store({
 
     const r: ApiBaseResponse = await resp.clone().json()
     if (r.status_code === 200 && r.error === null) {
-      return r.description.toString()
+      return (r.description
+        ? r.description
+        : r.message
+        ? r.message
+        : ''
+      ).toString()
     }
 
-    throw new Error(r.description.toString())
+    throw new Error(
+      (r.description ? r.description : r.message ? r.message : '').toString()
+    )
   },
 
   logout(): void {

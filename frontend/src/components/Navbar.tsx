@@ -53,6 +53,8 @@ const Navbar: FunctionComponent<NavbarProps> = ({
   const [collapsed, setCollapsed] = useState(true)
   const toggle = () => setCollapsed(collapsed => !collapsed)
 
+  // throw 'test'
+
   const songsButton = (
     <NavItem>
       <NavLink to="/songs" exact activeClassName="active" tag={RRNavLink}>
@@ -93,11 +95,11 @@ const Navbar: FunctionComponent<NavbarProps> = ({
             {!collapsed && songsButton}
             {!auth.logged_in && <LoginDropdown />}
             {auth.logged_in && <LoggedInDropdown />}
-            {styles && (
+            {styles !== null && (
               <NavItem>
                 <NavLink>
                   <Label htmlFor="theme_chooser">Style</Label>
-                  <ThemeChooser className="ml-2" styles={styles} />
+                  <ThemeChooser className="ml-2" styles={styles!} />
                 </NavLink>
               </NavItem>
             )}

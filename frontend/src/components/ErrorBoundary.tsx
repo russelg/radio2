@@ -2,19 +2,34 @@ import React from 'react'
 import { view } from 'react-easy-state'
 import Error from '/components/Error'
 
-class ErrorBoundary extends React.Component {
-  static getDerivedStateFromError(error: any) {
-    return { error, hasError: true }
+interface ErrorBoundaryProps {}
+
+interface ErrorBoundaryState {
+  error: any
+  errorInfo: any
+}
+
+class ErrorBoundary extends React.Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props)
+    this.state = { error: null, errorInfo: null }
   }
 
-  public state = { hasError: false, error: undefined }
+  componentDidCatch(error: any, errorInfo: any) {
+    // Catch errors in any components below and re-render with error message
+    this.setState({ error, errorInfo })
+  }
 
   render() {
-    return this.state.hasError ? (
-      <Error errors={this.state.error} />
-    ) : (
-      this.props.children
-    )
+    if (this.state.errorInfo) {
+      // Error path
+      return <Error {...this.state} />
+    }
+    // Normally, just render children
+    return this.props.children
   }
 }
 
