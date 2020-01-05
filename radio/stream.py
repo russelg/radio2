@@ -79,9 +79,7 @@ class ShoutInstance:
             pylibshout.SHOUT_FORMAT_MP3 if mp3 else pylibshout.SHOUT_FORMAT_OGG
         )
         if mp3:
-            shout.audio_info = {
-                pylibshout.SHOUT_AI_BITRATE: config["TRANSCODE_BITRATE"]
-            }
+            shout.audio_info = {"bitrate": f"{config['TRANSCODE_BITRATE']}"}
 
         # Stream metadata
         shout.name = config["ICECAST_NAME"]
@@ -189,6 +187,7 @@ class Worker(multiprocessing.Process):
                 break
             self.stream(song_path)
             self.queue.task_done()
+            self.instance.reset()
 
 
 def run():
