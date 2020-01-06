@@ -17,11 +17,11 @@ import {
   NavItem,
   NavLink
 } from 'reactstrap'
+import { useAuthContext } from '/authContext'
 import LoaderSkeleton from '/components/LoaderSkeleton'
 import LoggedInDropdown from '/components/LoggedInDropdown'
 import LoginDropdown from '/components/LoginDropdown'
 import ThemeChooser from '/components/ThemeChooser'
-import { auth } from '/store'
 import { containerWidthStyle } from '/utils'
 
 const flexGrow = (val: number) => css`
@@ -50,10 +50,10 @@ const Navbar: FunctionComponent<NavbarProps> = ({
   styles,
   currentStyle
 }) => {
+  const { loggedIn } = useAuthContext()
+
   const [collapsed, setCollapsed] = useState(true)
   const toggle = () => setCollapsed(collapsed => !collapsed)
-
-  // throw 'test'
 
   const songsButton = (
     <NavItem>
@@ -93,8 +93,7 @@ const Navbar: FunctionComponent<NavbarProps> = ({
           className={cx(flexGrow(0), 'justify-content-end')}>
           <Nav navbar>
             {!collapsed && songsButton}
-            {!auth.logged_in && <LoginDropdown />}
-            {auth.logged_in && <LoggedInDropdown />}
+            {loggedIn ? <LoggedInDropdown /> : <LoginDropdown />}
             {styles !== null && (
               <NavItem>
                 <NavLink>

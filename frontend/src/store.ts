@@ -11,115 +11,6 @@ import {
 
 export const API_BASE: string = '/api/v1'
 
-const config = {
-  shouldIntercept: (request: Request) => {
-    // exclude login requests from intercepting
-    // without this, each login will occur 3 times if invalid...
-    if (request.url.includes('/auth/login')) return false
-    return true
-  },
-  shouldInvalidateAccessToken: () => false,
-  shouldWaitForTokenRenewal: true,
-  authorizeRequest: (request: Request, accessToken: string) => {
-    request.headers.set('Authorization', `Bearer ${accessToken}`)
-    return request
-  },
-  createAccessTokenRequest: (refreshToken: string) =>
-    new Request(`${API_BASE}/auth/refresh`, {
-      headers: { Authorization: `Bearer ${refreshToken}` },
-      method: 'POST'
-    }),
-  parseAccessToken: async (response: Response) => {
-    const json = await response.clone().json()
-    auth.username = json.username
-    auth.access_token = json.access_token
-    auth.logged_in = true
-    auth.admin = json.admin || false
-    return json.access_token
-  },
-  fetchRetryCount: 3
-}
-
-export const auth = store({
-  username: '',
-  logged_in: false,
-  admin: false,
-
-  get access_token(): string {
-    return localStorage.getItem('access_token') || ''
-  },
-
-  set access_token(token: string) {
-    localStorage.setItem('access_token', token)
-  },
-
-  get refresh_token(): string {
-    return localStorage.getItem('refresh_token') || ''
-  },
-
-  set refresh_token(token: string) {
-    localStorage.setItem('refresh_token', token)
-  },
-
-  async login(
-    username: string,
-    password: string
-  ): Promise<ApiResponse<LoginJson>> {
-    const response: Response = await fetch(`${API_BASE}/auth/login`, {
-      method: 'POST',
-      body: JSON.stringify({ username, password }),
-      headers: new Headers({
-        'Content-Type': 'application/json'
-      })
-    })
-
-    const r: ApiResponse<LoginJson> = await response.clone().json()
-    if ('access_token' in r && 'refresh_token' in r) {
-      auth.refresh_token = r.refresh_token
-      config.parseAccessToken(response)
-      authorize(auth.refresh_token, auth.access_token)
-    }
-
-    return r
-  },
-
-  async register(username: string, password: string): Promise<string> {
-    const resp = await fetch(`${API_BASE}/auth/register`, {
-      method: 'POST',
-      body: JSON.stringify({ username, password }),
-      headers: new Headers({
-        'Content-Type': 'application/json'
-      })
-    })
-
-    const r: ApiBaseResponse = await resp.clone().json()
-    if (r.status_code === 200 && r.error === null) {
-      return (r.description
-        ? r.description
-        : r.message
-        ? r.message
-        : ''
-      ).toString()
-    }
-
-    throw new Error(
-      (r.description ? r.description : r.message ? r.message : '').toString()
-    )
-  },
-
-  logout(): void {
-    clear()
-    auth.username = ''
-    auth.logged_in = false
-    auth.admin = false
-    auth.access_token = ''
-    auth.refresh_token = ''
-  }
-})
-
-configure(config)
-if (auth.refresh_token) authorize(auth.refresh_token)
-
 export interface SettingsStore extends SettingsJson {
   updateSettings: (settings: SettingsJson) => void
   stream_url: string
@@ -291,7 +182,7 @@ export const playingState: PlayingStore = store({
       radio.current_pos = radio.current_pos + 0.5
     }
 
-    if (radio.counter >= 3 || radio.current_pos >= radio.current_len) {
+    if (radio.counter >= 3 || radio.current_pos > radio.current_len) {
       radio.counter = 0.0
       func()
     }

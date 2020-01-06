@@ -48,13 +48,14 @@ import {
 import Error from '/components/Error'
 import LoaderSpinner from '/components/LoaderSpinner'
 import SongsTable from '/components/SongsTable'
-import { API_BASE, auth, settings } from '/store'
+import { API_BASE, settings } from '/store'
 import {
   containerWidthStyle,
   navbarMarginStyle,
   useDelayedLoader,
   useLocalStorage
 } from '/utils'
+import { useAuthContext } from '/authContext'
 
 registerPlugin(FilePondPluginFileValidateType)
 
@@ -65,6 +66,8 @@ interface SongUploadFormProps {
 const SongUploadForm: FunctionComponent<SongUploadFormProps> = ({
   refreshSong
 }) => {
+  const { accessToken } = useAuthContext()
+
   const pond = useRef<FilePond>(null)
   const [files, setFiles] = useState<FilePondFile[]>([])
 
@@ -76,7 +79,7 @@ const SongUploadForm: FunctionComponent<SongUploadFormProps> = ({
         return json.id
       },
       headers: {
-        Authorization: `Bearer ${auth.access_token}`
+        Authorization: `Bearer ${accessToken}`
       }
     }
   }
@@ -249,15 +252,9 @@ const SearchField: FunctionComponent<SearchFieldProps> = ({
   )
 }
 
-interface ShowAdminToggleProps {
-  showAdmin: boolean
-  toggle: (value: boolean) => void
-}
+const ShowAdminToggle: FunctionComponent = () => {
+  const { showAdmin, setShowAdmin } = useAuthContext()
 
-const ShowAdminToggle: FunctionComponent<ShowAdminToggleProps> = ({
-  showAdmin,
-  toggle
-}) => {
   return (
     <Row>
       <Col>
@@ -267,7 +264,7 @@ const ShowAdminToggle: FunctionComponent<ShowAdminToggleProps> = ({
               <Input
                 type="checkbox"
                 checked={showAdmin}
-                onChange={event => toggle(event.currentTarget.checked)}
+                onChange={event => setShowAdmin(event.currentTarget.checked)}
               />{' '}
               Enable admin-only functionality
             </Label>
@@ -287,13 +284,14 @@ const LoadFavesField: FunctionComponent<LoadFavesFieldProps> = ({
   queryParam
 }) => {
   const history = useHistory()
+  const { username } = useAuthContext()
   const [userInput, setUserInput] = useState<string>(queryParam.user || '')
 
   const handleFaves = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault()
       const url = getApiUrl(
-        { ...queryParam, user: userInput || auth.username || undefined },
+        { ...queryParam, user: userInput || username || undefined },
         true
       )
       history.push(url)
@@ -331,6 +329,8 @@ interface PaginationState {
 }
 
 const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
+  const { username, isAdmin, showAdmin } = useAuthContext()
+
   // request related state
   const [paginationState, setPaginationState] = useState<PaginationState>({
     per_page: 25,
@@ -343,7 +343,6 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
   const [error, setError] = useState<Description | undefined>(undefined)
 
   // user controlled state
-  const [showAdmin, setShowAdmin] = useLocalStorage('show_admin', false)
   const [queryParam, setQueryParam] = useQueryParams({
     query: StringParam,
     page: NumberParam,
@@ -437,7 +436,7 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
   // update request url on query change
   useEffect(() => {
     loadSongs()
-  }, [page, user, query, favourites, auth.username])
+  }, [page, user, query, favourites, username])
 
   if (error && error !== '') {
     return <Error large error={error} errorInfo={{}} />
@@ -445,10 +444,8 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
 
   return (
     <Container className={cx(containerWidthStyle, navbarMarginStyle)}>
-      {auth.admin && (
-        <ShowAdminToggle showAdmin={showAdmin} toggle={setShowAdmin} />
-      )}
-      {(settings.uploads_enabled || (auth.admin && showAdmin)) && (
+      {isAdmin && <ShowAdminToggle />}
+      {(settings.uploads_enabled || (isAdmin && showAdmin)) && (
         <Row>
           <Col>
             <SongUploadForm refreshSong={refreshSong} />
@@ -507,11 +504,7 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
               </h2>
             )}
             {songs.length !== 0 && (
-              <SongsTable
-                songs={songs}
-                updateSong={updateSong}
-                showAdmin={showAdmin}
-              />
+              <SongsTable songs={songs} updateSong={updateSong} />
             )}
           </div>
         </Col>

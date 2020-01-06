@@ -1979,6 +1979,11 @@ constants-browserify@^1.0.0:
   resolved "https://registry.yarnpkg.com/constants-browserify/-/constants-browserify-1.0.0.tgz#c20b96d8c617748aaf1c16021760cd27fcb8cb75"
   integrity sha1-wguW2MYXdIqvHBYCF2DNJ/y4y3U=
 
+constate@^1.3.2:
+  version "1.3.2"
+  resolved "https://registry.yarnpkg.com/constate/-/constate-1.3.2.tgz#fa5f0fc292207f1ec21b46a5eb81f59c8b0a8b84"
+  integrity sha512-aaILV4vXwGTUZaQZHS5F1xBV8wRCR0Ow1505fdkS5/BPg6hbQrhNqdHL4wgxWgaDeEj43mu/Fb+LhqOKTMcrgQ==
+
 convert-source-map@^1.5.0, convert-source-map@^1.5.1, convert-source-map@^1.7.0:
   version "1.7.0"
   resolved "https://registry.yarnpkg.com/convert-source-map/-/convert-source-map-1.7.0.tgz#17a2cb882d7f77d3490585e2ce6c524424a3a442"
@@ -7035,6 +7040,11 @@ tslint-microsoft-contrib@~5.2.1:
   integrity sha512-PDYjvpo0gN9IfMULwKk0KpVOPMhU6cNoT9VwCOLeDl/QS8v8W2yspRpFFuUS7/c5EIH/n8ApMi8TxJAz1tfFUA==
   dependencies:
     tsutils "^2.27.2 <2.29.0"
+
+tslint-react-hooks@^2.2.1:
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/tslint-react-hooks/-/tslint-react-hooks-2.2.1.tgz#c52c7df65ee1517b2d6c92bc716e9ef72ccdf208"
+  integrity sha512-bqIg2uZe+quJMfSOGc4OOZ4awo6TP1ejGDGS6IKg2WIrS0XnWfhUJ99i3B8rUpnZhuD4vRSvyYIbXPUmEqQxxQ==
 
 tslint-react@^4.1.0:
   version "4.1.0"

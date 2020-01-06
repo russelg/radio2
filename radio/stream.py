@@ -118,58 +118,59 @@ class Worker(multiprocessing.Process):
             data = f"{meta['artist']} - {meta['title']}"
 
         ffmpeg = None
-        song = open(song_path, "rb")
         devnull = open(os.devnull, "w")
+        with open(song_path, "rb") as song:
+            src: IO = song
 
-        src: IO = song
+            # pass ogg thru ffmpeg if mp3 wanted
+            if self.instance.is_mp3:
+                self.instance.shout.metadata = {"song": data.encode("utf-8")}
+                ffmpeg = subprocess.Popen(
+                    [
+                        self.config["PATH_FFMPEG_BINARY"],
+                        "-i",
+                        "-",
+                        "-f",
+                        "mp3",
+                        "-ab",
+                        f'{self.config["TRANSCODE_BITRATE"]}k',
+                        "-",
+                    ],
+                    stdin=song,
+                    stdout=subprocess.PIPE,
+                    stderr=devnull,
+                )
+                src = ffmpeg.stdout
 
-        # pass ogg thru ffmpeg if mp3 wanted
-        if self.instance.is_mp3:
-            self.instance.shout.metadata = {"song": data.encode("utf-8")}
-            ffmpeg = subprocess.Popen(
-                [
-                    self.config["PATH_FFMPEG_BINARY"],
-                    "-i",
-                    "-",
-                    "-f",
-                    "mp3",
-                    "-ab",
-                    f'{self.config["TRANSCODE_BITRATE"]}k',
-                    "-",
-                ],
-                stdin=song,
-                stdout=subprocess.PIPE,
-                stderr=devnull,
-            )
-            src = ffmpeg.stdout
+            sent_bytes = 0
+            retries = 0
+            if src:
+                buffer = src.read(4096)
+                while buffer:
+                    while retries < 3:
+                        try:
+                            if not self.instance.connected:
+                                raise pylibshout.ShoutException()
 
-        sent_bytes = 0
-        retries = 0
-        if src:
-            buffer = src.read(4096)
-            while buffer:
-                while retries < 3:
-                    try:
-                        self.instance.shout.send(buffer)
-                        sent_bytes += len(buffer)
-                        self.instance.shout.sync()
-                        break
-                    except pylibshout.ShoutException:
-                        # keep trying to connect to
-                        logger.warning(
-                            "%s: stream died, resetting shout instance...",
-                            self.instance.format,
-                        )
-                        self.instance.reset()
-                        time.sleep(1)
-                        retries += 1
-                        continue
-                buffer = src.read(1024)
+                            self.instance.shout.send(buffer)
+                            sent_bytes += len(buffer)
+                            self.instance.shout.sync()
+                            retries = 0
+                            break
+                        except pylibshout.ShoutException:
+                            # keep trying to connect
+                            logger.warning(
+                                "%s: stream died, resetting shout instance...",
+                                self.instance.format,
+                            )
+                            self.instance.reset()
+                            time.sleep(1)
+                            retries += 1
+                            continue
+                    buffer = src.read(1024)
 
-        if ffmpeg:
-            ffmpeg.wait()
-
-        song.close()
+            if ffmpeg:
+                ffmpeg.wait()
 
         finish_time = time.time()
         kbps = int(sent_bytes * 0.008 / (finish_time - start_time))

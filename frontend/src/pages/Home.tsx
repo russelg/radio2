@@ -1,3 +1,4 @@
+import { css } from 'emotion'
 import React, { FunctionComponent, useCallback, useState } from 'react'
 import { view } from 'react-easy-state'
 import {
@@ -7,6 +8,7 @@ import {
   CardBody,
   CardHeader,
   Col,
+  Collapse,
   Container,
   Dropdown,
   DropdownItem,
@@ -19,20 +21,18 @@ import {
   ModalFooter,
   ModalHeader,
   Progress,
-  Row,
-  Collapse
+  Row
 } from 'reactstrap'
 import { NowPlayingJson, SongListItem } from '/api/Schemas'
 import LoaderSkeleton from '/components/LoaderSkeleton'
 import { playingState, RadioStore, settings } from '/store'
 import {
-  fuzzyTime,
-  readableFilesize,
-  readableSeconds,
   containerWidthStyle,
-  navbarMarginStyle
+  fuzzyTime,
+  navbarMarginStyle,
+  readableFilesize,
+  readableSeconds
 } from '/utils'
-import { css } from 'emotion'
 
 interface HomeProps {
   togglePlaying: () => void
@@ -191,11 +191,11 @@ const BigProgress: FunctionComponent<{
 }> = view(({ info, radio }) => {
   return (
     <>
-      <h3 className="pb-2 text-center">
+      <h2 className="pb-2 text-center">
         <LoaderSkeleton loading={!info.title} width="50%">
           {() => `${info.artist} - ${info.title}`}
         </LoaderSkeleton>
-      </h3>
+      </h2>
       <Progress value={playingState.progress} />
       <Row>
         <Col

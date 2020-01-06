@@ -6,11 +6,10 @@ import React, {
   useState
 } from 'react'
 import { view } from 'react-easy-state'
-import { Button, Form, FormFeedback, FormGroup, Input } from 'reactstrap'
-import { Description } from '/api/Schemas'
-import { auth } from '/store'
-import LoaderSpinner from './LoaderSpinner'
+import { Form, FormFeedback, FormGroup, Input } from 'reactstrap'
 import LoaderButton from './LoaderButton'
+import { Description } from '/api/Schemas'
+import { useAuthContext } from '/authContext'
 
 const formControlStyle = css`
   .form-control {
@@ -27,6 +26,8 @@ const formControlStyle = css`
 `
 
 const LoginForm: FunctionComponent = () => {
+  const { login } = useAuthContext()
+
   const [values, setValues] = useState({
     username: '' as string,
     password: '' as string
@@ -41,9 +42,9 @@ const LoginForm: FunctionComponent = () => {
   const handleLogin = (event: FormEvent) => {
     event.preventDefault()
     setSubmitting(true)
-    auth.login(values.username, values.password).then(resp => {
+    login(values.username, values.password).then(resp => {
       setSubmitting(false)
-      if (resp.error !== null) setError(resp.description)
+      if (resp.error !== null) setError(resp.description!)
     })
   }
 

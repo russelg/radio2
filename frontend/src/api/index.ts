@@ -28,9 +28,9 @@ export function useFetch<T>(
   const [errors, setErrors] = useState<any>()
 
   const defaultOptions = {
-    headers: new Headers({
+    headers: {
       'Content-Type': 'application/json'
-    })
+    }
   }
 
   const makeFetch = useCallback(() => {

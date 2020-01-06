@@ -10,32 +10,28 @@ import {
   DropdownToggle,
   UncontrolledDropdown
 } from 'reactstrap'
-import { auth } from '/store'
+import { useAuthContext } from '/authContext'
 
 const LoggedInDropdown: FunctionComponent = () => {
-  const handleLogout = async () => {
-    await auth.logout()
-  }
+  const { username, isAdmin, logout } = useAuthContext()
 
   return (
     <UncontrolledDropdown nav inNavbar>
       <DropdownToggle nav caret>
         <FontAwesomeIcon fixedWidth icon={faUser} />
-        <span className="mx-2">{auth.username}</span>
-        {auth.admin && (
-          <>
-            <Badge pill variant="info" className="align-middle badge-admin">
-              Admin
-            </Badge>
-          </>
+        <span className="mx-2">{username}</span>
+        {isAdmin && (
+          <Badge pill variant="info" className="align-middle badge-admin">
+            Admin
+          </Badge>
         )}
       </DropdownToggle>
       <DropdownMenu right>
-        <DropdownItem to={`/favourites?user=${auth.username}`} tag={Link}>
+        <DropdownItem to={`/favourites?user=${username}`} tag={Link}>
           View your favourites
         </DropdownItem>
         <DropdownItem divider />
-        <DropdownItem onClick={handleLogout}>Logout</DropdownItem>
+        <DropdownItem onClick={logout}>Logout</DropdownItem>
       </DropdownMenu>
     </UncontrolledDropdown>
   )

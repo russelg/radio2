@@ -7,11 +7,10 @@ import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
 import { faUser } from '@fortawesome/free-solid-svg-icons/faUser'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { Formik } from 'formik'
-import React, { FunctionComponent, useState, useCallback } from 'react'
+import React, { FunctionComponent, useCallback, useState } from 'react'
 import { view } from 'react-easy-state'
 import { Link, Redirect } from 'react-router-dom'
 import {
-  Button,
   Form,
   FormFeedback,
   FormGroup,
@@ -21,8 +20,8 @@ import {
 } from 'reactstrap'
 import { InputType } from 'reactstrap/lib/Input'
 import * as yup from 'yup'
+import { useAuthContext } from '/authContext'
 import Dialog from '/components/Dialog'
-import { auth } from '/store'
 import LoaderButton from '/components/LoaderButton'
 
 export interface FormInputProps {
@@ -100,13 +99,11 @@ export interface SignUpFormInputs {
 
 const SignUp: FunctionComponent = () => {
   const [registered, setRegistered] = useState<boolean | string>(false)
-
-  if (auth.logged_in) return <Redirect to="/" />
+  const { loggedIn, register } = useAuthContext()
 
   const onSubmit = useCallback(
     (values: SignUpFormInputs, { setSubmitting, setErrors }) => {
-      auth
-        .register(values.username, values.password)
+      register(values.username, values.password)
         .then(msg => {
           setRegistered(msg)
         })
@@ -115,8 +112,10 @@ const SignUp: FunctionComponent = () => {
         })
       setSubmitting(false)
     },
-    [setRegistered]
+    []
   )
+
+  if (loggedIn) return <Redirect to="/" />
 
   return (
     <Dialog title="Sign Up">

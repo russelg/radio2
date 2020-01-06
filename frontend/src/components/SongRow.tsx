@@ -27,8 +27,9 @@ import {
 } from '/api/Schemas'
 import LoaderButton from '/components/LoaderButton'
 import LoaderSpinner from '/components/LoaderSpinner'
-import { API_BASE, auth, settings } from '/store'
-import { readableFilesize, useLocalStorage } from '/utils'
+import { API_BASE, settings } from '/store'
+import { readableFilesize } from '/utils'
+import { useAuthContext } from '/authContext'
 
 const disabledButtonStyle = css`
   display: inline-block;
@@ -45,10 +46,6 @@ interface SongRowButtonProps {
 
 interface SongRowUpdateProps extends SongRowButtonProps {
   updateSong: (id: string, song: SongItem | null) => void
-}
-
-interface SongRowProps extends SongRowUpdateProps {
-  showAdmin: boolean
 }
 
 const handleResponse = <T extends ApiBaseResponse>(result: T): Promise<T> => {
@@ -353,12 +350,12 @@ const EditableValue: FunctionComponent<EditableValueProps> = ({
   )
 }
 
-const SongRow: FunctionComponent<SongRowProps> = ({
+const SongRow: FunctionComponent<SongRowUpdateProps> = ({
   song,
-  updateSong,
-  showAdmin
+  updateSong
 }) => {
-  const admin = auth.admin && showAdmin
+  const { isAdmin, loggedIn, showAdmin } = useAuthContext()
+  const admin = isAdmin && showAdmin
 
   return (
     <tr key={song.id} className="d-flex">
@@ -379,7 +376,7 @@ const SongRow: FunctionComponent<SongRowProps> = ({
       <td className="col text-right d-flex align-items-center justify-content-end">
         <Form inline className="justify-content-center mt-n1">
           <RequestButton song={song} updateSong={updateSong} />
-          {auth.logged_in && (
+          {loggedIn && (
             <>
               &nbsp;
               <FavouriteButton song={song} updateSong={updateSong} />
