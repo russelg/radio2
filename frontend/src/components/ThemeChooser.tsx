@@ -1,39 +1,39 @@
-import React, { FunctionComponent, useState, FormEvent } from 'react'
+import React, {
+  FunctionComponent,
+  useState,
+  FormEvent,
+  useCallback
+} from 'react'
 import { view } from 'react-easy-state'
+import { useSettingsContext } from '/contexts/settings'
 
 export interface ThemeChooserProps {
-  styles: { [k: string]: string }
   className?: string
 }
 
-const ThemeChooser: FunctionComponent<ThemeChooserProps> = ({
-  styles,
-  className
-}) => {
+const ThemeChooser: FunctionComponent<ThemeChooserProps> = ({ className }) => {
+  const { styles, stylesheet, setStylesheet } = useSettingsContext()
+
   const [selected, setSelected] = useState(
-    (localStorage.hasOwnProperty('css')
-      ? localStorage['css']
-      : document.querySelector<HTMLLinkElement>('#change_stylesheet')!
-          .href) as string
+    stylesheet ||
+      (document.querySelector<HTMLLinkElement>('#change_stylesheet')!
+        .href as string)
   )
 
-  const [loading, setLoading] = useState(false)
-
-  const onChange = (event: FormEvent<HTMLSelectElement>) => {
-    setLoading(true)
+  const onChange = useCallback((event: FormEvent<HTMLSelectElement>) => {
     const { value } = event.currentTarget as HTMLSelectElement
-    document.querySelector<HTMLLinkElement>('#change_stylesheet')!.href = value
-    localStorage['css'] = value
+    setStylesheet(value)
     setSelected(value)
-  }
+  }, [])
 
   return (
     <select className={className || ''} value={selected} onChange={onChange}>
-      {Object.entries(styles).map(style => (
-        <option key={style[0]} value={style[1]}>
-          {style[0]}
-        </option>
-      ))}
+      {styles &&
+        Object.entries(styles).map(style => (
+          <option key={style[0]} value={style[1]}>
+            {style[0]}
+          </option>
+        ))}
     </select>
   )
 }

@@ -18,7 +18,13 @@
       if (customCSS) {
         // load selected css as soon as possible
         if (localStorage.hasOwnProperty('css')) {
-          customCSS.href = localStorage.getItem('css') || ''
+          let item = localStorage.getItem('css')
+          try {
+            if (item) item = JSON.parse(item)
+          } catch {
+            // just take it at face value if not valid json
+          }
+          customCSS.href = item || ''
         }
       }
     </script>

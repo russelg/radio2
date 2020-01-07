@@ -79,12 +79,15 @@ class RegisterController(rest.Resource):
         return make_api_response(500, 'Server Error', 'Issue registering user')
 
 
-class AuthTestController(rest.Resource):
+class UserController(rest.Resource):
     @jwt_required
     def get(self) -> Response:
         if current_user:
             admin = ' You are an admin.' if current_user.admin else ''
-            return make_api_response(200, None, f'Authorized as "{current_user.username}".{admin}')
+            return make_api_response(200, None, content={
+                "username": current_user.username,
+                "admin": current_user.admin
+                })
 
         return make_api_response(500, 'Server Error', 'Issue loading user')
 
@@ -93,4 +96,4 @@ api.add_resource(LoginController, '/login')
 api.add_resource(DownloadController, '/download')
 api.add_resource(RefreshController, '/refresh')
 api.add_resource(RegisterController, '/register')
-api.add_resource(AuthTestController, '/test')
+api.add_resource(UserController, '/user')

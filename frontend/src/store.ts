@@ -11,31 +11,6 @@ import {
 
 export const API_BASE: string = '/api/v1'
 
-export interface SettingsStore extends SettingsJson {
-  updateSettings: (settings: SettingsJson) => void
-  stream_url: string
-}
-
-export const settings: SettingsStore = store({
-  css: '',
-  styles: null as { [k: string]: string } | null,
-  icecast: {
-    mount: '',
-    url: ''
-  },
-  title: '',
-  downloads_enabled: false,
-  uploads_enabled: false,
-
-  updateSettings(inSettings: SettingsJson): void {
-    Object.assign(settings, inSettings)
-  },
-
-  get stream_url(): string {
-    return settings.icecast.url + settings.icecast.mount
-  }
-} as SettingsStore)
-
 export interface RadioStore {
   counter: number
   sync_seconds: number
@@ -167,14 +142,7 @@ export const playingState: PlayingStore = store({
   },
 
   periodicUpdate(func: () => void): void {
-    const { info, radio, playing } = playingState
-
-    if (playing) {
-      document.title = `▶ ${info.title} - ${info.artist} | ${settings.title}`
-    } else {
-      document.title = settings.title
-    }
-
+    const { info, radio } = playingState
     playingState.applyProgress()
     // only progress if song exists
     if (playingState.info.id !== '') {
@@ -182,7 +150,7 @@ export const playingState: PlayingStore = store({
       radio.current_pos = radio.current_pos + 0.5
     }
 
-    if (radio.counter >= 3 || radio.current_pos > radio.current_len) {
+    if (radio.counter >= 5 || radio.current_pos > radio.current_len) {
       radio.counter = 0.0
       func()
     }

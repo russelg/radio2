@@ -10,7 +10,7 @@ import {
   DropdownToggle,
   UncontrolledDropdown
 } from 'reactstrap'
-import { useAuthContext } from '/authContext'
+import { useAuthContext } from '/contexts/auth'
 
 const LoggedInDropdown: FunctionComponent = () => {
   const { username, isAdmin, logout } = useAuthContext()

@@ -20,7 +20,7 @@ import {
 } from 'reactstrap'
 import { InputType } from 'reactstrap/lib/Input'
 import * as yup from 'yup'
-import { useAuthContext } from '/authContext'
+import { useAuthContext } from '/contexts/auth'
 import Dialog from '/components/Dialog'
 import LoaderButton from '/components/LoaderButton'
 

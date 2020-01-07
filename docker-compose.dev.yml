@@ -7,6 +7,7 @@ services:
 
   frontend:
     command: yarn run start
+    restart: on-failure
     environment:
       HOST: frontend
       DANGEROUSLY_DISABLE_HOST_CHECK: 'true'

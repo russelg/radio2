@@ -48,14 +48,16 @@ import {
 import Error from '/components/Error'
 import LoaderSpinner from '/components/LoaderSpinner'
 import SongsTable from '/components/SongsTable'
-import { API_BASE, settings } from '/store'
+import { API_BASE } from '/store'
 import {
   containerWidthStyle,
   navbarMarginStyle,
   useDelayedLoader,
   useLocalStorage
 } from '/utils'
-import { useAuthContext } from '/authContext'
+import { useAuthContext } from '/contexts/auth'
+import { useSettingsContext } from '/contexts/settings'
+import NotificationToast from '/components/NotificationToast'
 
 registerPlugin(FilePondPluginFileValidateType)
 
@@ -95,7 +97,7 @@ const SongUploadForm: FunctionComponent<SongUploadFormProps> = ({
     (err, file) => {
       if (!err) {
         // @ts-ignore
-        toast('Song uploaded!', { type: 'success' })
+        toast(<NotificationToast>Song uploaded!</NotificationToast>)
         refreshSong(file.serverId)
 
         // remove file after uploaded
@@ -105,7 +107,7 @@ const SongUploadForm: FunctionComponent<SongUploadFormProps> = ({
         let msg = 'Song upload failed'
         // @ts-ignore
         if (err.code === 413) msg += ' (file too large)'
-        toast(msg, { type: 'error' })
+        toast(<NotificationToast error>{msg}</NotificationToast>)
       }
     },
     [refreshSong, setFiles]
@@ -329,6 +331,7 @@ interface PaginationState {
 }
 
 const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
+  const { canUpload } = useSettingsContext()
   const { username, isAdmin, showAdmin } = useAuthContext()
 
   // request related state
@@ -445,7 +448,7 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
   return (
     <Container className={cx(containerWidthStyle, navbarMarginStyle)}>
       {isAdmin && <ShowAdminToggle />}
-      {(settings.uploads_enabled || (isAdmin && showAdmin)) && (
+      {(canUpload || (isAdmin && showAdmin)) && (
         <Row>
           <Col>
             <SongUploadForm refreshSong={refreshSong} />

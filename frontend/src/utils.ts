@@ -38,6 +38,19 @@ export function fuzzyTime(time: string): string {
   return formatDistanceToNow(parseISO(time), { addSuffix: true })
 }
 
+export function parseJwt(token: string) {
+  const base64Url = token.split('.')[1]
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+  const jsonPayload = decodeURIComponent(
+    atob(base64)
+      .split('')
+      .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+      .join('')
+  )
+
+  return JSON.parse(jsonPayload)
+}
+
 export const useDelayedLoader = (
   loading: boolean
 ): [boolean, (value: boolean) => void] => {
@@ -77,6 +90,7 @@ export const useIsMounted = () => {
   return isMounted
 }
 
+// https://usehooks.com/useLocalStorage/
 export function useLocalStorage<T>(
   key: string,
   initialValue: T
@@ -88,8 +102,14 @@ export function useLocalStorage<T>(
       // Get from local storage by key
       const item = window.localStorage.getItem(key)
       // Parse stored json or if none return initialValue
-      return item ? JSON.parse(item) : initialValue
+      try {
+        if (item) return JSON.parse(item)
+      } catch (error) {
+        return item
+      }
+      return initialValue
     } catch (error) {
+      console.log(error)
       // If error also return initialValue
       return initialValue
     }
@@ -113,4 +133,28 @@ export function useLocalStorage<T>(
   }
 
   return [storedValue, setValue]
+}
+
+// babakness/use-interval.ts
+// https://gist.github.com/babakness/faca3b633bc23d9a0924efb069c9f1f5
+
+type IntervalFunction = () => unknown | void
+export function useInterval(callback: IntervalFunction, delay: number) {
+  const savedCallback = useRef<IntervalFunction | null>(null)
+
+  // Remember the latest callback.
+  useEffect(() => {
+    savedCallback.current = callback
+  })
+
+  // Set up the interval.
+  useEffect(() => {
+    function tick() {
+      if (savedCallback.current !== null) {
+        savedCallback.current()
+      }
+    }
+    const id = setInterval(tick, delay)
+    return () => clearInterval(id)
+  }, [delay])
 }

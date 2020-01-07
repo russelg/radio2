@@ -19,7 +19,7 @@ services:
 
   icecast:
     image: infiniteproject/icecast
-    restart: always
+    restart: on-failure
     volumes:
       - ./icecast.xml:/etc/icecast.xml
     expose:
@@ -29,7 +29,7 @@ services:
 
   db:
     image: postgres:alpine
-    restart: always
+    restart: on-failure
     volumes:
       - db-data:/var/lib/postgresql/data
     env_file:
@@ -52,6 +52,7 @@ services:
     build: .
     image: radio
     working_dir: /app
+    restart: on-failure
     command: poetry run gunicorn -b 0.0.0.0:80 radio.api:app
     # logging:
     #   driver: none
@@ -72,6 +73,7 @@ services:
   stream:
     image: radio
     working_dir: /app
+    restart: on-failure
     command: poetry run python -m radio.stream
     volumes:
       - ./:/app

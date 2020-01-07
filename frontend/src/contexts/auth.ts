@@ -2,9 +2,9 @@
 import { authorize, clear, configure } from '@shoutem/fetch-token-intercept'
 import createUseContext from 'constate'
 import { useCallback, useEffect, useState } from 'react'
-import { ApiBaseResponse, ApiResponse, LoginJson } from '/api/Schemas'
+import { ApiBaseResponse, ApiResponse, LoginJson, UserJson } from '/api/Schemas'
 import { API_BASE } from '/store'
-import { useLocalStorage } from '/utils'
+import { useLocalStorage, parseJwt } from '/utils'
 
 const config = {
   parseAccessToken: async (response: Response) => {
@@ -51,6 +51,22 @@ function useAuth() {
     false
   )
 
+  const setStateFromTokenResponse = useCallback(
+    (resp: ApiResponse<LoginJson>) => {
+      if (resp.error === null) {
+        setAccessToken(resp.access_token)
+        setUsername(resp.username)
+        setIsAdmin(resp.admin || false)
+        setLoggedIn(true)
+        authorize(refreshToken, resp.access_token)
+      } else {
+        console.log(resp)
+        logout()
+      }
+    },
+    [refreshToken]
+  )
+
   const login = useCallback((username: string, password: string) => {
     const doLogin = async () => {
       const response = await fetch(`${API_BASE}/auth/login`, {
@@ -63,11 +79,7 @@ function useAuth() {
       const r: ApiResponse<LoginJson> = await response.clone().json()
       if ('access_token' in r && 'refresh_token' in r) {
         setRefreshToken(r.refresh_token)
-        setAccessToken(r.access_token)
-        setUsername(r.username)
-        setIsAdmin(r.admin || false)
-        setLoggedIn(true)
-        authorize(r.refresh_token, r.access_token)
+        setStateFromTokenResponse(r)
       }
       return r
     }
@@ -102,36 +114,38 @@ function useAuth() {
     setRefreshToken('')
   }, [])
 
-  const setStateFromTokenResponse = useCallback(
-    (resp: ApiResponse<LoginJson>) => {
-      if (resp.error === null) {
-        setAccessToken(resp.access_token)
-        setUsername(resp.username)
-        setIsAdmin(resp.admin || false)
-        setLoggedIn(true)
-      } else {
-        logout()
+  const loginUsingTokens = useCallback(() => {
+    if (accessToken) {
+      const jwt = parseJwt(accessToken)
+      if ('exp' in jwt && jwt.exp < Date.now()) {
+        // access token has not expired yet, so get the user details
+        fetch(`${API_BASE}/auth/user`, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        })
+          .then(resp => resp.clone().json())
+          .then((resp: ApiResponse<UserJson>) => {
+            if (!resp.error) {
+              setUsername(resp.username)
+              setIsAdmin(resp.admin)
+              setLoggedIn(true)
+              authorize(refreshToken, accessToken)
+            }
+          })
+        return
       }
-    },
-    []
-  )
+    }
 
-  const loginUsingRefreshToken = useCallback(() => {
     if (refreshToken) {
       fetch(config.createAccessTokenRequest(refreshToken))
         .then(resp => resp.clone().json())
-        .then((resp: ApiResponse<LoginJson>) => {
-          setStateFromTokenResponse(resp)
-        })
-        .catch(() => {
-          // just clear all state on failure
-          logout()
-        })
+        .then(setStateFromTokenResponse)
+        .catch(logout)
     }
-  }, [refreshToken])
+  }, [accessToken, refreshToken])
 
+  // attempt login on first use
   useEffect(() => {
-    loginUsingRefreshToken()
+    loginUsingTokens()
   }, [])
 
   return {

@@ -15,7 +15,7 @@ interface SkeletonProps {
 
 interface LoaderSkeletonProps {
   loading: boolean
-  children: () => ReactNode
+  // children: () => ReactNode | any
 }
 
 const LoaderSkeleton: FunctionComponent<SkeletonProps &
@@ -53,7 +53,9 @@ const LoaderSkeleton: FunctionComponent<SkeletonProps &
       )}
       {!showSkeleton && (
         <animated.span style={fadeInProps}>
-          {children && !loading && children()}
+          {children &&
+            !loading &&
+            (children instanceof Function ? children() : children)}
         </animated.span>
       )}
     </>

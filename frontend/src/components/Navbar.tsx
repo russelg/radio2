@@ -17,7 +17,7 @@ import {
   NavItem,
   NavLink
 } from 'reactstrap'
-import { useAuthContext } from '/authContext'
+import { useAuthContext } from '/contexts/auth'
 import LoaderSkeleton from '/components/LoaderSkeleton'
 import LoggedInDropdown from '/components/LoggedInDropdown'
 import LoginDropdown from '/components/LoginDropdown'

@@ -9,7 +9,7 @@ import { view } from 'react-easy-state'
 import { Form, FormFeedback, FormGroup, Input } from 'reactstrap'
 import LoaderButton from './LoaderButton'
 import { Description } from '/api/Schemas'
-import { useAuthContext } from '/authContext'
+import { useAuthContext } from '/contexts/auth'
 
 const formControlStyle = css`
   .form-control {

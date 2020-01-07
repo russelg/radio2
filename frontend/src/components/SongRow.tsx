@@ -27,9 +27,11 @@ import {
 } from '/api/Schemas'
 import LoaderButton from '/components/LoaderButton'
 import LoaderSpinner from '/components/LoaderSpinner'
-import { API_BASE, settings } from '/store'
+import { API_BASE } from '/store'
 import { readableFilesize } from '/utils'
-import { useAuthContext } from '/authContext'
+import { useAuthContext } from '/contexts/auth'
+import { useSettingsContext } from '/contexts/settings'
+import NotificationToast from './NotificationToast'
 
 const disabledButtonStyle = css`
   display: inline-block;
@@ -58,9 +60,7 @@ const handleResponse = <T extends ApiBaseResponse>(result: T): Promise<T> => {
   const error = result.error !== null
   const msg = result.description || ''
   if (typeof msg === 'string' && !error) {
-    toast(msg, {
-      type: 'success'
-    })
+    toast(<NotificationToast>{msg}</NotificationToast>)
   }
 
   return error ? Promise.reject(result) : Promise.resolve(result)
@@ -69,7 +69,7 @@ const handleResponse = <T extends ApiBaseResponse>(result: T): Promise<T> => {
 const handleError = <T extends ApiBaseResponse>(result: T) => {
   if (result) {
     const msg = 'description' in result ? result.description : result.message
-    if (msg) toast(msg, { type: 'error' })
+    if (msg) toast(<NotificationToast error>{msg}</NotificationToast>)
   }
 }
 
@@ -354,6 +354,7 @@ const SongRow: FunctionComponent<SongRowUpdateProps> = ({
   song,
   updateSong
 }) => {
+  const { canDownload } = useSettingsContext()
   const { isAdmin, loggedIn, showAdmin } = useAuthContext()
   const admin = isAdmin && showAdmin
 
@@ -382,7 +383,7 @@ const SongRow: FunctionComponent<SongRowUpdateProps> = ({
               <FavouriteButton song={song} updateSong={updateSong} />
             </>
           )}
-          {(settings.downloads_enabled || admin) && (
+          {(canDownload || admin) && (
             <>
               &nbsp;
               <DownloadButton song={song} />

@@ -108,9 +108,12 @@ export interface NowPlayingJson extends Song {
   total_size: number
 }
 
-export interface LoginJson {
-  access_token: string
-  refresh_token: string
+export interface UserJson {
   username: string
   admin: boolean
+}
+
+export interface LoginJson extends UserJson {
+  access_token: string
+  refresh_token: string
 }

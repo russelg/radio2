@@ -25,7 +25,7 @@ import {
 } from 'reactstrap'
 import { NowPlayingJson, SongListItem } from '/api/Schemas'
 import LoaderSkeleton from '/components/LoaderSkeleton'
-import { playingState, RadioStore, settings } from '/store'
+import { playingState, RadioStore } from '/store'
 import {
   containerWidthStyle,
   fuzzyTime,
@@ -33,6 +33,7 @@ import {
   readableFilesize,
   readableSeconds
 } from '/utils'
+import { useSettingsContext } from '/contexts/settings'
 
 interface HomeProps {
   togglePlaying: () => void
@@ -45,6 +46,9 @@ interface UsageModalProps {
 
 const UsageModal: FunctionComponent<UsageModalProps> = view(
   ({ open, toggle }) => {
+    const { getStreamUrl } = useSettingsContext()
+    const streamUrl = getStreamUrl()
+
     return (
       <Modal isOpen={open} toggle={toggle}>
         <ModalHeader toggle={toggle}>Help</ModalHeader>
@@ -67,17 +71,13 @@ const UsageModal: FunctionComponent<UsageModalProps> = view(
           </p>
           <ul>
             <li>
-              <a href={`${settings.stream_url}.ogg`}>Direct Stream Link</a>
+              <a href={`${streamUrl}.ogg`}>Direct Stream Link</a>
             </li>
             <li>
-              <a href={`${settings.stream_url}.ogg.m3u`}>
-                Stream .m3u Playlist
-              </a>
+              <a href={`${streamUrl}.ogg.m3u`}>Stream .m3u Playlist</a>
             </li>
             <li>
-              <a href={`${settings.stream_url}.ogg.xspf`}>
-                Stream .xspf Playlist
-              </a>
+              <a href={`${streamUrl}.ogg.xspf`}>Stream .xspf Playlist</a>
             </li>
           </ul>
           <h3>Requesting Songs</h3>
@@ -153,11 +153,12 @@ const SongList: FunctionComponent<SongListProps> = view(
 const Branding: FunctionComponent<{
   info: NowPlayingJson
 }> = view(({ info }) => {
+  const { title } = useSettingsContext()
   return (
     <>
       <h2>
-        <LoaderSkeleton loading={settings.title === ''} width={300}>
-          {() => settings.title}
+        <LoaderSkeleton loading={title === ''} width={300}>
+          {title}
         </LoaderSkeleton>
       </h2>
       <h5 className="text-muted mb-0">
@@ -220,6 +221,9 @@ const BigProgress: FunctionComponent<{
 })
 
 const Controls: FunctionComponent<HomeProps> = view(({ togglePlaying }) => {
+  const { getStreamUrl } = useSettingsContext()
+  const streamUrl = getStreamUrl()
+
   const [showModal, setShowModal] = useState<boolean>(false)
   const [showDropdown, setShowDropdown] = useState<boolean>(false)
 
@@ -247,13 +251,13 @@ const Controls: FunctionComponent<HomeProps> = view(({ togglePlaying }) => {
             More Options
           </DropdownToggle>
           <DropdownMenu className="btn-block">
-            <DropdownItem tag="a" href={`${settings.stream_url}.ogg`}>
+            <DropdownItem tag="a" href={`${streamUrl}.ogg`}>
               Direct Stream Link
             </DropdownItem>
-            <DropdownItem tag="a" href={`${settings.stream_url}.ogg.m3u`}>
+            <DropdownItem tag="a" href={`${streamUrl}.ogg.m3u`}>
               Stream .m3u Playlist
             </DropdownItem>
-            <DropdownItem tag="a" href={`${settings.stream_url}.ogg.xspf`}>
+            <DropdownItem tag="a" href={`${streamUrl}.ogg.xspf`}>
               Stream .xspf Playlist
             </DropdownItem>
             <DropdownItem divider />

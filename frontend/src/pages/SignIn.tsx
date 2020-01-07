@@ -1,7 +1,7 @@
 import React, { FunctionComponent } from 'react'
 import { view } from 'react-easy-state'
 import { Redirect } from 'react-router-dom'
-import { useAuthContext } from '/authContext'
+import { useAuthContext } from '/contexts/auth'
 import Dialog from '/components/Dialog'
 import LoginForm from '/components/LoginForm'
 
