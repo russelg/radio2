@@ -1,13 +1,17 @@
 version: '3'
 
 volumes:
+  yarn_cache:
   frontend_nodemodules:
     external: true
 
 services:
   frontend-install:
     image: node:12-alpine
+    environment:
+      - YARN_CACHE_FOLDER=/yarn
     volumes:
+      - yarn_cache:/yarn
       - ./frontend/package.json:/app/package.json
       - ./frontend/yarn.lock:/app/yarn.lock
       - frontend_nodemodules:/app/node_modules
