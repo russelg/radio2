@@ -28,10 +28,10 @@ def user_loader_callback(identity: str):
 def add_claims_to_access_token(identity: str):
     if isinstance(identity, str):
         user = user_loader_callback(identity)
+        claims = {'roles': [], 'username': user.username}
         if user.admin:
-            return {'roles': ['admin']}
-
-        return {'roles': []}
+            claims['roles'].append('admin')
+        return claims
     return {}
 
 
