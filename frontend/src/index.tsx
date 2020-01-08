@@ -4,6 +4,7 @@ import React from 'react'
 import { render } from 'react-dom'
 import { BrowserRouter } from 'react-router-dom'
 import App from '/App'
+import { useRadioInfoContext } from '/contexts/radio'
 import { useSettingsContext } from '/contexts/settings'
 import '/index.css'
 
@@ -11,9 +12,11 @@ const root = document.getElementById('root')
 
 render(
   <BrowserRouter>
-    <useSettingsContext.Provider>
-      <App />
-    </useSettingsContext.Provider>
+    <useRadioInfoContext.Provider>
+      <useSettingsContext.Provider>
+        <App />
+      </useSettingsContext.Provider>
+    </useRadioInfoContext.Provider>
   </BrowserRouter>,
   root
 )

@@ -1,11 +1,6 @@
 import { css, cx } from 'emotion'
 import React, { FunctionComponent, useState } from 'react'
-import { view } from 'react-easy-state'
-import {
-  NavLink as RRNavLink,
-  RouteComponentProps,
-  withRouter
-} from 'react-router-dom'
+import { NavLink as RRNavLink } from 'react-router-dom'
 import {
   Collapse,
   Container,
@@ -17,11 +12,12 @@ import {
   NavItem,
   NavLink
 } from 'reactstrap'
-import { useAuthContext } from '/contexts/auth'
 import LoaderSkeleton from '/components/LoaderSkeleton'
 import LoggedInDropdown from '/components/LoggedInDropdown'
 import LoginDropdown from '/components/LoginDropdown'
 import ThemeChooser from '/components/ThemeChooser'
+import { useAuthContext } from '/contexts/auth'
+import { useSettingsContext } from '/contexts/settings'
 import { containerWidthStyle } from '/utils'
 
 const flexGrow = (val: number) => css`
@@ -38,19 +34,9 @@ const navbar = css`
   }
 `
 
-interface NavbarProps extends RouteComponentProps<any> {
-  title: string
-  styles: { [k: string]: string } | null
-  currentStyle?: string
-}
-
-const Navbar: FunctionComponent<NavbarProps> = ({
-  title,
-  children,
-  styles,
-  currentStyle
-}) => {
+const Navbar: FunctionComponent = ({ children }) => {
   const { loggedIn } = useAuthContext()
+  const { styles, title } = useSettingsContext()
 
   const [collapsed, setCollapsed] = useState(true)
   const toggle = () => setCollapsed(collapsed => !collapsed)
@@ -98,7 +84,7 @@ const Navbar: FunctionComponent<NavbarProps> = ({
               <NavItem>
                 <NavLink>
                   <Label htmlFor="theme_chooser">Style</Label>
-                  <ThemeChooser className="ml-2" styles={styles!} />
+                  <ThemeChooser className="ml-2" />
                 </NavLink>
               </NavItem>
             )}
@@ -109,4 +95,4 @@ const Navbar: FunctionComponent<NavbarProps> = ({
   )
 }
 
-export default withRouter(view(Navbar))
+export default Navbar

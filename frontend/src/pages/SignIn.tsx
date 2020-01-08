@@ -1,5 +1,4 @@
 import React, { FunctionComponent } from 'react'
-import { view } from 'react-easy-state'
 import { Redirect } from 'react-router-dom'
 import { useAuthContext } from '/contexts/auth'
 import Dialog from '/components/Dialog'
@@ -16,4 +15,4 @@ const SignIn: FunctionComponent = () => {
   )
 }
 
-export default view(SignIn)
+export default SignIn

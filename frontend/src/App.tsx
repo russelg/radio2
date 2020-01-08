@@ -4,26 +4,24 @@ import React, {
   lazy,
   Suspense,
   useCallback,
-  useEffect,
-  useRef
+  useRef,
+  CSSProperties
 } from 'react'
-import { view } from 'react-easy-state'
+import { Helmet } from 'react-helmet'
 import ReactHowler from 'react-howler'
 import { BrowserRouter as Router, Route } from 'react-router-dom'
 // @ts-ignore
-import { AnimatedSwitch } from 'react-router-transition'
+import { AnimatedSwitch, spring } from 'react-router-transition'
 import { toast, Zoom } from 'react-toastify'
-// import 'react-toastify/dist/ReactToastify.css'
 import { Collapse } from 'reactstrap'
 import { QueryParamProvider } from 'use-query-params'
-import { ApiResponse, NowPlayingJson } from '/api/Schemas'
 import ErrorBoundary from '/components/ErrorBoundary'
 import LoaderSpinner from '/components/LoaderSpinner'
 import Navbar from '/components/Navbar'
 import { useAuthContext } from '/contexts/auth'
+import { useRadioInfoContext } from '/contexts/radio'
+import { useRadioStatusContext } from '/contexts/radioStatus'
 import { useSettingsContext } from '/contexts/settings'
-import { API_BASE, playingState } from '/store'
-import { useInterval } from '/utils'
 
 toast.configure({
   autoClose: 2000,
@@ -49,134 +47,191 @@ const switchStyle = css`
   }
 `
 
+const TitleSetter: FunctionComponent = () => {
+  const { songInfo, playing } = useRadioInfoContext()
+  const { title: pageTitle } = useSettingsContext()
+
+  return (
+    <Helmet>
+      <title>
+        {playing
+          ? `▶ ${songInfo.title} - ${songInfo.artist} | ${pageTitle}`
+          : pageTitle}
+      </title>
+    </Helmet>
+  )
+}
+
+// we need to map the `scale` prop we define below
+// to the transform style property
+function mapStyles(styles: CSSProperties) {
+  return {
+    opacity: styles.opacity,
+    transform: `scale(${styles.scale})`
+  }
+}
+
+// wrap the `spring` helper to use a bouncy config
+function bounce(val: number) {
+  return spring(val, {
+    stiffness: 330,
+    damping: 22
+  })
+}
+
+// child matches will...
+const bounceTransition = {
+  // start in a transparent, upscaled state
+  atEnter: {
+    opacity: 0,
+    scale: 1.2
+  },
+  // leave in a transparent, downscaled state
+  atLeave: {
+    opacity: bounce(0),
+    scale: bounce(0.8)
+  },
+  // and rest at an opaque, normally-scaled state
+  atActive: {
+    opacity: bounce(1),
+    scale: bounce(1)
+  }
+}
+
 const App: FunctionComponent = () => {
   const player = useRef<ReactHowler>(null)
 
   const { title, styles, getStreamUrl } = useSettingsContext()
   const streamUrl = getStreamUrl()
 
-  const updateNowPlaying = useCallback(() => {
-    fetch(`${API_BASE}/np`)
-      .then(res => res.json())
-      .then((result: ApiResponse<NowPlayingJson>) => {
-        playingState.update(result)
-        playingState.progressParse()
-      })
-  }, [])
+  const {
+    volume,
+    setShouldFetchInfo,
+    playing,
+    togglePlaying
+  } = useRadioInfoContext()
 
-  const togglePlaying = useCallback(() => {
-    const { info, playing } = playingState
-    if (playingState.playing) {
-      document.title = `▶ ${info.title} - ${info.artist} | ${title}`
-    } else {
-      document.title = title
-    }
-
+  const toggleHowlerPlaying = useCallback(() => {
     const howler = player.current && player.current.howler
     if (howler) {
       // Force howler to unload and reload the song
       // if we don't do this sometimes the radio will just not resume playback
-      if (playingState.playing) {
+      if (playing) {
         howler.unload()
       } else {
         howler.load()
         howler.play()
       }
-      playingState.togglePlaying()
+      togglePlaying()
     }
-  }, [title, player])
-
-  // run update hook every 500 ms
-  // requests are made every 5s
-  useInterval(() => {
-    if (window.location.pathname === '/' || playingState.playing) {
-      playingState.periodicUpdate(updateNowPlaying)
-    }
-  }, 500)
-
-  // get now playing on load
-  useEffect(() => {
-    updateNowPlaying()
-  }, [])
-
-  const miniPlayerVisible =
-    playingState.playing && playingState.info.title !== ''
+  }, [player, playing, togglePlaying])
 
   return (
     <Router>
       <QueryParamProvider ReactRouterRoute={Route}>
         <ErrorBoundary>
+          <TitleSetter />
           <div className="h-100">
             <useAuthContext.Provider>
-              <Navbar title={title} styles={styles}>
-                <Collapse isOpen={miniPlayerVisible}>
+              <Navbar>
+                <Collapse isOpen={playing}>
                   <Suspense fallback={<LoaderSpinner />}>
-                    {miniPlayerVisible && <MiniPlayer />}
+                    {playing && (
+                      <useRadioStatusContext.Provider>
+                        <MiniPlayer />
+                      </useRadioStatusContext.Provider>
+                    )}
                   </Suspense>
                 </Collapse>
               </Navbar>
-
-              <ReactHowler
-                src={[`${streamUrl}.ogg`, `${streamUrl}.mp3`]}
-                format={['ogg', 'mp3']}
-                preload={false}
-                html5={true}
-                playing={playingState.playing}
-                volume={playingState.volume / 100}
-                ref={player}
-              />
-              <AnimatedSwitch
-                atEnter={{ opacity: 0 }}
-                atLeave={{ opacity: 0 }}
-                atActive={{ opacity: 1 }}
-                className={cx(switchStyle, 'h-100')}>
-                <Route
-                  path="/"
-                  exact
-                  render={props => (
-                    <Suspense fallback={<LoaderSpinner />}>
-                      <Home {...props} togglePlaying={togglePlaying} />
-                    </Suspense>
-                  )}
-                />
-                <Route
-                  path="/songs"
-                  exact
-                  render={props => (
-                    <Suspense fallback={<LoaderSpinner />}>
-                      <Songs {...props} favourites={false} />
-                    </Suspense>
-                  )}
-                />
-                <Route
-                  path="/favourites"
-                  exact
-                  render={props => (
-                    <Suspense fallback={<LoaderSpinner />}>
-                      <Songs {...props} favourites={true} />
-                    </Suspense>
-                  )}
-                />
-                <Route
-                  path="/sign-up"
-                  exact
-                  render={props => (
-                    <Suspense fallback={<LoaderSpinner />}>
-                      <SignUp />
-                    </Suspense>
-                  )}
-                />
-                <Route
-                  path="/sign-in"
-                  exact
-                  render={props => (
-                    <Suspense fallback={<LoaderSpinner />}>
-                      <SignIn />
-                    </Suspense>
-                  )}
-                />
-              </AnimatedSwitch>
             </useAuthContext.Provider>
+
+            <ReactHowler
+              src={[`${streamUrl}.ogg`, `${streamUrl}.mp3`]}
+              format={['ogg', 'mp3']}
+              preload={false}
+              html5={true}
+              playing={playing}
+              volume={volume / 100}
+              ref={player}
+            />
+
+            <AnimatedSwitch
+              runOnMount
+              atEnter={bounceTransition.atEnter}
+              atLeave={bounceTransition.atLeave}
+              atActive={bounceTransition.atActive}
+              mapStyles={mapStyles}
+              className={cx(switchStyle, 'h-100')}>
+              <Route
+                path="/"
+                exact
+                render={props => {
+                  setShouldFetchInfo(true)
+                  return (
+                    <Suspense fallback={<LoaderSpinner />}>
+                      <Home {...props} togglePlaying={toggleHowlerPlaying} />
+                    </Suspense>
+                  )
+                }}
+              />
+              <Route
+                path="/songs"
+                exact
+                render={props => {
+                  setShouldFetchInfo(playing)
+                  return (
+                    <Suspense fallback={<LoaderSpinner />}>
+                      <useAuthContext.Provider>
+                        <Songs {...props} favourites={false} />
+                      </useAuthContext.Provider>
+                    </Suspense>
+                  )
+                }}
+              />
+              <Route
+                path="/favourites"
+                exact
+                render={props => {
+                  setShouldFetchInfo(playing)
+                  return (
+                    <Suspense fallback={<LoaderSpinner />}>
+                      <useAuthContext.Provider>
+                        <Songs {...props} favourites={true} />
+                      </useAuthContext.Provider>
+                    </Suspense>
+                  )
+                }}
+              />
+              <Route
+                path="/sign-up"
+                exact
+                render={props => {
+                  setShouldFetchInfo(playing)
+                  return (
+                    <Suspense fallback={<LoaderSpinner />}>
+                      <useAuthContext.Provider>
+                        <SignUp />
+                      </useAuthContext.Provider>
+                    </Suspense>
+                  )
+                }}
+              />
+              <Route
+                path="/sign-in"
+                exact
+                render={props => {
+                  setShouldFetchInfo(playing)
+                  return (
+                    <Suspense fallback={<LoaderSpinner />}>
+                      <useAuthContext.Provider>
+                        <SignIn />
+                      </useAuthContext.Provider>
+                    </Suspense>
+                  )
+                }}
+              />
+            </AnimatedSwitch>
           </div>
         </ErrorBoundary>
       </QueryParamProvider>
@@ -184,4 +239,4 @@ const App: FunctionComponent = () => {
   )
 }
 
-export default view(App)
+export default App

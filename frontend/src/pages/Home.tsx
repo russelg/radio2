@@ -1,6 +1,5 @@
 import { css } from 'emotion'
 import React, { FunctionComponent, useCallback, useState } from 'react'
-import { view } from 'react-easy-state'
 import {
   Button,
   ButtonGroup,
@@ -23,9 +22,11 @@ import {
   Progress,
   Row
 } from 'reactstrap'
-import { NowPlayingJson, SongListItem } from '/api/Schemas'
+import { SongListItem } from '/api/Schemas'
 import LoaderSkeleton from '/components/LoaderSkeleton'
-import { playingState, RadioStore } from '/store'
+import { useRadioInfoContext } from '/contexts/radio'
+import { useRadioStatusContext } from '/contexts/radioStatus'
+import { useSettingsContext } from '/contexts/settings'
 import {
   containerWidthStyle,
   fuzzyTime,
@@ -33,7 +34,6 @@ import {
   readableFilesize,
   readableSeconds
 } from '/utils'
-import { useSettingsContext } from '/contexts/settings'
 
 interface HomeProps {
   togglePlaying: () => void
@@ -44,65 +44,63 @@ interface UsageModalProps {
   toggle: () => void
 }
 
-const UsageModal: FunctionComponent<UsageModalProps> = view(
-  ({ open, toggle }) => {
-    const { getStreamUrl } = useSettingsContext()
-    const streamUrl = getStreamUrl()
+const UsageModal: FunctionComponent<UsageModalProps> = ({ open, toggle }) => {
+  const { getStreamUrl } = useSettingsContext()
+  const streamUrl = getStreamUrl()
 
-    return (
-      <Modal isOpen={open} toggle={toggle}>
-        <ModalHeader toggle={toggle}>Help</ModalHeader>
-        <ModalBody>
-          <h3>Playing the Stream</h3>
-          <p>
-            Simply click the &nbsp;
-            <Button color="primary" size="sm">
-              Play Stream
-            </Button>
-            &nbsp; button in your browser.
-          </p>
-          <p>
-            A volume slider will appear, and the slider will change the volume.
-            This is remembered between page loads.
-          </p>
-          <p>
-            To play the stream in your browser, you can use any of the following
-            links:
-          </p>
-          <ul>
-            <li>
-              <a href={`${streamUrl}.ogg`}>Direct Stream Link</a>
-            </li>
-            <li>
-              <a href={`${streamUrl}.ogg.m3u`}>Stream .m3u Playlist</a>
-            </li>
-            <li>
-              <a href={`${streamUrl}.ogg.xspf`}>Stream .xspf Playlist</a>
-            </li>
-          </ul>
-          <h3>Requesting Songs</h3>
-          <p>
-            Search for a song first, by entering something into the searchbox at
-            the top (or clicking "Search" in the navbar).
-          </p>
-          <p>
-            Then, click on &nbsp;
-            <Button color="success" size="sm">
-              Play Stream
-            </Button>
-            &nbsp;
-          </p>
-          <p>You can only request every 2 hours.</p>
-        </ModalBody>
-        <ModalFooter>
-          <Button color="secondary" onClick={toggle}>
-            Close
+  return (
+    <Modal isOpen={open} toggle={toggle}>
+      <ModalHeader toggle={toggle}>Help</ModalHeader>
+      <ModalBody>
+        <h3>Playing the Stream</h3>
+        <p>
+          Simply click the &nbsp;
+          <Button color="primary" size="sm">
+            Play Stream
           </Button>
-        </ModalFooter>
-      </Modal>
-    )
-  }
-)
+          &nbsp; button in your browser.
+        </p>
+        <p>
+          A volume slider will appear, and the slider will change the volume.
+          This is remembered between page loads.
+        </p>
+        <p>
+          To play the stream in your browser, you can use any of the following
+          links:
+        </p>
+        <ul>
+          <li>
+            <a href={`${streamUrl}.ogg`}>Direct Stream Link</a>
+          </li>
+          <li>
+            <a href={`${streamUrl}.ogg.m3u`}>Stream .m3u Playlist</a>
+          </li>
+          <li>
+            <a href={`${streamUrl}.ogg.xspf`}>Stream .xspf Playlist</a>
+          </li>
+        </ul>
+        <h3>Requesting Songs</h3>
+        <p>
+          Search for a song first, by entering something into the searchbox at
+          the top (or clicking "Search" in the navbar).
+        </p>
+        <p>
+          Then, click on &nbsp;
+          <Button color="success" size="sm">
+            Play Stream
+          </Button>
+          &nbsp;
+        </p>
+        <p>You can only request every 2 hours.</p>
+      </ModalBody>
+      <ModalFooter>
+        <Button color="secondary" onClick={toggle}>
+          Close
+        </Button>
+      </ModalFooter>
+    </Modal>
+  )
+}
 
 interface SongListProps {
   songs: SongListItem[]
@@ -110,50 +108,51 @@ interface SongListProps {
   alignment: 'left' | 'right'
 }
 
-const SongList: FunctionComponent<SongListProps> = view(
-  ({ songs, title, alignment, children }) => {
-    const flipped = alignment === 'left' ? 'right' : 'left'
+const SongList: FunctionComponent<SongListProps> = ({
+  songs,
+  title,
+  alignment,
+  children
+}) => {
+  const flipped = alignment === 'left' ? 'right' : 'left'
 
-    return (
-      <>
-        <h4 className="text-center mb-4">{title}</h4>
-        <ListGroup>
-          {// show placeholders if songs has not loaded
-          (songs.length > 0 ? songs : Array(4).fill(null)).map(
-            (item: SongListItem | null, idx: number) => {
-              return (
-                <ListGroupItem
-                  key={item ? item.time : idx}
-                  className="clearfix p-4"
-                  active={item ? item.requested : undefined}>
-                  <Col
-                    xs="8"
-                    className={`float-${alignment} text-${alignment}`}>
-                    <LoaderSkeleton loading={item === null} count={2}>
-                      {() => `${item!.artist} - ${item!.title}`}
-                    </LoaderSkeleton>
-                  </Col>
-                  <Col xs="4" className={`float-${flipped} text-${flipped}`}>
-                    <LoaderSkeleton loading={item === null}>
-                      {() => (
-                        <span title={item!.time}>{fuzzyTime(item!.time)}</span>
-                      )}
-                    </LoaderSkeleton>
-                  </Col>
-                </ListGroupItem>
-              )
-            }
-          )}
-        </ListGroup>
-      </>
-    )
-  }
-)
+  return (
+    <>
+      <h4 className="text-center mb-4">{title}</h4>
+      <ListGroup>
+        {// show placeholders if songs has not loaded
+        (songs.length > 0 ? songs : Array(4).fill(null)).map(
+          (item: SongListItem | null, idx: number) => {
+            return (
+              <ListGroupItem
+                key={item ? item.time : idx}
+                className="clearfix p-4"
+                active={item ? item.requested : undefined}>
+                <Col xs="8" className={`float-${alignment} text-${alignment}`}>
+                  <LoaderSkeleton loading={item === null} count={2}>
+                    {() => `${item!.artist} - ${item!.title}`}
+                  </LoaderSkeleton>
+                </Col>
+                <Col xs="4" className={`float-${flipped} text-${flipped}`}>
+                  <LoaderSkeleton loading={item === null}>
+                    {() => (
+                      <span title={item!.time}>{fuzzyTime(item!.time)}</span>
+                    )}
+                  </LoaderSkeleton>
+                </Col>
+              </ListGroupItem>
+            )
+          }
+        )}
+      </ListGroup>
+    </>
+  )
+}
 
-const Branding: FunctionComponent<{
-  info: NowPlayingJson
-}> = view(({ info }) => {
+const Branding: FunctionComponent = () => {
   const { title } = useSettingsContext()
+  const { serverInfo } = useRadioInfoContext()
+
   return (
     <>
       <h2>
@@ -163,66 +162,68 @@ const Branding: FunctionComponent<{
       </h2>
       <h5 className="text-muted mb-0">
         <LoaderSkeleton
-          loading={!(info.total_songs && info.total_plays)}
+          loading={!(serverInfo.totalSongs && serverInfo.totalPlays)}
           width="80%">
           {() => (
             <>
-              Currently spinning <b>{info.total_songs}</b> songs, with{' '}
-              <b>{info.total_plays}</b> total plays.
+              Currently spinning <b>{serverInfo.totalSongs}</b> songs, with{' '}
+              <b>{serverInfo.totalPlays}</b> total plays.
             </>
           )}
         </LoaderSkeleton>
       </h5>
       <small className="text-muted">
-        <LoaderSkeleton loading={!info.total_size} width="30%">
+        <LoaderSkeleton loading={!serverInfo.totalSize} width="30%">
           {() => (
             <>
-              That's <b>{readableFilesize(info.total_size)}</b> of music!
+              That's <b>{readableFilesize(serverInfo.totalSize)}</b> of music!
             </>
           )}
         </LoaderSkeleton>
       </small>
     </>
   )
-})
+}
 
-const BigProgress: FunctionComponent<{
-  info: NowPlayingJson
-  radio: RadioStore
-}> = view(({ info, radio }) => {
+const BigProgress: FunctionComponent = () => {
+  const { songInfo, serverInfo } = useRadioInfoContext()
+  const {
+    radioStatus: { position, duration, progress, progressIncrement }
+  } = useRadioStatusContext()
+
   return (
     <>
       <h2 className="pb-2 text-center">
-        <LoaderSkeleton loading={!info.title} width="50%">
-          {() => `${info.artist} - ${info.title}`}
+        <LoaderSkeleton loading={!songInfo.title} width="50%">
+          {() => `${songInfo.artist} - ${songInfo.title}`}
         </LoaderSkeleton>
       </h2>
-      <Progress value={playingState.progress} />
+      <Progress value={progress + progressIncrement} />
       <Row>
         <Col
           sm={{ size: 5, offset: 1 }}
           className="text-muted text-center pt-3 order-last order-sm-first">
-          <LoaderSkeleton loading={!info.title} width="20%">
-            {() => `Listeners: ${info.listeners}`}
+          <LoaderSkeleton loading={!songInfo.title} width="20%">
+            {() => `Listeners: ${serverInfo.listeners}`}
           </LoaderSkeleton>
         </Col>
         <Col sm={{ size: 5 }} className="text-muted text-center pt-3">
-          <LoaderSkeleton loading={!radio.current_len} width="20%">
+          <LoaderSkeleton loading={!songInfo.length} width="20%">
             {() =>
-              `${readableSeconds(radio.current_pos)} / ${readableSeconds(
-                radio.current_len
-              )}`
+              `${readableSeconds(position)} / ${readableSeconds(duration)}`
             }
           </LoaderSkeleton>
         </Col>
       </Row>
     </>
   )
-})
+}
 
-const Controls: FunctionComponent<HomeProps> = view(({ togglePlaying }) => {
+const Controls: FunctionComponent<HomeProps> = ({ togglePlaying }) => {
   const { getStreamUrl } = useSettingsContext()
   const streamUrl = getStreamUrl()
+
+  const { playing } = useRadioInfoContext()
 
   const [showModal, setShowModal] = useState<boolean>(false)
   const [showDropdown, setShowDropdown] = useState<boolean>(false)
@@ -240,7 +241,7 @@ const Controls: FunctionComponent<HomeProps> = view(({ togglePlaying }) => {
   return (
     <>
       <Button color="primary" block onClick={togglePlaying}>
-        {playingState.playing ? 'Stop Stream' : 'Start Stream'}
+        {playing ? 'Stop Stream' : 'Start Stream'}
       </Button>
       <ButtonGroup className="btn-block">
         <Dropdown
@@ -266,19 +267,19 @@ const Controls: FunctionComponent<HomeProps> = view(({ togglePlaying }) => {
         </Dropdown>
       </ButtonGroup>
       <UsageModal open={showModal} toggle={toggleModal} />
-      <Collapse isOpen={playingState.playing}>
+      <Collapse isOpen={playing}>
         <VolumeControl />
       </Collapse>
     </>
   )
-})
+}
 
-const VolumeControl: FunctionComponent = view(() => {
-  const { volume } = playingState
+const VolumeControl: FunctionComponent = () => {
+  const { volume, setVolume } = useRadioInfoContext()
 
   const volumeChange = useCallback(
     (event: React.FormEvent<HTMLInputElement>) => {
-      playingState.volume = parseInt(event.currentTarget.value, 10)
+      setVolume(parseInt(event.currentTarget.value, 10))
     },
     []
   )
@@ -300,7 +301,7 @@ const VolumeControl: FunctionComponent = view(() => {
       </CardBody>
     </Card>
   )
-})
+}
 
 const homeStyle = css`
   ${navbarMarginStyle};
@@ -308,7 +309,9 @@ const homeStyle = css`
 `
 
 const Home: FunctionComponent<HomeProps> = ({ togglePlaying }) => {
-  const { info, radio } = playingState
+  const {
+    serverInfo: { queue, lastPlayed }
+  } = useRadioInfoContext()
 
   return (
     <Container className={homeStyle}>
@@ -316,7 +319,7 @@ const Home: FunctionComponent<HomeProps> = ({ togglePlaying }) => {
         <Col>
           <Row>
             <Col lg="6" className="pb-3">
-              <Branding info={info} />
+              <Branding />
             </Col>
             <Col lg="6" className="pb-3">
               <Controls togglePlaying={togglePlaying} />
@@ -324,19 +327,21 @@ const Home: FunctionComponent<HomeProps> = ({ togglePlaying }) => {
           </Row>
           <Row className="py-5">
             <Col>
-              <BigProgress info={info} radio={radio} />
+              <useRadioStatusContext.Provider>
+                <BigProgress />
+              </useRadioStatusContext.Provider>
             </Col>
           </Row>
         </Col>
       </Row>
       <Row>
         <Col lg="6" className="py-3">
-          <SongList songs={info.lp} title="Last Played" alignment="right">
+          <SongList songs={lastPlayed} title="Last Played" alignment="right">
             No songs played recently.
           </SongList>
         </Col>
         <Col lg="6" className="py-3">
-          <SongList songs={info.queue} title="Queue" alignment="left">
+          <SongList songs={queue} title="Queue" alignment="left">
             No songs currently queued.
           </SongList>
         </Col>
@@ -345,4 +350,4 @@ const Home: FunctionComponent<HomeProps> = ({ togglePlaying }) => {
   )
 }
 
-export default view(Home)
+export default Home

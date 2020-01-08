@@ -31,19 +31,6 @@ body {
   top: 1em;
   right: 1em;
 }
-.Toastify__toast-container--bottom-left {
-  bottom: 1em;
-  left: 1em;
-}
-.Toastify__toast-container--bottom-center {
-  bottom: 1em;
-  left: 50%;
-  margin-left: -160px;
-}
-.Toastify__toast-container--bottom-right {
-  bottom: 1em;
-  right: 1em;
-}
 
 @media only screen and (max-width: 480px) {
   .Toastify__toast-container {

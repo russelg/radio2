@@ -1,8 +1,7 @@
+import { cx } from 'emotion'
 import React, { FunctionComponent } from 'react'
-import { view } from 'react-easy-state'
 import { Card, CardBody, CardTitle, Col, Container, Row } from 'reactstrap'
 import { containerWidthStyle, navbarMarginStyle } from '/utils'
-import { cx } from 'emotion'
 
 export interface DialogProps {
   title: string
@@ -25,4 +24,4 @@ const Dialog: FunctionComponent<DialogProps> = ({ title, children }) => (
   </Container>
 )
 
-export default view(Dialog)
+export default Dialog

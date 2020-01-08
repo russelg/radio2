@@ -12,11 +12,12 @@ import React, {
   Suspense,
   useCallback,
   useRef,
-  useState
+  useState,
+  useEffect
 } from 'react'
-import { view } from 'react-easy-state'
 import { toast } from 'react-toastify'
 import { Button, Form, UncontrolledTooltip } from 'reactstrap'
+import NotificationToast from './NotificationToast'
 import Editable from '/../lib/react-bootstrap-editable/src/Editable'
 import { useFetch } from '/api'
 import {
@@ -26,12 +27,12 @@ import {
   SongItem
 } from '/api/Schemas'
 import LoaderButton from '/components/LoaderButton'
+import LoaderSkeleton from '/components/LoaderSkeleton'
 import LoaderSpinner from '/components/LoaderSpinner'
-import { API_BASE } from '/store'
-import { readableFilesize } from '/utils'
 import { useAuthContext } from '/contexts/auth'
 import { useSettingsContext } from '/contexts/settings'
-import NotificationToast from './NotificationToast'
+import { API_BASE } from '/store'
+import { readableFilesize } from '/utils'
 
 const disabledButtonStyle = css`
   display: inline-block;
@@ -46,8 +47,10 @@ interface SongRowButtonProps {
   song: SongItem
 }
 
+type UpdateSong = (id: string, song: SongItem | null) => void
+
 interface SongRowUpdateProps extends SongRowButtonProps {
-  updateSong: (id: string, song: SongItem | null) => void
+  updateSong: UpdateSong
 }
 
 const handleResponse = <T extends ApiBaseResponse>(result: T): Promise<T> => {
@@ -350,49 +353,82 @@ const EditableValue: FunctionComponent<EditableValueProps> = ({
   )
 }
 
-const SongRow: FunctionComponent<SongRowUpdateProps> = ({
-  song,
-  updateSong
-}) => {
+interface SongRowProps {
+  song: SongItem | null
+  updateSong: UpdateSong
+}
+
+function getRandomArbitrary(min: number, max: number): string {
+  return `${Math.random() * (max - min) + min}%`
+}
+
+const SongRow: FunctionComponent<SongRowProps> = ({ song, updateSong }) => {
   const { canDownload } = useSettingsContext()
   const { isAdmin, loggedIn, showAdmin } = useAuthContext()
   const admin = isAdmin && showAdmin
 
+  const [artistWidth, setArtistWidth] = useState(getRandomArbitrary(20, 80))
+  const [titleWidth, setTitleWidth] = useState(getRandomArbitrary(20, 80))
+
   return (
-    <tr key={song.id} className="d-flex">
+    <tr className="d-flex">
       <td className="col-3">
-        {admin ? (
-          <EditableValue field="artist" song={song} updateSong={updateSong} />
-        ) : (
-          song.artist
-        )}
+        <LoaderSkeleton loading={song === null} width={artistWidth}>
+          {() =>
+            admin ? (
+              <EditableValue
+                field="artist"
+                song={song!}
+                updateSong={updateSong}
+              />
+            ) : (
+              song!.artist
+            )
+          }
+        </LoaderSkeleton>
       </td>
       <td className="col-5">
-        {admin ? (
-          <EditableValue field="title" song={song} updateSong={updateSong} />
-        ) : (
-          song.title
-        )}
+        <LoaderSkeleton loading={song === null} width={titleWidth}>
+          {() =>
+            admin ? (
+              <EditableValue
+                field="title"
+                song={song!}
+                updateSong={updateSong}
+              />
+            ) : (
+              song!.title
+            )
+          }
+        </LoaderSkeleton>
       </td>
       <td className="col text-right d-flex align-items-center justify-content-end">
         <Form inline className="justify-content-center mt-n1">
-          <RequestButton song={song} updateSong={updateSong} />
+          <LoaderSkeleton loading={song === null} width={80} height={36}>
+            {() => <RequestButton song={song!} updateSong={updateSong} />}
+          </LoaderSkeleton>
           {loggedIn && (
             <>
               &nbsp;
-              <FavouriteButton song={song} updateSong={updateSong} />
+              <LoaderSkeleton loading={song === null} width={50} height={36}>
+                {() => <FavouriteButton song={song!} updateSong={updateSong} />}
+              </LoaderSkeleton>
             </>
           )}
           {(canDownload || admin) && (
             <>
               &nbsp;
-              <DownloadButton song={song} />
+              <LoaderSkeleton loading={song === null} width={50} height={36}>
+                {() => <DownloadButton song={song!} />}
+              </LoaderSkeleton>
             </>
           )}
           {admin && (
             <>
               &nbsp;
-              <DeleteButton song={song} updateSong={updateSong} />
+              <LoaderSkeleton loading={song === null} width={50} height={36}>
+                {() => <DeleteButton song={song!} updateSong={updateSong} />}
+              </LoaderSkeleton>
             </>
           )}
         </Form>
@@ -401,4 +437,4 @@ const SongRow: FunctionComponent<SongRowUpdateProps> = ({
   )
 }
 
-export default view(SongRow)
+export default SongRow

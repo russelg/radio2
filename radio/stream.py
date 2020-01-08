@@ -61,7 +61,7 @@ class ShoutInstance:
 
     def reset(self):
         self.disconnect()
-        # self.__init__(self.config, self.is_mp3)
+        self.__init__(self.config, self.is_mp3)
         self.connect()
 
     @staticmethod
@@ -183,15 +183,14 @@ class Worker(multiprocessing.Process):
         self.instance.connect()
         while True:
             if not self.instance.connected:
-                self.instance.connect()
-
+                logger.warning('%s: Connection lost, resetting', self.instance.format)
+                self.instance.reset()
             song_path = self.queue.get(block=True)
             logger.info(f'{self.instance.format}: Got new file "{song_path}"')
             if song_path is None:
                 break
             self.stream(song_path)
             self.queue.task_done()
-            # self.instance.reset()
 
 
 def run():

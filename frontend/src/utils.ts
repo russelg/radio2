@@ -31,20 +31,38 @@ export function readableFilesize(size: number): string {
 }
 
 export function readableSeconds(seconds: number): string {
-  return format(fromUnixTime(Math.max(0, Math.floor(seconds))), 'm:ss')
+  try {
+    return format(fromUnixTime(Math.max(0, Math.floor(seconds))), 'm:ss')
+  } catch {
+    // time was invalid, return a default
+    return '0:00'
+  }
 }
 
 export function fuzzyTime(time: string): string {
   return formatDistanceToNow(parseISO(time), { addSuffix: true })
 }
 
-export function parseJwt(token: string) {
+type JWT = {
+  ait: number
+  nbf: number
+  jti: number
+  exp: number
+  fresh?: boolean
+  type: 'access' | 'refresh'
+}
+
+type JWTClaims<T> = {
+  user_claims: T
+}
+
+export function parseJwt<T>(token: string): JWT & JWTClaims<T> {
   const base64Url = token.split('.')[1]
   const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
   const jsonPayload = decodeURIComponent(
     atob(base64)
       .split('')
-      .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+      .map(c => `%${`00${c.charCodeAt(0).toString(16)}`.slice(-2)}`)
       .join('')
   )
 

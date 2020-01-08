@@ -8,7 +8,6 @@ import { faUser } from '@fortawesome/free-solid-svg-icons/faUser'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { Formik } from 'formik'
 import React, { FunctionComponent, useCallback, useState } from 'react'
-import { view } from 'react-easy-state'
 import { Link, Redirect } from 'react-router-dom'
 import {
   Form,
@@ -20,9 +19,9 @@ import {
 } from 'reactstrap'
 import { InputType } from 'reactstrap/lib/Input'
 import * as yup from 'yup'
-import { useAuthContext } from '/contexts/auth'
 import Dialog from '/components/Dialog'
 import LoaderButton from '/components/LoaderButton'
+import { useAuthContext } from '/contexts/auth'
 
 export interface FormInputProps {
   icon?: IconName | [IconPrefix, IconName] | IconLookup
@@ -200,4 +199,4 @@ const SignUp: FunctionComponent = () => {
   )
 }
 
-export default view(SignUp)
+export default SignUp

@@ -1,7 +1,7 @@
 import createUseContext from 'constate'
 import { useCallback, useEffect, useState } from 'react'
 import { ApiResponse, SettingsJson } from '/api/Schemas'
-import { API_BASE, playingState } from '/store'
+import { API_BASE } from '/store'
 import { useLocalStorage } from '/utils'
 
 function useSettings() {
@@ -38,8 +38,8 @@ function useSettings() {
 
   // set document title
   useEffect(() => {
-    if (!playingState.playing) document.title = title
-  }, [playingState.playing, title])
+    document.title = title
+  }, [title])
 
   // set stylesheet
   useEffect(() => {

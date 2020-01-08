@@ -5,7 +5,6 @@ import React, {
   FunctionComponent,
   useState
 } from 'react'
-import { view } from 'react-easy-state'
 import { Form, FormFeedback, FormGroup, Input } from 'reactstrap'
 import LoaderButton from './LoaderButton'
 import { Description } from '/api/Schemas'
@@ -102,4 +101,4 @@ const LoginForm: FunctionComponent = () => {
   )
 }
 
-export default view(LoginForm)
+export default LoginForm

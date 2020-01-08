@@ -1,10 +1,9 @@
 import React, {
-  FunctionComponent,
-  useState,
   FormEvent,
-  useCallback
+  FunctionComponent,
+  useCallback,
+  useState
 } from 'react'
-import { view } from 'react-easy-state'
 import { useSettingsContext } from '/contexts/settings'
 
 export interface ThemeChooserProps {
@@ -38,4 +37,4 @@ const ThemeChooser: FunctionComponent<ThemeChooserProps> = ({ className }) => {
   )
 }
 
-export default view(ThemeChooser)
+export default ThemeChooser

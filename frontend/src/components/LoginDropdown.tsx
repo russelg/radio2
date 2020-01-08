@@ -1,13 +1,13 @@
 import React, { FunctionComponent } from 'react'
-import { view } from 'react-easy-state'
 import { Link } from 'react-router-dom'
 import {
   DropdownItem,
   DropdownMenu,
   DropdownToggle,
-  UncontrolledDropdown,
+  UncontrolledDropdown
 } from 'reactstrap'
 import LoginForm from '/components/LoginForm'
+import { useAuthContext } from '/contexts/auth'
 
 const LoginDropdown: FunctionComponent = () => (
   <UncontrolledDropdown nav inNavbar>
@@ -23,4 +23,4 @@ const LoginDropdown: FunctionComponent = () => (
   </UncontrolledDropdown>
 )
 
-export default view(LoginDropdown)
+export default LoginDropdown

@@ -1,6 +1,6 @@
+import { css } from 'emotion'
 import React, { FunctionComponent } from 'react'
-import { view } from 'react-easy-state'
-import { RouteComponentProps, withRouter } from 'react-router-dom'
+import { useHistory } from 'react-router-dom'
 import {
   Button,
   Col,
@@ -9,9 +9,8 @@ import {
   ListGroupItem,
   Row
 } from 'reactstrap'
-import { css } from 'emotion'
 
-interface ErrorProps extends RouteComponentProps<any> {
+interface ErrorProps {
   error: any
   errorInfo: any
   large?: boolean
@@ -26,9 +25,10 @@ const preStyle = css`
 const Error: FunctionComponent<ErrorProps> = ({
   error,
   errorInfo,
-  large = false,
-  history
+  large = false
 }) => {
+  const history = useHistory()
+
   const inside = (
     <pre className={preStyle}>
       {!large && error && error.toString()}
@@ -67,4 +67,4 @@ const Error: FunctionComponent<ErrorProps> = ({
   ) : null
 }
 
-export default withRouter(view(Error))
+export default Error

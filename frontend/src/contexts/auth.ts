@@ -6,7 +6,7 @@ import { ApiBaseResponse, ApiResponse, LoginJson, UserJson } from '/api/Schemas'
 import { API_BASE } from '/store'
 import { useLocalStorage, parseJwt } from '/utils'
 
-const config = {
+const fetchTokenInterceptConfig = {
   parseAccessToken: async (response: Response) => {
     const json: ApiResponse<LoginJson> = await response.clone().json()
     return json.access_token
@@ -32,7 +32,12 @@ const config = {
   fetchRetryCount: 3
 }
 
-configure(config)
+configure(fetchTokenInterceptConfig)
+
+type UserClaims = {
+  roles: Array<'admin'>
+  username: string
+}
 
 function useAuth() {
   const [username, setUsername] = useState<string>('')
@@ -114,29 +119,32 @@ function useAuth() {
     setRefreshToken('')
   }, [])
 
+  const setUserFromJwt = useCallback(
+    token => {
+      const jwt = parseJwt<UserClaims>(token)
+      if (jwt) {
+        console.log({ jwt })
+        const expired = jwt.exp > Date.now()
+        if (!expired) {
+          setUsername(jwt.user_claims.username)
+          setIsAdmin(jwt.user_claims.roles.includes('admin'))
+          setLoggedIn(true)
+        }
+        return expired
+      }
+      return false
+    },
+    [refreshToken, accessToken]
+  )
+
   const loginUsingTokens = useCallback(() => {
     if (accessToken) {
-      const jwt = parseJwt(accessToken)
-      if ('exp' in jwt && jwt.exp < Date.now()) {
-        // access token has not expired yet, so get the user details
-        fetch(`${API_BASE}/auth/user`, {
-          headers: { Authorization: `Bearer ${accessToken}` }
-        })
-          .then(resp => resp.clone().json())
-          .then((resp: ApiResponse<UserJson>) => {
-            if (!resp.error) {
-              setUsername(resp.username)
-              setIsAdmin(resp.admin)
-              setLoggedIn(true)
-              authorize(refreshToken, accessToken)
-            }
-          })
-        return
-      }
+      const user = setUserFromJwt(accessToken)
+      if (user) return
     }
 
     if (refreshToken) {
-      fetch(config.createAccessTokenRequest(refreshToken))
+      fetch(fetchTokenInterceptConfig.createAccessTokenRequest(refreshToken))
         .then(resp => resp.clone().json())
         .then(setStateFromTokenResponse)
         .catch(logout)

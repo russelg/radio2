@@ -1,6 +1,5 @@
 import { css, cx } from 'emotion'
-import React, { FunctionComponent, useEffect, useState } from 'react'
-import { view } from 'react-easy-state'
+import React, { FunctionComponent } from 'react'
 import { animated, useSpring } from 'react-spring'
 import { Button, ButtonProps, Spinner } from 'reactstrap'
 import { useDelayedLoader } from '/utils'
@@ -58,4 +57,4 @@ const LoaderButton: FunctionComponent<LoaderButtonProps> = ({
   )
 }
 
-export default view(LoaderButton)
+export default LoaderButton

@@ -1,5 +1,4 @@
 import React, { FunctionComponent, lazy } from 'react'
-import { view } from 'react-easy-state'
 import { Table } from 'reactstrap'
 import { SongItem } from '/api/Schemas'
 import SongRow from '/components/SongRow'
@@ -10,7 +9,7 @@ const Editable = lazy(() =>
 )
 
 interface Props {
-  songs: SongItem[]
+  songs: (SongItem | null)[]
   updateSong: (id: string, song: SongItem | null) => void
 }
 
@@ -29,12 +28,12 @@ const SongsTable: FunctionComponent<Props> = ({ songs, updateSong }) => {
         </tr>
       </thead>
       <tbody>
-        {songs.map((song: SongItem) => (
-          <SongRow key={song.id} song={song} updateSong={updateSong} />
+        {songs.map((song: SongItem | null, idx) => (
+          <SongRow key={idx} song={song} updateSong={updateSong} />
         ))}
       </tbody>
     </Table>
   )
 }
 
-export default view(SongsTable)
+export default SongsTable

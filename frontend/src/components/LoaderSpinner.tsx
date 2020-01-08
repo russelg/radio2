@@ -1,60 +1,45 @@
-import React from 'react'
-import { findDOMNode } from 'react-dom'
+import React, { FunctionComponent } from 'react'
+import { animated, useSpring } from 'react-spring'
 import { Col, Spinner } from 'reactstrap'
-import { view } from 'react-easy-state'
 
 export interface Props {
   style?: object
   size?: string | object
 }
 
-class LoaderSpinner extends React.Component<Props> {
-  static defaultProps = {
-    size: 'lg',
-    style: {}
-  }
-
-  componentDidMount() {
-    const elem = findDOMNode(this) as HTMLElement
-
-    // fade loader in
-    if (elem instanceof HTMLElement) {
-      window.requestAnimationFrame(() => {
-        elem.style.opacity = '1'
-      })
-    }
-  }
-
-  render() {
-    const isStr =
-      Object.prototype.toString.call(this.props.size) === '[object String]'
-    return (
+const LoaderSpinner: FunctionComponent<Props> = ({
+  style = {},
+  size = 'lg'
+}) => {
+  const props = useSpring({
+    opacity: 1,
+    from: { opacity: 0 }
+  })
+  const isStr = Object.prototype.toString.call(size) === '[object String]'
+  return (
+    <animated.div style={props}>
       <Col
         sm="12"
         className="d-flex justify-content-center fa-3x"
-        style={{
-          transition: 'opacity 300ms',
-          opacity: 0,
-          ...this.props.style
-        }}>
+        style={style}>
         <Spinner
           className=""
-          size={isStr ? this.props.size : undefined}
+          size={isStr ? size : undefined}
           color="info"
           style={
-            this.props.size === undefined
+            size === undefined
               ? {
                   width: '8rem',
                   height: '8rem'
                 }
               : isStr
               ? undefined
-              : (this.props.size as object)
+              : (size as object)
           }
         />
       </Col>
-    )
-  }
+    </animated.div>
+  )
 }
 
-export default view(LoaderSpinner)
+export default LoaderSpinner

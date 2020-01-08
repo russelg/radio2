@@ -1,5 +1,4 @@
 import React, { FunctionComponent, ReactNode, useEffect, useState } from 'react'
-import { view } from 'react-easy-state'
 import Skeleton from 'react-loading-skeleton'
 import { animated, useSpring } from 'react-spring'
 import { useIsMounted } from '/utils'
@@ -62,4 +61,4 @@ const LoaderSkeleton: FunctionComponent<SkeletonProps &
   )
 }
 
-export default view(LoaderSkeleton)
+export default LoaderSkeleton

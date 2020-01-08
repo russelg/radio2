@@ -13,7 +13,6 @@ import React, {
 import { AsyncTypeahead, Highlighter } from 'react-bootstrap-typeahead'
 import 'react-bootstrap-typeahead/css/Typeahead-bs4.css'
 import 'react-bootstrap-typeahead/css/Typeahead.css'
-import { view } from 'react-easy-state'
 import { File as FilePondFile, FilePond, registerPlugin } from 'react-filepond'
 import Pagination from 'react-js-pagination'
 import { RouteComponentProps, useHistory, withRouter } from 'react-router-dom'
@@ -58,6 +57,7 @@ import {
 import { useAuthContext } from '/contexts/auth'
 import { useSettingsContext } from '/contexts/settings'
 import NotificationToast from '/components/NotificationToast'
+import { animated, useSpring } from 'react-spring'
 
 registerPlugin(FilePondPluginFileValidateType)
 
@@ -330,6 +330,8 @@ interface PaginationState {
   total_count: number
 }
 
+const placeholders = [...Array(25).fill(null)]
+
 const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
   const { canUpload } = useSettingsContext()
   const { username, isAdmin, showAdmin } = useAuthContext()
@@ -341,7 +343,7 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
     pages: 1,
     total_count: 0
   })
-  const [songs, setSongs] = useState<SongItem[]>([])
+  const [songs, setSongs] = useState<SongItem[]>(placeholders)
   const [loading, setLoading] = useDelayedLoader(false)
   const [error, setError] = useState<Description | undefined>(undefined)
 
@@ -441,6 +443,10 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
     loadSongs()
   }, [page, user, query, favourites, username])
 
+  const fadeProps = useSpring({
+    opacity: loading ? 0.75 : 1
+  })
+
   if (error && error !== '') {
     return <Error large error={error} errorInfo={{}} />
   }
@@ -479,37 +485,19 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
           style={{
             minHeight: '16rem'
           }}>
-          {loading && (
-            <LoaderSpinner
-              size={{
-                width: '8rem',
-                height: '8rem',
-                marginTop: '4rem'
-              }}
-              style={{
-                zIndex: 1,
-                position: 'absolute',
-                background: 'rgba(255,255,255,0.0)',
-                height: '100%',
-                left: '0'
-              }}
-            />
-          )}
-          <div
-            className="d-flex h-100"
-            style={{
-              opacity: !loading ? '1' : '0.10',
-              transition: 'opacity 0.15s ease-in-out'
-            }}>
+          <animated.div className="d-flex h-100" style={fadeProps}>
             {!loading && songs.length === 0 && (
               <h2 className="mx-auto text-center align-self-center">
                 No results
               </h2>
             )}
             {songs.length !== 0 && (
-              <SongsTable songs={songs} updateSong={updateSong} />
+              <SongsTable
+                songs={loading ? placeholders : songs}
+                updateSong={updateSong}
+              />
             )}
-          </div>
+          </animated.div>
         </Col>
       </Row>
       <Row>
@@ -523,4 +511,4 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
   )
 }
 
-export default view(Songs)
+export default Songs

@@ -1,7 +1,6 @@
 import { faUser } from '@fortawesome/free-solid-svg-icons/faUser'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import React, { FunctionComponent } from 'react'
-import { view } from 'react-easy-state'
 import { Link } from 'react-router-dom'
 import {
   Badge,
@@ -37,4 +36,4 @@ const LoggedInDropdown: FunctionComponent = () => {
   )
 }
 
-export default view(LoggedInDropdown)
+export default LoggedInDropdown

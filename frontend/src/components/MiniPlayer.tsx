@@ -1,9 +1,9 @@
-import React, { FunctionComponent } from 'react'
-import { view } from 'react-easy-state'
-import { Progress } from 'reactstrap'
-import { playingState } from '/store'
-import { readableSeconds } from '/utils'
 import { css, cx } from 'emotion'
+import React, { FunctionComponent } from 'react'
+import { Progress } from 'reactstrap'
+import { useRadioInfoContext } from '/contexts/radio'
+import { useRadioStatusContext } from '/contexts/radioStatus'
+import { readableSeconds } from '/utils'
 
 const breakpoints = css`
   @media (max-width: 576px) {
@@ -29,24 +29,25 @@ const songMetadata = css`
 `
 
 const MiniPlayer: FunctionComponent = () => {
-  const { info, radio } = playingState
+  const { songInfo } = useRadioInfoContext()
+  const { radioStatus } = useRadioStatusContext()
 
   return (
     <div className="p-0 navbar-text text-center">
       <div className={cx(songMetadata, 'text-center')}>
-        {info.artist} - {info.title}
+        {songInfo.artist} - {songInfo.title}
       </div>
       <Progress
         color="info"
         className={cx(miniProgress, 'mt-1')}
-        value={playingState.progress}
+        value={radioStatus.progress + radioStatus.progressIncrement}
       />
       <small>
-        {readableSeconds(Math.floor(radio.current_pos))} /{' '}
-        {readableSeconds(Math.floor(radio.current_len))}
+        {readableSeconds(Math.floor(radioStatus.position))} /{' '}
+        {readableSeconds(Math.floor(radioStatus.duration))}
       </small>
     </div>
   )
 }
 
-export default view(MiniPlayer)
+export default MiniPlayer

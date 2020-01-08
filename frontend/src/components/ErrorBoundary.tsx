@@ -1,5 +1,4 @@
 import React from 'react'
-import { view } from 'react-easy-state'
 import Error from '/components/Error'
 
 interface ErrorBoundaryProps {}
@@ -33,4 +32,4 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-export default view(ErrorBoundary)
+export default ErrorBoundary
