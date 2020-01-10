@@ -17,7 +17,6 @@ interface ErrorProps {
 }
 
 const preStyle = css`
-  color: #fff;
   text-align: left;
   white-space: pre-wrap;
 `

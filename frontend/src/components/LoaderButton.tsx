@@ -31,7 +31,7 @@ const LoaderButton: FunctionComponent<LoaderButtonProps> = ({
 
   useEffect(() => {
     setShowLoader(loading)
-  }, [showLoader, loading])
+  }, [loading])
 
   return (
     <Button {...rest} block={block}>

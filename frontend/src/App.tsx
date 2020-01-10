@@ -1,11 +1,11 @@
 import { css, cx } from 'emotion'
 import React, {
+  CSSProperties,
   FunctionComponent,
   lazy,
   Suspense,
   useCallback,
-  useRef,
-  CSSProperties
+  useRef
 } from 'react'
 import { Helmet } from 'react-helmet'
 import ReactHowler from 'react-howler'
@@ -17,18 +17,18 @@ import { Collapse } from 'reactstrap'
 import { QueryParamProvider } from 'use-query-params'
 import ErrorBoundary from '/components/ErrorBoundary'
 import LoaderSpinner from '/components/LoaderSpinner'
+import MiniPlayer from '/components/MiniPlayer'
 import Navbar from '/components/Navbar'
 import { useAuthContext } from '/contexts/auth'
+import { useControlContext } from '/contexts/control'
 import { useRadioInfoContext } from '/contexts/radio'
 import { useRadioStatusContext } from '/contexts/radioStatus'
 import { useSettingsContext } from '/contexts/settings'
-
-import MiniPlayer from '/components/MiniPlayer'
 import SignIn from '/pages/SignIn'
 import SignUp from '/pages/SignUp'
 
 toast.configure({
-  autoClose: 100000,
+  autoClose: 2000,
   position: 'top-center',
   transition: Zoom,
   pauseOnFocusLoss: false,
@@ -49,7 +49,8 @@ const switchStyle = css`
 `
 
 const TitleSetter: FunctionComponent = () => {
-  const { songInfo, playing } = useRadioInfoContext()
+  const { playing } = useControlContext()
+  const { songInfo } = useRadioInfoContext()
   const { title: pageTitle } = useSettingsContext()
 
   return (
@@ -107,10 +108,12 @@ const App: FunctionComponent = () => {
 
   const {
     volume,
-    setShouldFetchInfo,
     playing,
-    togglePlaying
-  } = useRadioInfoContext()
+    togglePlaying,
+    setShouldFetchInfo
+  } = useControlContext()
+
+  // const { setShouldFetchInfo } = useRadioInfoContext()
 
   const toggleHowlerPlaying = useCallback(() => {
     const howler = player.current && player.current.howler

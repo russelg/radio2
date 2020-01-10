@@ -1,4 +1,10 @@
-import React, { FunctionComponent, ReactNode, useEffect, useState } from 'react'
+import React, {
+  FunctionComponent,
+  ReactNode,
+  useEffect,
+  useState,
+  useMemo
+} from 'react'
 import Skeleton from 'react-loading-skeleton'
 import { animated, useSpring } from 'react-spring'
 import { useIsMounted, useDelayedLoader } from '/utils'
@@ -14,24 +20,21 @@ interface SkeletonProps {
 
 interface LoaderSkeletonProps {
   loading: boolean
-  // children: () => ReactNode | any
 }
 
 const LoaderSkeleton: FunctionComponent<SkeletonProps &
   LoaderSkeletonProps> = ({ loading, children, ...rest }) => {
-  const [showSkeleton, setShowSkeleton] = useDelayedLoader(loading, 250)
-
-  const fadeOutProps = useSpring({ opacity: showSkeleton ? 1 : 0 })
-  const fadeInProps = useSpring({ opacity: showSkeleton ? 0 : 1 })
+  const fadeOutProps = useSpring({ opacity: loading ? 1 : 0 })
+  const fadeInProps = useSpring({ opacity: loading ? 0 : 1 })
 
   return (
     <>
-      {showSkeleton && (
+      {loading && (
         <animated.span style={fadeOutProps}>
           <Skeleton {...rest} />
         </animated.span>
       )}
-      {!showSkeleton && (
+      {!loading && (
         <animated.span style={fadeInProps}>
           {children &&
             !loading &&

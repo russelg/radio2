@@ -1,15 +1,8 @@
 import createUseContext from 'constate'
-import { useCallback, useEffect, useState } from 'react'
-import {
-  ApiResponse,
-  SettingsJson,
-  NowPlayingSong,
-  NowPlayingJson
-} from '/api/Schemas'
+import { useCallback, useState } from 'react'
+import { ApiResponse, NowPlayingJson, NowPlayingSong } from '/api/Schemas'
+import { useControlContext } from '/contexts/control'
 import { API_BASE } from '/store'
-import { useLocalStorage, useInterval } from '/utils'
-import { useRouteMatch, useLocation } from 'react-router'
-import { createSecureServer } from 'http2'
 
 export const SYNC_OFFSET = 4
 
@@ -62,6 +55,8 @@ function transformNowPlaying(
 }
 
 function useRadioInfo() {
+  const { shouldFetchInfo } = useControlContext()
+
   const [songInfo, setSongInfo] = useState<SongInfo>({
     length: 0,
     serverTime: 0,
@@ -82,14 +77,6 @@ function useRadioInfo() {
     lastPlayed: []
   })
 
-  const [playing, setPlaying] = useState<boolean>(false)
-  const togglePlaying = useCallback(() => {
-    setPlaying(playing => !playing)
-  }, [])
-
-  const [volume, setVolume] = useLocalStorage<number>('volume', 80)
-  const [shouldFetchInfo, setShouldFetchInfo] = useState<boolean>(false)
-
   const fetchInfo = useCallback(() => {
     // add check for if not on main page
     if (shouldFetchInfo) {
@@ -106,12 +93,7 @@ function useRadioInfo() {
   return {
     songInfo,
     serverInfo,
-    playing,
-    togglePlaying,
-    volume,
-    setVolume,
-    fetchInfo,
-    setShouldFetchInfo
+    fetchInfo
   }
 }
 

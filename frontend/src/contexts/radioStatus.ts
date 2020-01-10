@@ -60,9 +60,9 @@ function useRadioStatusHook(callback: () => void) {
     let counter = radioStatus.counter + 0.5
     const position = radioStatus.position + 0.5
 
-    // reset counter if reaches 5 seconds, or song changes ...
+    // reset counter if reaches 8 seconds, or song changes ...
     // ... and run the provided callback (intention is to allow data fetching)
-    if (counter >= 5 || position > radioStatus.duration) {
+    if (counter >= 8 || position > radioStatus.duration) {
       counter = 0.0
       callback()
     }

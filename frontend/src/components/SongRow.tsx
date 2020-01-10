@@ -236,7 +236,6 @@ const DeleteButton: FunctionComponent<SongRowUpdateProps> = ({
     (event: FormEvent<HTMLButtonElement>) => {
       event.preventDefault()
       if (confirming) {
-        console.log('delete would fire here :))')
         run({ method: 'DELETE' })
           .then(handleResponse)
           .then((result: ApiBaseResponse) => {
@@ -274,8 +273,7 @@ const DeleteButton: FunctionComponent<SongRowUpdateProps> = ({
       {confirming && (
         // show cancel button when confirming delete
         <>
-          &nbsp;
-          <div ref={cancelTooltipRef}>
+          <div ref={cancelTooltipRef} className="mt-1">
             <Button color="primary" onClick={cancelDeleting}>
               <FontAwesomeIcon fixedWidth icon={faTimes} />
             </Button>

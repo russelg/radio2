@@ -7,6 +7,7 @@ import React, {
   FunctionComponent,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState
 } from 'react'
@@ -15,7 +16,8 @@ import 'react-bootstrap-typeahead/css/Typeahead-bs4.css'
 import 'react-bootstrap-typeahead/css/Typeahead.css'
 import { File as FilePondFile, FilePond, registerPlugin } from 'react-filepond'
 import Pagination from 'react-js-pagination'
-import { RouteComponentProps, useHistory, withRouter } from 'react-router-dom'
+import { useHistory } from 'react-router-dom'
+import { animated, useSpring } from 'react-spring'
 import { toast } from 'react-toastify'
 import {
   Button,
@@ -45,19 +47,16 @@ import {
   SongsJson
 } from '/api/Schemas'
 import Error from '/components/Error'
-import LoaderSpinner from '/components/LoaderSpinner'
+import NotificationToast from '/components/NotificationToast'
 import SongsTable from '/components/SongsTable'
+import { useAuthContext } from '/contexts/auth'
+import { useSettingsContext } from '/contexts/settings'
 import { API_BASE } from '/store'
 import {
   containerWidthStyle,
   navbarMarginStyle,
-  useDelayedLoader,
-  useLocalStorage
+  useDelayedLoader
 } from '/utils'
-import { useAuthContext } from '/contexts/auth'
-import { useSettingsContext } from '/contexts/settings'
-import NotificationToast from '/components/NotificationToast'
-import { animated, useSpring } from 'react-spring'
 
 registerPlugin(FilePondPluginFileValidateType)
 
@@ -331,6 +330,9 @@ interface PaginationState {
 }
 
 const placeholders = [...Array(25).fill(null)]
+const PlaceholderTable = (
+  <SongsTable songs={placeholders} updateSong={() => {}} />
+)
 
 const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
   const { canUpload } = useSettingsContext()
@@ -354,6 +356,11 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
     user: StringParam
   })
   const { query = undefined, page = 1, user = undefined } = queryParam
+
+  const PlaceholderTable = useMemo(
+    () => <SongsTable songs={placeholders} updateSong={() => {}} />,
+    []
+  )
 
   const updateSong = useCallback(
     (id: string, song: SongItem | null) => {
@@ -491,12 +498,12 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
                 No results
               </h2>
             )}
-            {songs.length !== 0 && (
-              <SongsTable
-                songs={loading ? placeholders : songs}
-                updateSong={updateSong}
-              />
-            )}
+            {songs.length !== 0 &&
+              (loading ? (
+                PlaceholderTable
+              ) : (
+                <SongsTable songs={songs} updateSong={updateSong} />
+              ))}
           </animated.div>
         </Col>
       </Row>

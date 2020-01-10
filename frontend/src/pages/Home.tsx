@@ -24,6 +24,7 @@ import {
 } from 'reactstrap'
 import { SongListItem } from '/api/Schemas'
 import LoaderSkeleton from '/components/LoaderSkeleton'
+import { useControlContext } from '/contexts/control'
 import { useRadioInfoContext } from '/contexts/radio'
 import { useRadioStatusContext } from '/contexts/radioStatus'
 import { useSettingsContext } from '/contexts/settings'
@@ -44,63 +45,65 @@ interface UsageModalProps {
   toggle: () => void
 }
 
-const UsageModal: FunctionComponent<UsageModalProps> = ({ open, toggle }) => {
-  const { getStreamUrl } = useSettingsContext()
-  const streamUrl = getStreamUrl()
+const UsageModal: FunctionComponent<UsageModalProps> = React.memo(
+  ({ open, toggle }) => {
+    const { getStreamUrl } = useSettingsContext()
+    const streamUrl = getStreamUrl()
 
-  return (
-    <Modal isOpen={open} toggle={toggle}>
-      <ModalHeader toggle={toggle}>Help</ModalHeader>
-      <ModalBody>
-        <h3>Playing the Stream</h3>
-        <p>
-          Simply click the &nbsp;
-          <Button color="primary" size="sm">
-            Play Stream
+    return (
+      <Modal isOpen={open} toggle={toggle}>
+        <ModalHeader toggle={toggle}>Help</ModalHeader>
+        <ModalBody>
+          <h3>Playing the Stream</h3>
+          <p>
+            Simply click the &nbsp;
+            <Button color="primary" size="sm">
+              Play Stream
+            </Button>
+            &nbsp; button in your browser.
+          </p>
+          <p>
+            A volume slider will appear, and the slider will change the volume.
+            This is remembered between page loads.
+          </p>
+          <p>
+            To play the stream in your browser, you can use any of the following
+            links:
+          </p>
+          <ul>
+            <li>
+              <a href={`${streamUrl}.ogg`}>Direct Stream Link</a>
+            </li>
+            <li>
+              <a href={`${streamUrl}.ogg.m3u`}>Stream .m3u Playlist</a>
+            </li>
+            <li>
+              <a href={`${streamUrl}.ogg.xspf`}>Stream .xspf Playlist</a>
+            </li>
+          </ul>
+          <h3>Requesting Songs</h3>
+          <p>
+            Search for a song first, by entering something into the searchbox at
+            the top (or clicking "Search" in the navbar).
+          </p>
+          <p>
+            Then, click on &nbsp;
+            <Button color="success" size="sm">
+              Play Stream
+            </Button>
+            &nbsp;
+          </p>
+          <p>You can only request every 2 hours.</p>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="secondary" onClick={toggle}>
+            Close
           </Button>
-          &nbsp; button in your browser.
-        </p>
-        <p>
-          A volume slider will appear, and the slider will change the volume.
-          This is remembered between page loads.
-        </p>
-        <p>
-          To play the stream in your browser, you can use any of the following
-          links:
-        </p>
-        <ul>
-          <li>
-            <a href={`${streamUrl}.ogg`}>Direct Stream Link</a>
-          </li>
-          <li>
-            <a href={`${streamUrl}.ogg.m3u`}>Stream .m3u Playlist</a>
-          </li>
-          <li>
-            <a href={`${streamUrl}.ogg.xspf`}>Stream .xspf Playlist</a>
-          </li>
-        </ul>
-        <h3>Requesting Songs</h3>
-        <p>
-          Search for a song first, by entering something into the searchbox at
-          the top (or clicking "Search" in the navbar).
-        </p>
-        <p>
-          Then, click on &nbsp;
-          <Button color="success" size="sm">
-            Play Stream
-          </Button>
-          &nbsp;
-        </p>
-        <p>You can only request every 2 hours.</p>
-      </ModalBody>
-      <ModalFooter>
-        <Button color="secondary" onClick={toggle}>
-          Close
-        </Button>
-      </ModalFooter>
-    </Modal>
-  )
-}
+        </ModalFooter>
+      </Modal>
+    )
+  }
+)
 
 interface SongListProps {
   songs: SongListItem[]
@@ -219,63 +222,65 @@ const BigProgress: FunctionComponent = () => {
   )
 }
 
-const Controls: FunctionComponent<HomeProps> = ({ togglePlaying }) => {
-  const { getStreamUrl } = useSettingsContext()
-  const streamUrl = getStreamUrl()
+const Controls: FunctionComponent<HomeProps> = React.memo(
+  ({ togglePlaying }) => {
+    const { getStreamUrl } = useSettingsContext()
+    const streamUrl = getStreamUrl()
 
-  const { playing } = useRadioInfoContext()
+    const { playing } = useControlContext()
 
-  const [showModal, setShowModal] = useState<boolean>(false)
-  const [showDropdown, setShowDropdown] = useState<boolean>(false)
+    const [showModal, setShowModal] = useState<boolean>(false)
+    const [showDropdown, setShowDropdown] = useState<boolean>(false)
 
-  const toggleModal = useCallback(
-    () => setShowModal(showModal => !showModal),
-    []
-  )
+    const toggleModal = useCallback(
+      () => setShowModal(showModal => !showModal),
+      []
+    )
 
-  const toggleDropdown = useCallback(
-    () => setShowDropdown(showDropdown => !showDropdown),
-    []
-  )
+    const toggleDropdown = useCallback(
+      () => setShowDropdown(showDropdown => !showDropdown),
+      []
+    )
 
-  return (
-    <>
-      <Button color="primary" block onClick={togglePlaying}>
-        {playing ? 'Stop Stream' : 'Start Stream'}
-      </Button>
-      <ButtonGroup className="btn-block">
-        <Dropdown
-          isOpen={showDropdown}
-          toggle={toggleDropdown}
-          className="btn-block">
-          <DropdownToggle caret className="btn-block">
-            More Options
-          </DropdownToggle>
-          <DropdownMenu className="btn-block">
-            <DropdownItem tag="a" href={`${streamUrl}.ogg`}>
-              Direct Stream Link
-            </DropdownItem>
-            <DropdownItem tag="a" href={`${streamUrl}.ogg.m3u`}>
-              Stream .m3u Playlist
-            </DropdownItem>
-            <DropdownItem tag="a" href={`${streamUrl}.ogg.xspf`}>
-              Stream .xspf Playlist
-            </DropdownItem>
-            <DropdownItem divider />
-            <DropdownItem onClick={toggleModal}>Help</DropdownItem>
-          </DropdownMenu>
-        </Dropdown>
-      </ButtonGroup>
-      <UsageModal open={showModal} toggle={toggleModal} />
-      <Collapse isOpen={playing}>
-        <VolumeControl />
-      </Collapse>
-    </>
-  )
-}
+    return (
+      <>
+        <Button color="primary" block onClick={togglePlaying}>
+          {playing ? 'Stop Stream' : 'Play Stream'}
+        </Button>
+        <ButtonGroup className="btn-block">
+          <Dropdown
+            isOpen={showDropdown}
+            toggle={toggleDropdown}
+            className="btn-block">
+            <DropdownToggle caret className="btn-block">
+              More Options
+            </DropdownToggle>
+            <DropdownMenu className="btn-block">
+              <DropdownItem tag="a" href={`${streamUrl}.ogg`}>
+                Direct Stream Link
+              </DropdownItem>
+              <DropdownItem tag="a" href={`${streamUrl}.ogg.m3u`}>
+                Stream .m3u Playlist
+              </DropdownItem>
+              <DropdownItem tag="a" href={`${streamUrl}.ogg.xspf`}>
+                Stream .xspf Playlist
+              </DropdownItem>
+              <DropdownItem divider />
+              <DropdownItem onClick={toggleModal}>Help</DropdownItem>
+            </DropdownMenu>
+          </Dropdown>
+        </ButtonGroup>
+        <UsageModal open={showModal} toggle={toggleModal} />
+        <Collapse isOpen={playing}>
+          <VolumeControl />
+        </Collapse>
+      </>
+    )
+  }
+)
 
-const VolumeControl: FunctionComponent = () => {
-  const { volume, setVolume } = useRadioInfoContext()
+const VolumeControl: FunctionComponent = React.memo(() => {
+  const { volume, setVolume } = useControlContext()
 
   const volumeChange = useCallback(
     (event: React.FormEvent<HTMLInputElement>) => {
@@ -301,7 +306,7 @@ const VolumeControl: FunctionComponent = () => {
       </CardBody>
     </Card>
   )
-}
+})
 
 const homeStyle = css`
   ${navbarMarginStyle};

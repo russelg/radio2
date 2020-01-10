@@ -13,10 +13,12 @@ export interface ThemeChooserProps {
 const ThemeChooser: FunctionComponent<ThemeChooserProps> = ({ className }) => {
   const { styles, stylesheet, setStylesheet } = useSettingsContext()
 
+  const stylesheetLink = document.getElementById(
+    'change_stylesheet'
+  ) as HTMLLinkElement | null
+
   const [selected, setSelected] = useState(
-    stylesheet ||
-      (document.querySelector<HTMLLinkElement>('#change_stylesheet')!
-        .href as string)
+    stylesheet || (stylesheetLink && (stylesheetLink.href as string)) || ''
   )
 
   const onChange = useCallback((event: FormEvent<HTMLSelectElement>) => {
