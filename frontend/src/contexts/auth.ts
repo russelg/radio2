@@ -6,15 +6,17 @@ import { ApiBaseResponse, ApiResponse, LoginJson, UserJson } from '/api/Schemas'
 import { API_BASE } from '/store'
 import { useLocalStorage, parseJwt } from '/utils'
 
+// exclude login because multiple requests are made on incorrect details
+// settings/np do not need auth headers, so skip those.
+const ignoredUrls = ['/auth/login', '/settings', '/np']
+
 const fetchTokenInterceptConfig = {
   parseAccessToken: async (response: Response) => {
     const json: ApiResponse<LoginJson> = await response.clone().json()
     return json.access_token
   },
   shouldIntercept: (request: Request) => {
-    // exclude login requests from intercepting
-    // without this, each login will occur 3 times if invalid...
-    if (request.url.includes('/auth/login')) return false
+    if (ignoredUrls.some(url => request.url.includes(url))) return false
     return true
   },
   shouldInvalidateAccessToken: () => false,
@@ -35,7 +37,7 @@ const fetchTokenInterceptConfig = {
 configure(fetchTokenInterceptConfig)
 
 type UserClaims = {
-  roles: Array<'admin'>
+  roles: 'admin'[]
   username: string
 }
 
@@ -119,31 +121,25 @@ function useAuth() {
     setRefreshToken('')
   }, [])
 
-  const setUserFromJwt = useCallback(
-    token => {
-      const jwt = parseJwt<UserClaims>(token)
-      if (jwt) {
-        console.log({ jwt })
-        const expired = jwt.exp > Date.now()
-        if (!expired) {
-          setUsername(jwt.user_claims.username)
-          setIsAdmin(jwt.user_claims.roles.includes('admin'))
-          setLoggedIn(true)
-        }
-        return expired
+  const setUserFromJwt = useCallback(token => {
+    const jwt = parseJwt<UserClaims>(token)
+    if (jwt) {
+      const expired = jwt.exp > Date.now()
+      if (!expired) {
+        setUsername(jwt.user_claims.username)
+        setIsAdmin(jwt.user_claims.roles.includes('admin'))
+        setLoggedIn(true)
       }
-      return false
-    },
-    [refreshToken, accessToken]
-  )
+      return expired
+    }
+    return false
+  }, [])
 
   const loginUsingTokens = useCallback(() => {
     if (accessToken) {
+      authorize(refreshToken, accessToken)
       const user = setUserFromJwt(accessToken)
-      if (user) return
-    }
-
-    if (refreshToken) {
+    } else if (refreshToken) {
       fetch(fetchTokenInterceptConfig.createAccessTokenRequest(refreshToken))
         .then(resp => resp.clone().json())
         .then(setStateFromTokenResponse)

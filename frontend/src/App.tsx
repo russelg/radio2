@@ -23,8 +23,12 @@ import { useRadioInfoContext } from '/contexts/radio'
 import { useRadioStatusContext } from '/contexts/radioStatus'
 import { useSettingsContext } from '/contexts/settings'
 
+import MiniPlayer from '/components/MiniPlayer'
+import SignIn from '/pages/SignIn'
+import SignUp from '/pages/SignUp'
+
 toast.configure({
-  autoClose: 2000,
+  autoClose: 100000,
   position: 'top-center',
   transition: Zoom,
   pauseOnFocusLoss: false,
@@ -33,9 +37,6 @@ toast.configure({
 
 const Home = lazy(() => import('/pages/Home'))
 const Songs = lazy(() => import('/pages/Songs'))
-const MiniPlayer = lazy(() => import('/components/MiniPlayer'))
-const SignIn = lazy(() => import('/pages/SignIn'))
-const SignUp = lazy(() => import('/pages/SignUp'))
 
 const switchStyle = css`
   position: relative;
@@ -135,13 +136,11 @@ const App: FunctionComponent = () => {
             <useAuthContext.Provider>
               <Navbar>
                 <Collapse isOpen={playing}>
-                  <Suspense fallback={<LoaderSpinner />}>
-                    {playing && (
-                      <useRadioStatusContext.Provider>
-                        <MiniPlayer />
-                      </useRadioStatusContext.Provider>
-                    )}
-                  </Suspense>
+                  {playing && (
+                    <useRadioStatusContext.Provider>
+                      <MiniPlayer />
+                    </useRadioStatusContext.Provider>
+                  )}
                 </Collapse>
               </Navbar>
             </useAuthContext.Provider>
@@ -209,11 +208,9 @@ const App: FunctionComponent = () => {
                 render={props => {
                   setShouldFetchInfo(playing)
                   return (
-                    <Suspense fallback={<LoaderSpinner />}>
-                      <useAuthContext.Provider>
-                        <SignUp />
-                      </useAuthContext.Provider>
-                    </Suspense>
+                    <useAuthContext.Provider>
+                      <SignUp />
+                    </useAuthContext.Provider>
                   )
                 }}
               />
@@ -223,11 +220,9 @@ const App: FunctionComponent = () => {
                 render={props => {
                   setShouldFetchInfo(playing)
                   return (
-                    <Suspense fallback={<LoaderSpinner />}>
-                      <useAuthContext.Provider>
-                        <SignIn />
-                      </useAuthContext.Provider>
-                    </Suspense>
+                    <useAuthContext.Provider>
+                      <SignIn />
+                    </useAuthContext.Provider>
                   )
                 }}
               />

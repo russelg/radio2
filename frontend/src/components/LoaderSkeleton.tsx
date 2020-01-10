@@ -1,7 +1,7 @@
 import React, { FunctionComponent, ReactNode, useEffect, useState } from 'react'
 import Skeleton from 'react-loading-skeleton'
 import { animated, useSpring } from 'react-spring'
-import { useIsMounted } from '/utils'
+import { useIsMounted, useDelayedLoader } from '/utils'
 
 interface SkeletonProps {
   count?: number
@@ -19,26 +19,7 @@ interface LoaderSkeletonProps {
 
 const LoaderSkeleton: FunctionComponent<SkeletonProps &
   LoaderSkeletonProps> = ({ loading, children, ...rest }) => {
-  const [showSkeleton, setShowSkeleton] = useState(false)
-
-  useEffect(() => {
-    // make sure we're mounted before doing anything
-    if (loading) {
-      setShowSkeleton(true)
-    }
-
-    // Show loader a bits longer to avoid loading flash
-    if (!loading && showSkeleton) {
-      const timeout = setTimeout(() => {
-        setShowSkeleton(false)
-      }, 250)
-
-      return () => {
-        clearTimeout(timeout)
-      }
-    }
-    return () => {}
-  }, [loading, showSkeleton])
+  const [showSkeleton, setShowSkeleton] = useDelayedLoader(loading, 250)
 
   const fadeOutProps = useSpring({ opacity: showSkeleton ? 1 : 0 })
   const fadeInProps = useSpring({ opacity: showSkeleton ? 0 : 1 })

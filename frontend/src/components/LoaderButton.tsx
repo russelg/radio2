@@ -1,11 +1,12 @@
 import { css, cx } from 'emotion'
-import React, { FunctionComponent } from 'react'
+import React, { FunctionComponent, useEffect } from 'react'
 import { animated, useSpring } from 'react-spring'
 import { Button, ButtonProps, Spinner } from 'reactstrap'
 import { useDelayedLoader } from '/utils'
 
 interface LoaderButtonProps extends ButtonProps {
   loading: boolean
+  useDelay?: boolean
 }
 
 const buttonStyle = css`
@@ -20,12 +21,17 @@ const LoaderButton: FunctionComponent<LoaderButtonProps> = ({
   children,
   loading,
   block,
+  useDelay = true,
   ...rest
 }) => {
-  const [showLoader, _] = useDelayedLoader(loading)
+  const [showLoader, setShowLoader] = useDelayedLoader(loading)
 
   const fadeOutProps = useSpring({ opacity: showLoader ? 1 : 0 })
   const fadeInProps = useSpring({ opacity: showLoader ? 0 : 1 })
+
+  useEffect(() => {
+    setShowLoader(loading)
+  }, [showLoader, loading])
 
   return (
     <Button {...rest} block={block}>

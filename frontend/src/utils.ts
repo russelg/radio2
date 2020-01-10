@@ -56,7 +56,7 @@ type JWTClaims<T> = {
   user_claims: T
 }
 
-export function parseJwt<T>(token: string): JWT & JWTClaims<T> {
+export function parseJwt<T>(token: string): (JWT & JWTClaims<T>) | null {
   const base64Url = token.split('.')[1]
   const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
   const jsonPayload = decodeURIComponent(
@@ -66,33 +66,36 @@ export function parseJwt<T>(token: string): JWT & JWTClaims<T> {
       .join('')
   )
 
-  return JSON.parse(jsonPayload)
+  try {
+    return JSON.parse(jsonPayload)
+  } catch {
+    // just give up if there are any errors
+    return null
+  }
 }
 
 export const useDelayedLoader = (
-  loading: boolean
+  loading: boolean,
+  delay: number = 400
 ): [boolean, (value: boolean) => void] => {
   const [localLoading, setLoading] = useState(loading)
   const [showLoader, setShowLoader] = useState(loading)
 
   useEffect(() => {
-    if (localLoading) {
-      setShowLoader(true)
-    }
+    setLoading(loading)
+  }, [loading])
 
+  useEffect(() => {
+    if (localLoading) setShowLoader(true)
     // Show loader a bits longer to avoid loading flash
     if (!localLoading && showLoader) {
       const timeout = setTimeout(() => {
         setShowLoader(false)
-      }, 400)
-
-      return () => {
-        clearTimeout(timeout)
-      }
+      }, delay)
+      return () => clearTimeout(timeout)
     }
-
     return () => {}
-  }, [localLoading, showLoader])
+  }, [loading, localLoading, showLoader, delay])
 
   return [showLoader, setLoading]
 }
@@ -155,7 +158,6 @@ export function useLocalStorage<T>(
 
 // babakness/use-interval.ts
 // https://gist.github.com/babakness/faca3b633bc23d9a0924efb069c9f1f5
-
 type IntervalFunction = () => unknown | void
 export function useInterval(callback: IntervalFunction, delay: number) {
   const savedCallback = useRef<IntervalFunction | null>(null)

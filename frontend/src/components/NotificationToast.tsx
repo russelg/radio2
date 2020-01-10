@@ -1,5 +1,5 @@
 import React, { FunctionComponent } from 'react'
-import { Toast, ToastHeader, ToastBody } from 'reactstrap'
+import { Toast, ToastHeader, ToastBody, Alert } from 'reactstrap'
 
 interface NotificationToastProps {
   error?: boolean
@@ -12,12 +12,13 @@ const NotificationToast: FunctionComponent<NotificationToastProps> = ({
   error = false
 }) => {
   return (
-    <Toast className="mb-3" isOpen={true}>
-      <ToastHeader toggle={closeToast} icon={error ? 'danger' : 'success'}>
-        {error ? 'Error' : 'Success!'}
-      </ToastHeader>
-      <ToastBody>{children}</ToastBody>
-    </Toast>
+    <Alert
+      color={error ? 'danger' : 'success'}
+      isOpen={true}
+      toggle={closeToast}>
+      <h5 className="alert-heading">{error ? 'Error' : 'Success!'}</h5>
+      <p>{children}</p>
+    </Alert>
   )
 }
 
