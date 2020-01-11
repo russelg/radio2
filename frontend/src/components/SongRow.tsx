@@ -106,10 +106,12 @@ const RequestButton: FunctionComponent<SongRowUpdateProps> = ({
   )
 }
 
-const FavouriteButton: FunctionComponent<SongRowUpdateProps> = ({
-  song,
-  updateSong
-}) => {
+type FavouriteButtonProps = {
+  useIcon?: boolean
+}
+
+export const FavouriteButton: FunctionComponent<SongRowUpdateProps &
+  FavouriteButtonProps> = ({ song, updateSong, useIcon = true }) => {
   const { data, loading, errors, run } = useFetch(`${API_BASE}/favourites`)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const favouriteSong = useCallback(
@@ -130,6 +132,14 @@ const FavouriteButton: FunctionComponent<SongRowUpdateProps> = ({
     [song]
   )
 
+  const tooltipText = song.meta.favourited
+    ? loading
+      ? 'Unfavouriting...'
+      : 'Remove song from favourites'
+    : loading
+    ? 'Favouriting...'
+    : 'Add song to favourites'
+
   return (
     <>
       <div ref={tooltipRef} className="mt-1">
@@ -137,25 +147,25 @@ const FavouriteButton: FunctionComponent<SongRowUpdateProps> = ({
           loading={loading}
           color={song.meta.favourited ? 'danger' : undefined}
           onClick={favouriteSong}>
-          <FontAwesomeIcon
-            fixedWidth
-            icon={song.meta.favourited ? faBan : faHeart}
-          />
+          {useIcon ? (
+            <FontAwesomeIcon
+              fixedWidth
+              icon={song.meta.favourited ? faBan : faHeart}
+            />
+          ) : (
+            tooltipText
+          )}
         </LoaderButton>
       </div>
-      <UncontrolledTooltip
-        placement="top"
-        // @ts-ignore
-        target={tooltipRef}
-        delay={0}>
-        {song.meta.favourited
-          ? loading
-            ? 'Unfavouriting...'
-            : 'Unfavourite'
-          : loading
-          ? 'Favouriting...'
-          : 'Favourite'}
-      </UncontrolledTooltip>
+      {useIcon && (
+        <UncontrolledTooltip
+          placement="top"
+          // @ts-ignore
+          target={tooltipRef}
+          delay={0}>
+          {tooltipText}
+        </UncontrolledTooltip>
+      )}
     </>
   )
 }

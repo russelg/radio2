@@ -1,7 +1,12 @@
 import createUseContext from 'constate'
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { API_BASE } from '/api'
-import { ApiResponse, NowPlayingJson, NowPlayingSong } from '/api/Schemas'
+import {
+  ApiResponse,
+  NowPlayingJson,
+  NowPlayingSong,
+  SongItem
+} from '/api/Schemas'
 import { useControlContext } from '/contexts/control'
 
 export const SYNC_OFFSET = 4
@@ -57,6 +62,8 @@ function transformNowPlaying(
 function useRadioInfo() {
   const { shouldFetchInfo } = useControlContext()
 
+  const [favourited, setFavourited] = useState<boolean>(false)
+
   const [songInfo, setSongInfo] = useState<SongInfo>({
     length: 0,
     serverTime: 0,
@@ -77,6 +84,19 @@ function useRadioInfo() {
     lastPlayed: []
   })
 
+  const fetchFavourited = useCallback((id: string) => {
+    setFavourited(false)
+    fetch(`${API_BASE}/song/${id}`)
+      .then(resp => resp.clone().json())
+      .then((resp: ApiResponse<SongItem>) => {
+        setFavourited(resp.meta.favourited || false)
+      })
+  }, [])
+
+  useEffect(() => {
+    if (songInfo.id) fetchFavourited(songInfo.id)
+  }, [songInfo.id])
+
   const fetchInfo = useCallback(() => {
     // add check for if not on main page
     if (shouldFetchInfo) {
@@ -93,7 +113,9 @@ function useRadioInfo() {
   return {
     songInfo,
     serverInfo,
-    fetchInfo
+    fetchInfo,
+    favourited,
+    setFavourited
   }
 }
 

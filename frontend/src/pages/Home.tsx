@@ -22,7 +22,7 @@ import {
   Progress,
   Row
 } from 'reactstrap'
-import { SongListItem } from '/api/Schemas'
+import { SongListItem, SongItem } from '/api/Schemas'
 import LoaderSkeleton from '/components/LoaderSkeleton'
 import { useControlContext } from '/contexts/control'
 import { useRadioInfoContext } from '/contexts/radio'
@@ -35,6 +35,7 @@ import {
   readableFilesize,
   readableSeconds
 } from '/utils'
+import { FavouriteButton } from '/components/SongRow'
 
 interface HomeProps {
   togglePlaying: () => void
@@ -189,7 +190,12 @@ const Branding: FunctionComponent = () => {
 }
 
 const BigProgress: FunctionComponent = () => {
-  const { songInfo, serverInfo } = useRadioInfoContext()
+  const {
+    songInfo,
+    serverInfo,
+    favourited,
+    setFavourited
+  } = useRadioInfoContext()
   const {
     radioStatus: { position, duration, progress, progressIncrement }
   } = useRadioStatusContext()
@@ -198,19 +204,36 @@ const BigProgress: FunctionComponent = () => {
     <>
       <h2 className="pb-2 text-center">
         <LoaderSkeleton loading={!songInfo.title} width="50%">
-          {() => `${songInfo.artist} - ${songInfo.title}`}
+          {() => (
+            <>
+              {songInfo.artist} - {songInfo.title}
+            </>
+          )}
         </LoaderSkeleton>
       </h2>
       <Progress value={progress + progressIncrement} />
-      <Row>
+      <Row className="pt-2">
         <Col
-          sm={{ size: 5, offset: 1 }}
+          sm={{ size: 4, offset: 0 }}
           className="text-muted text-center pt-3 order-last order-sm-first">
           <LoaderSkeleton loading={!songInfo.title} width="20%">
             {() => `Listeners: ${serverInfo.listeners}`}
           </LoaderSkeleton>
         </Col>
-        <Col sm={{ size: 5 }} className="text-muted text-center pt-3">
+        <Col sm={{ size: 4 }} className="text-center pt-1">
+          <FavouriteButton
+            useIcon={false}
+            updateSong={(id: string, song: SongItem | null) => {
+              setFavourited((song && song.meta.favourited) || false)
+            }}
+            song={{
+              id: songInfo.id,
+              // @ts-ignore
+              meta: { favourited }
+            }}
+          />
+        </Col>
+        <Col sm={{ size: 4 }} className="text-muted text-center pt-3">
           <LoaderSkeleton loading={!songInfo.length} width="20%">
             {() =>
               `${readableSeconds(position)} / ${readableSeconds(duration)}`
