@@ -8,6 +8,7 @@ import {
   SongItem
 } from '/api/Schemas'
 import { useControlContext } from '/contexts/control'
+import { useAuthContext } from './auth'
 
 export const SYNC_OFFSET = 4
 
@@ -62,6 +63,8 @@ function transformNowPlaying(
 function useRadioInfo() {
   const { shouldFetchInfo } = useControlContext()
 
+  const { loggedIn } = useAuthContext()
+
   const [favourited, setFavourited] = useState<boolean>(false)
 
   const [songInfo, setSongInfo] = useState<SongInfo>({
@@ -85,7 +88,6 @@ function useRadioInfo() {
   })
 
   const fetchFavourited = useCallback((id: string) => {
-    setFavourited(false)
     fetch(`${API_BASE}/song/${id}`)
       .then(resp => resp.clone().json())
       .then((resp: ApiResponse<SongItem>) => {
@@ -94,8 +96,9 @@ function useRadioInfo() {
   }, [])
 
   useEffect(() => {
-    if (songInfo.id) fetchFavourited(songInfo.id)
-  }, [songInfo.id])
+    setFavourited(false)
+    if (loggedIn && songInfo.id) fetchFavourited(songInfo.id)
+  }, [songInfo.id, loggedIn])
 
   const fetchInfo = useCallback(() => {
     // add check for if not on main page
