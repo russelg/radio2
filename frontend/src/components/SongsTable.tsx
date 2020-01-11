@@ -22,7 +22,8 @@ const SongsTable: FunctionComponent<Props> = ({ songs, updateSong }) => {
     <Table striped>
       <thead>
         <tr className="d-flex">
-          <th className="col-3">Artist</th>
+          <th className="col-1">Length</th>
+          <th className="col-2">Artist</th>
           <th className="col-5">Title</th>
           <th className="col" />
         </tr>

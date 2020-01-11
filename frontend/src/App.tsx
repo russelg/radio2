@@ -136,88 +136,86 @@ const App: FunctionComponent = () => {
         <ErrorBoundary>
           <TitleSetter />
           <div className="h-100">
-            <useAuthContext.Provider>
-              <Navbar>
-                <Collapse isOpen={playing}>
-                  {playing && (
-                    <useRadioStatusContext.Provider>
-                      <MiniPlayer />
-                    </useRadioStatusContext.Provider>
-                  )}
-                </Collapse>
-              </Navbar>
+            <Navbar>
+              <Collapse isOpen={playing}>
+                {playing && (
+                  <useRadioStatusContext.Provider>
+                    <MiniPlayer />
+                  </useRadioStatusContext.Provider>
+                )}
+              </Collapse>
+            </Navbar>
 
-              <ReactHowler
-                src={[`${streamUrl}.ogg`, `${streamUrl}.mp3`]}
-                format={['ogg', 'mp3']}
-                preload={false}
-                html5={true}
-                playing={playing}
-                volume={volume / 100}
-                ref={player}
+            <ReactHowler
+              src={[`${streamUrl}.ogg`, `${streamUrl}.mp3`]}
+              format={['ogg', 'mp3']}
+              preload={false}
+              html5={true}
+              playing={playing}
+              volume={volume / 100}
+              ref={player}
+            />
+
+            <AnimatedSwitch
+              runOnMount
+              atEnter={bounceTransition.atEnter}
+              atLeave={bounceTransition.atLeave}
+              atActive={bounceTransition.atActive}
+              mapStyles={mapStyles}
+              className={cx(switchStyle, 'h-100')}>
+              <Route
+                path="/"
+                exact
+                render={props => {
+                  setShouldFetchInfo(true)
+                  return (
+                    <Suspense fallback={<LoaderSpinner />}>
+                      <Home {...props} togglePlaying={toggleHowlerPlaying} />
+                    </Suspense>
+                  )
+                }}
               />
-
-              <AnimatedSwitch
-                runOnMount
-                atEnter={bounceTransition.atEnter}
-                atLeave={bounceTransition.atLeave}
-                atActive={bounceTransition.atActive}
-                mapStyles={mapStyles}
-                className={cx(switchStyle, 'h-100')}>
-                <Route
-                  path="/"
-                  exact
-                  render={props => {
-                    setShouldFetchInfo(true)
-                    return (
-                      <Suspense fallback={<LoaderSpinner />}>
-                        <Home {...props} togglePlaying={toggleHowlerPlaying} />
-                      </Suspense>
-                    )
-                  }}
-                />
-                <Route
-                  path="/songs"
-                  exact
-                  render={props => {
-                    setShouldFetchInfo(playing)
-                    return (
-                      <Suspense fallback={<LoaderSpinner />}>
-                        <Songs {...props} favourites={false} />
-                      </Suspense>
-                    )
-                  }}
-                />
-                <Route
-                  path="/favourites"
-                  exact
-                  render={props => {
-                    setShouldFetchInfo(playing)
-                    return (
-                      <Suspense fallback={<LoaderSpinner />}>
-                        <Songs {...props} favourites={true} />
-                      </Suspense>
-                    )
-                  }}
-                />
-                <Route
-                  path="/sign-up"
-                  exact
-                  render={props => {
-                    setShouldFetchInfo(playing)
-                    return <SignUp />
-                  }}
-                />
-                <Route
-                  path="/sign-in"
-                  exact
-                  render={props => {
-                    setShouldFetchInfo(playing)
-                    return <SignIn />
-                  }}
-                />
-              </AnimatedSwitch>
-            </useAuthContext.Provider>
+              <Route
+                path="/songs"
+                exact
+                render={props => {
+                  setShouldFetchInfo(playing)
+                  return (
+                    <Suspense fallback={<LoaderSpinner />}>
+                      <Songs {...props} favourites={false} />
+                    </Suspense>
+                  )
+                }}
+              />
+              <Route
+                path="/favourites"
+                exact
+                render={props => {
+                  setShouldFetchInfo(playing)
+                  return (
+                    <Suspense fallback={<LoaderSpinner />}>
+                      <Songs {...props} favourites={true} />
+                    </Suspense>
+                  )
+                }}
+              />
+              <Route
+                path="/sign-up"
+                exact
+                render={props => {
+                  setShouldFetchInfo(playing)
+                  return <SignUp />
+                }}
+              />
+              <Route
+                path="/sign-in"
+                exact
+                render={props => {
+                  setShouldFetchInfo(playing)
+                  return <SignIn />
+                }}
+              />
+            </AnimatedSwitch>
           </div>
         </ErrorBoundary>
       </QueryParamProvider>

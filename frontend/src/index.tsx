@@ -15,13 +15,13 @@ const root = document.getElementById('root')
 render(
   <BrowserRouter>
     <useControlContext.Provider>
-      <useAuthContext.Provider>
-        <useRadioInfoContext.Provider>
-          <useSettingsContext.Provider>
+      <useSettingsContext.Provider>
+        <useAuthContext.Provider>
+          <useRadioInfoContext.Provider>
             <App />
-          </useSettingsContext.Provider>
-        </useRadioInfoContext.Provider>
-      </useAuthContext.Provider>
+          </useRadioInfoContext.Provider>
+        </useAuthContext.Provider>
+      </useSettingsContext.Provider>
     </useControlContext.Provider>
   </BrowserRouter>,
   root

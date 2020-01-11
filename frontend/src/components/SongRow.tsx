@@ -30,7 +30,7 @@ import LoaderSkeleton from '/components/LoaderSkeleton'
 import LoaderSpinner from '/components/LoaderSpinner'
 import { useAuthContext } from '/contexts/auth'
 import { useSettingsContext } from '/contexts/settings'
-import { readableFilesize } from '/utils'
+import { readableFilesize, readableSeconds } from '/utils'
 
 const disabledButtonStyle = css`
   display: inline-block;
@@ -362,7 +362,12 @@ const SongRow: FunctionComponent<SongRowProps> = ({ song, updateSong }) => {
 
   return (
     <tr className="d-flex">
-      <td className="col-3">
+      <td className="col-1 text-muted">
+        <LoaderSkeleton loading={song === null}>
+          {() => readableSeconds(song!.length)}
+        </LoaderSkeleton>
+      </td>
+      <td className="col-2">
         <LoaderSkeleton loading={song === null} width={artistWidth}>
           {() =>
             admin ? (
