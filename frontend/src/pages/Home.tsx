@@ -223,7 +223,7 @@ const BigProgress: FunctionComponent = () => {
         <Col
           sm={{ size: loggedIn ? 3 : 5, offset: 1 }}
           className="text-muted text-center pt-3 order-last order-sm-first">
-          <LoaderSkeleton loading={!songInfo.title} width="20%">
+          <LoaderSkeleton loading={!songInfo.title} width="30%">
             {() => `Listeners: ${serverInfo.listeners}`}
           </LoaderSkeleton>
         </Col>
@@ -245,7 +245,7 @@ const BigProgress: FunctionComponent = () => {
         <Col
           sm={{ size: loggedIn ? 3 : 5 }}
           className="text-muted text-center pt-3">
-          <LoaderSkeleton loading={!songInfo.length} width="20%">
+          <LoaderSkeleton loading={!songInfo.length} width="30%">
             {() =>
               `${readableSeconds(position)} / ${readableSeconds(duration)}`
             }
