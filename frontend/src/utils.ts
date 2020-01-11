@@ -2,8 +2,8 @@ import format from 'date-fns/format'
 import formatDistanceToNow from 'date-fns/formatDistanceToNow'
 import fromUnixTime from 'date-fns/fromUnixTime'
 import parseISO from 'date-fns/parseISO'
-import { useEffect, useState, useRef } from 'react'
 import { css } from 'emotion'
+import { useEffect, useRef, useState } from 'react'
 
 export const containerWidthStyle = css`
   @media (min-width: 992px) {
@@ -95,7 +95,7 @@ export const useDelayedLoader = (
       return () => clearTimeout(timeout)
     }
     return () => {}
-  }, [loading, localLoading, showLoader, delay])
+  }, [localLoading, showLoader, delay])
 
   return [showLoader, setLoading]
 }

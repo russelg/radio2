@@ -1,4 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { toast } from 'react-toastify'
+import { ApiBaseResponse } from '/api/Schemas'
+import NotificationToast from '/components/NotificationToast'
+
+export const API_BASE: string = '/api/v1'
 
 export interface ApiHook<T> {
   data?: T
@@ -83,4 +88,21 @@ export function useFetch<T>(
     run: (options = {}) => makeFetch()(url, options),
     runUrl: (newUrl, options = {}) => makeFetch()(newUrl, options)
   }
+}
+
+export const handleResponse = <T extends ApiBaseResponse>(
+  result: T,
+  sendToast: boolean = true
+): Promise<T> => {
+  if (result === undefined) {
+    return Promise.reject({
+      description: 'Error occured while loading response'
+    })
+  }
+  const error = result.error !== null
+  const msg = result.description || ''
+  if (typeof msg === 'string' && !error && sendToast) {
+    toast(<NotificationToast>{msg}</NotificationToast>)
+  }
+  return error ? Promise.reject(result) : Promise.resolve(result)
 }

@@ -1,8 +1,8 @@
 import createUseContext from 'constate'
 import { useCallback, useState } from 'react'
+import { API_BASE } from '/api'
 import { ApiResponse, NowPlayingJson, NowPlayingSong } from '/api/Schemas'
 import { useControlContext } from '/contexts/control'
-import { API_BASE } from '/store'
 
 export const SYNC_OFFSET = 4
 

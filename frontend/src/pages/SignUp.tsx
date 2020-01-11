@@ -103,12 +103,8 @@ const SignUp: FunctionComponent = () => {
   const onSubmit = useCallback(
     (values: SignUpFormInputs, { setSubmitting, setErrors }) => {
       register(values.username, values.password)
-        .then(msg => {
-          setRegistered(msg)
-        })
-        .catch(error => {
-          setErrors({ username: error.message })
-        })
+        .then(resp => setRegistered(resp))
+        .catch(error => setErrors({ username: error.message }))
       setSubmitting(false)
     },
     []

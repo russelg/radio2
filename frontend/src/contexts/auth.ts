@@ -2,39 +2,13 @@
 import { authorize, clear, configure } from '@shoutem/fetch-token-intercept'
 import createUseContext from 'constate'
 import { useCallback, useEffect, useState } from 'react'
-import { ApiBaseResponse, ApiResponse, LoginJson, UserJson } from '/api/Schemas'
-import { API_BASE } from '/store'
-import { useLocalStorage, parseJwt } from '/utils'
+import { API_BASE } from '/api'
+import { ApiBaseResponse, ApiResponse, LoginJson } from '/api/Schemas'
+import { parseJwt, useLocalStorage } from '/utils'
 
 // exclude login because multiple requests are made on incorrect details
 // settings/np do not need auth headers, so skip those.
 const ignoredUrls = ['/auth/login', '/settings', '/np']
-
-const fetchTokenInterceptConfig = {
-  parseAccessToken: async (response: Response) => {
-    const json: ApiResponse<LoginJson> = await response.clone().json()
-    return json.access_token
-  },
-  shouldIntercept: (request: Request) => {
-    if (ignoredUrls.some(url => request.url.includes(url))) return false
-    return true
-  },
-  shouldInvalidateAccessToken: () => false,
-  shouldWaitForTokenRenewal: true,
-  authorizeRequest: (request: Request, accessToken: string) => {
-    request.headers.set('Authorization', `Bearer ${accessToken}`)
-    return request
-  },
-  createAccessTokenRequest: (refreshToken: string) => {
-    return new Request(`${API_BASE}/auth/refresh`, {
-      headers: { Authorization: `Bearer ${refreshToken}` },
-      method: 'POST'
-    })
-  },
-  fetchRetryCount: 3
-}
-
-configure(fetchTokenInterceptConfig)
 
 type UserClaims = {
   roles: 'admin'[]
@@ -57,6 +31,33 @@ function useAuth() {
     'show_admin',
     false
   )
+
+  const fetchTokenInterceptConfig = {
+    parseAccessToken: async (response: Response) => {
+      const json: ApiResponse<LoginJson> = await response.clone().json()
+      return json.access_token
+    },
+    shouldIntercept: (request: Request) => {
+      if (ignoredUrls.some(url => request.url.includes(url))) return false
+      return true
+    },
+    shouldInvalidateAccessToken: () => false,
+    shouldWaitForTokenRenewal: true,
+    authorizeRequest: (request: Request, accessToken: string) => {
+      request.headers.set('Authorization', `Bearer ${accessToken}`)
+      return request
+    },
+    createAccessTokenRequest: (refreshToken: string) => {
+      return new Request(`${API_BASE}/auth/refresh`, {
+        headers: { Authorization: `Bearer ${refreshToken}` },
+        method: 'POST'
+      })
+    },
+    fetchRetryCount: 3,
+    onAccessTokenChange: (accessToken: string) => {
+      setAccessToken(accessToken)
+    }
+  }
 
   const setStateFromTokenResponse = useCallback(
     (resp: ApiResponse<LoginJson>) => {
@@ -149,6 +150,7 @@ function useAuth() {
 
   // attempt login on first use
   useEffect(() => {
+    configure(fetchTokenInterceptConfig)
     loginUsingTokens()
   }, [])
 

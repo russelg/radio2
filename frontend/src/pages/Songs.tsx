@@ -37,21 +37,20 @@ import {
   StringParam,
   useQueryParams
 } from 'use-query-params'
+import { API_BASE, handleResponse } from '/api'
 import {
   ApiBaseResponse,
   ApiResponse,
   AutocompleteItemJson,
   AutocompleteJson,
   Description,
-  SongItem,
-  SongsJson
+  SongItem
 } from '/api/Schemas'
 import Error from '/components/Error'
 import NotificationToast from '/components/NotificationToast'
 import SongsTable from '/components/SongsTable'
 import { useAuthContext } from '/contexts/auth'
 import { useSettingsContext } from '/contexts/settings'
-import { API_BASE } from '/store'
 import {
   containerWidthStyle,
   navbarMarginStyle,
@@ -195,7 +194,7 @@ const SearchField: FunctionComponent<SearchFieldProps> = ({
     (query: string) => {
       setLoading(true)
       fetch(`${API_BASE}/autocomplete?query=${query}`)
-        .then(resp => resp.json())
+        .then(resp => resp.clone().json())
         .then((json: ApiResponse<AutocompleteJson>) => {
           setLoading(false)
           setOptions(json.suggestions)
@@ -217,6 +216,7 @@ const SearchField: FunctionComponent<SearchFieldProps> = ({
   useEffect(() => {
     setInput(query)
     if (typeahead) {
+      // make sure typeahead input clears when query changes
       const instance = typeahead.getInstance()
       instance.setState({ text: query })
       if (query === '') instance.clear()
@@ -297,7 +297,7 @@ const LoadFavesField: FunctionComponent<LoadFavesFieldProps> = ({
       )
       history.push(url)
     },
-    [queryParam, userInput, history]
+    [queryParam, userInput, history, username]
   )
 
   return (
@@ -363,7 +363,7 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
   )
 
   const updateSong = useCallback(
-    (id: string, song: SongItem | null) => {
+    (id: string, song: SongItem | null): boolean => {
       let songsCopy = [...songs]
       const stateSong: number = songsCopy.findIndex(
         element => element.id === id
@@ -377,7 +377,9 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
           songsCopy = songsCopy.filter(item => item !== songs[stateSong])
         }
         setSongs(songsCopy)
+        return true
       }
+      return false
     },
     [songs]
   )
@@ -385,11 +387,11 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
   const refreshSong = useCallback(
     (song: string): void => {
       fetch(`${API_BASE}/song/${song}`, { method: 'GET' })
-        .then(res => res.json())
+        .then(res => res.clone().json())
         .then((result: ApiResponse<SongItem>) => {
           // update existing song if it exists
-          updateSong(song, result)
-          setSongs([result, ...songs])
+          const updated = updateSong(song, result)
+          if (!updated) setSongs([result, ...songs])
         })
     },
     [songs]
@@ -402,7 +404,7 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
       totalItemsCount={paginationState.total_count}
       pageRangeDisplayed={paginationState.total_count}
       onChange={pageNumber => {
-        setQueryParam({ page: pageNumber }, 'push')
+        setQueryParam({ query, user, page: pageNumber }, 'push')
       }}
       itemClass="page-item"
       linkClass="page-link"
@@ -419,27 +421,18 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
     fetch(API_BASE + getApiUrl({ page, user, query }, favourites), {
       method: 'GET'
     })
-      .then(res => {
+      .then(resp => {
         setLoading(false)
-        return res.clone().json()
+        return resp.clone().json()
       })
-      .then((result?: ApiResponse<SongsJson>) => {
-        if (result === undefined) {
-          return Promise.reject({
-            description: 'Error occured while loading response'
-          })
-        }
-        return result.error !== null
-          ? Promise.reject(result)
-          : Promise.resolve(result)
+      .then(resp => handleResponse(resp, false))
+      .then(resp => {
+        setSongs(resp.songs)
+        setPaginationState(resp.pagination)
       })
-      .then(result => {
-        setSongs(result.songs)
-        setPaginationState(result.pagination)
-      })
-      .catch((result: ApiBaseResponse) => {
-        if (result) {
-          const msg = 'description' in result ? result.description : null
+      .catch((resp: ApiBaseResponse) => {
+        if (resp) {
+          const msg = resp.description || resp.message || ''
           if (msg) setError(msg)
         }
       })
@@ -447,8 +440,11 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
 
   // update request url on query change
   useEffect(() => {
-    loadSongs()
-  }, [page, user, query, favourites, username])
+    // don't load page if favourites is set but user is not there, or vice versa
+    if (favourites ? user !== undefined : user === undefined) {
+      loadSongs()
+    }
+  }, [page, user, query, favourites])
 
   const fadeProps = useSpring({
     opacity: loading ? 0.75 : 1
@@ -476,7 +472,7 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
         <Col xs={12} md={6} className="mt-2 mt-md-0">
           <SearchField
             query={query}
-            setQuery={(query: string) => setQueryParam({ query })}
+            setQuery={(query: string) => setQueryParam({ query, page: 1 })}
           />
         </Col>
       </Row>

@@ -81,7 +81,7 @@ function useRadioStatusHook(callback: () => void) {
 function useRadioStatus() {
   const { songInfo, fetchInfo } = useRadioInfoContext()
 
-  // run fetchInfo every 5 seconds as callback
+  // run fetchInfo every <period> as callback
   const radioStatusHook = useRadioStatusHook(fetchInfo)
 
   // when songInfo changes, update radio info

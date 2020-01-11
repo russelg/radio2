@@ -12,14 +12,13 @@ import React, {
   Suspense,
   useCallback,
   useRef,
-  useState,
-  useEffect
+  useState
 } from 'react'
 import { toast } from 'react-toastify'
 import { Button, Form, UncontrolledTooltip } from 'reactstrap'
 import NotificationToast from './NotificationToast'
 import Editable from '/../lib/react-bootstrap-editable/src/Editable'
-import { useFetch } from '/api'
+import { API_BASE, handleResponse, useFetch } from '/api'
 import {
   ApiBaseResponse,
   ApiResponse,
@@ -31,7 +30,6 @@ import LoaderSkeleton from '/components/LoaderSkeleton'
 import LoaderSpinner from '/components/LoaderSpinner'
 import { useAuthContext } from '/contexts/auth'
 import { useSettingsContext } from '/contexts/settings'
-import { API_BASE } from '/store'
 import { readableFilesize } from '/utils'
 
 const disabledButtonStyle = css`
@@ -51,22 +49,6 @@ type UpdateSong = (id: string, song: SongItem | null) => void
 
 interface SongRowUpdateProps extends SongRowButtonProps {
   updateSong: UpdateSong
-}
-
-const handleResponse = <T extends ApiBaseResponse>(result: T): Promise<T> => {
-  if (result === undefined) {
-    return Promise.reject({
-      description: 'Error occured while loading response'
-    })
-  }
-
-  const error = result.error !== null
-  const msg = result.description || ''
-  if (typeof msg === 'string' && !error) {
-    toast(<NotificationToast>{msg}</NotificationToast>)
-  }
-
-  return error ? Promise.reject(result) : Promise.resolve(result)
 }
 
 const handleError = <T extends ApiBaseResponse>(result: T) => {
@@ -90,8 +72,8 @@ const RequestButton: FunctionComponent<SongRowUpdateProps> = ({
         body: JSON.stringify({ id: song.id })
       })
         .then(handleResponse)
-        .then((result: ApiResponse<SongItem>) => {
-          updateSong(song.id, { ...song, meta: result.meta })
+        .then((resp: ApiResponse<SongItem>) => {
+          updateSong(song.id, { ...song, meta: resp.meta })
         })
         .catch(handleError)
     },
@@ -138,7 +120,7 @@ const FavouriteButton: FunctionComponent<SongRowUpdateProps> = ({
         body: JSON.stringify({ id: song.id })
       })
         .then(handleResponse)
-        .then((result: ApiBaseResponse) => {
+        .then((resp: ApiBaseResponse) => {
           const { meta } = song
           meta.favourited = !meta.favourited
           updateSong(song.id, { ...song, meta })
@@ -188,9 +170,9 @@ const DownloadButton: FunctionComponent<SongRowButtonProps> = ({ song }) => {
         method: 'POST',
         body: JSON.stringify({ id: song.id })
       })
-        .then((result: ApiResponse<SongDownloadJson>) => {
-          if ('download_token' in result) {
-            const token = result.download_token
+        .then((resp: ApiResponse<SongDownloadJson>) => {
+          if ('download_token' in resp) {
+            const token = resp.download_token
             const link = document.createElement('a')
             document.body.appendChild(link)
             link.href = `${API_BASE}/download?token=${token}`
@@ -198,7 +180,7 @@ const DownloadButton: FunctionComponent<SongRowButtonProps> = ({ song }) => {
             link.click()
             document.body.removeChild(link)
           } else {
-            throw result
+            throw resp
           }
         })
         .catch(handleError)
@@ -238,7 +220,7 @@ const DeleteButton: FunctionComponent<SongRowUpdateProps> = ({
       if (confirming) {
         run({ method: 'DELETE' })
           .then(handleResponse)
-          .then((result: ApiBaseResponse) => {
+          .then((resp: ApiBaseResponse) => {
             updateSong(song.id, null)
             setConfirming(false)
           })
@@ -326,9 +308,9 @@ const EditableValue: FunctionComponent<EditableValueProps> = ({
         body: JSON.stringify({ [field]: newValue })
       })
         .then(handleResponse)
-        .then((result: ApiResponse<SongItem>) => {
-          updateSong(song.id, { ...song, ...result })
-        })
+        .then((resp: ApiResponse<SongItem>) =>
+          updateSong(song.id, { ...song, ...resp })
+        )
         .catch(handleError)
     },
     [field, song]

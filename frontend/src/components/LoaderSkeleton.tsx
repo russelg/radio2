@@ -1,13 +1,6 @@
-import React, {
-  FunctionComponent,
-  ReactNode,
-  useEffect,
-  useState,
-  useMemo
-} from 'react'
+import React, { FunctionComponent, ReactNode } from 'react'
 import Skeleton from 'react-loading-skeleton'
 import { animated, useSpring } from 'react-spring'
-import { useIsMounted, useDelayedLoader } from '/utils'
 
 interface SkeletonProps {
   count?: number

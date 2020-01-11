@@ -1,7 +1,7 @@
 import createUseContext from 'constate'
 import { useCallback, useEffect, useState } from 'react'
+import { API_BASE } from '/api'
 import { ApiResponse, SettingsJson } from '/api/Schemas'
-import { API_BASE } from '/store'
 import { useLocalStorage } from '/utils'
 
 function useSettings() {

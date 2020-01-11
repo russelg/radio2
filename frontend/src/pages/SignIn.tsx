@@ -1,8 +1,8 @@
 import React, { FunctionComponent } from 'react'
 import { Redirect } from 'react-router-dom'
-import { useAuthContext } from '/contexts/auth'
 import Dialog from '/components/Dialog'
 import LoginForm from '/components/LoginForm'
+import { useAuthContext } from '/contexts/auth'
 
 const SignIn: FunctionComponent = () => {
   const { loggedIn } = useAuthContext()

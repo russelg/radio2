@@ -1,5 +1,5 @@
 import React, { FunctionComponent } from 'react'
-import { Toast, ToastHeader, ToastBody, Alert } from 'reactstrap'
+import { Alert } from 'reactstrap'
 
 interface NotificationToastProps {
   error?: boolean

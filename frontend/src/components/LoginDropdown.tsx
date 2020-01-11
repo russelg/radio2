@@ -7,7 +7,6 @@ import {
   UncontrolledDropdown
 } from 'reactstrap'
 import LoginForm from '/components/LoginForm'
-import { useAuthContext } from '/contexts/auth'
 
 const LoginDropdown: FunctionComponent = () => (
   <UncontrolledDropdown nav inNavbar>
