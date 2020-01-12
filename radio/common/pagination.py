@@ -1,5 +1,5 @@
 import math
-from typing import Any, Dict, Iterator
+from typing import Any, Dict, Iterator, Optional
 
 
 class Pagination:
@@ -41,17 +41,26 @@ class Pagination:
         """
         :returns: Pagination info as a dictionary
         """
-        return dict(self.__dict__, pages=self.pages, has_prev=self.has_prev, has_next=self.has_next)
+        return dict(
+            self.__dict__,
+            pages=self.pages,
+            has_prev=self.has_prev,
+            has_next=self.has_next,
+        )
 
-    def iter_pages(self, left_edge=2, left_current=2,
-                   right_current=5, right_edge=2) -> Iterator[int]:
+    def iter_pages(
+        self, left_edge=2, left_current=2, right_current=5, right_edge=2
+    ) -> Iterator[Optional[int]]:
         """
         :returns: Iterator over all pages, with clipping when too many pages exist
         """
         last = 0
         for num in range(1, self.pages + 1):
-            if num <= left_edge or \
-                    (self.page - left_current - 1 < num < self.page + right_current) or num > self.pages - right_edge:
+            if (
+                num <= left_edge
+                or (self.page - left_current - 1 < num < self.page + right_current)
+                or num > self.pages - right_edge
+            ):
                 if last + 1 != num:
                     yield None
             yield num

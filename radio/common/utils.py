@@ -2,7 +2,6 @@ import math
 import os
 import shutil
 import subprocess
-from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from functools import lru_cache, partial
@@ -17,12 +16,12 @@ import marshmallow
 import mutagen
 import xmltodict
 from flask import Response, jsonify
+from radio import app
+from radio.common.schemas import RequestStatus
+from radio.models import Queue, Song, User
+from pony.orm import commit, count, db_session, max, select, sum
 from webargs import flaskparser
 from werkzeug.exceptions import HTTPException
-
-from radio import app
-from radio import models as db
-from radio.common.schemas import RequestStatus
 
 register_blueprint_prefixed = partial(
     app.register_blueprint, url_prefix=app.config["SERVER_API_PREFIX"]
@@ -149,8 +148,8 @@ def encode_file(filename: str) -> str:
     return new_path
 
 
-@db.db_session
-def sample_songs_weighted(num: int = 6) -> List[db.Song]:
+@db_session
+def sample_songs_weighted(num: int = 6) -> List[Song]:
     """
     Samples a selection of songs from the Songs table, weighted by playcount.
     This means songs that have been played less have a higher chance of being put in the queue.
@@ -158,12 +157,12 @@ def sample_songs_weighted(num: int = 6) -> List[db.Song]:
     :param int num: number of songs to sample
     :return: list of songs sampled from Songs table, weighted by playcount
     """
-    songs = db.Song.select()[:]
+    songs = Song.select()[:]
     if len(songs) < num:
         return songs
 
     weights = []
-    max_plays = db.max(s.playcount for s in db.Song) + 1
+    max_plays = max(s.playcount for s in Song) + 1
     for song in songs:
         weights.append(abs(max_plays - song.playcount))
 
@@ -192,8 +191,8 @@ def get_metadata(filename: str) -> Optional[Dict[str, Any]]:
     }
 
 
-def get_song_or_abort(song_id: UUID) -> db.Song:
-    song = db.Song.get(id=song_id)
+def get_song_or_abort(song_id: UUID) -> Song:
+    song = Song.get(id=song_id)
     if not song:
         resp = make_api_response(404, "Not Found", "Song does not exist")
         raise HTTPException(description=resp.get_data(), response=resp)
@@ -201,8 +200,8 @@ def get_song_or_abort(song_id: UUID) -> db.Song:
         return song
 
 
-@db.db_session
-def insert_song(filename: str) -> db.Song:
+@db_session
+def insert_song(filename: str) -> Song:
     """
     Adds a song to the database
 
@@ -213,42 +212,42 @@ def insert_song(filename: str) -> db.Song:
     meta = get_metadata(full_path)
     if meta:
         # check dupe
-        song = db.Song.get(artist=meta["artist"], title=meta["title"])
+        song = Song.get(artist=meta["artist"], title=meta["title"])
         if song:
             print(full_path, "is a dupe, removing...")
             os.remove(full_path)
         else:
-            song = db.Song(
+            song = Song(
                 filename=filename,
                 artist=meta["artist"],
                 title=meta["title"],
                 length=int(meta["length"]),
             )
-            db.commit()
+            commit()
         return song
     return None
 
 
-@db.db_session
-def insert_queue(songs: List[db.Song]) -> None:
+@db_session
+def insert_queue(songs: List[Song]) -> None:
     """
     Adds the given songs to the queue
 
     :param songs: list of songs to add
     """
     for song in songs:
-        db.Queue(song=song)
-    db.commit()
+        Queue(song=song)
+    commit()
 
 
-@db.db_session
+@db_session
 def generate_queue() -> None:
     """
     Fills the queue with songs, using the weighted sample method
     """
-    queue = db.Queue.select()[:]
+    queue = Queue.select()[:]
     if queue:
-        randoms = db.sum(not entry.requested for entry in queue)
+        randoms = sum(not entry.requested for entry in queue)
         reqs = len(queue) - randoms
         threshold = math.ceil((10 - min(reqs, 10)) / 2)
 
@@ -262,7 +261,7 @@ def generate_queue() -> None:
         insert_queue(sample_songs_weighted())
 
 
-@db.db_session
+@db_session
 def reload_songs() -> None:
     """
     Keeps music directory and database in sync.
@@ -272,14 +271,14 @@ def reload_songs() -> None:
     os_songs = [
         f for f in os.listdir(app.config["PATH_MUSIC"]) if not f.startswith(".")
     ]
-    if db.count(s for s in db.Song) <= 0:
+    if count(s for s in Song) <= 0:
         for filename in os_songs:
             insert_song(filename)
 
-    if db.count(s for s in db.Queue) <= 0:
+    if count(s for s in Queue) <= 0:
         generate_queue()
 
-    db_songs = db.select(song.filename for song in db.Song)[:]
+    db_songs = select(song.filename for song in Song)[:]
 
     songs_to_add = []
     songs_to_remove = []
@@ -293,13 +292,13 @@ def reload_songs() -> None:
             songs_to_remove.append(song)
 
     for song in songs_to_remove:
-        db_song = db.Song.get(filename=song)
+        db_song = Song.get(filename=song)
         if db_song:
-            queue_song = db.Queue.get(song=db_song)
+            queue_song = Queue.get(song=db_song)
             if queue_song:
                 queue_song.delete()
 
-            for user in db.User.select():
+            for user in User.select():
                 user.favourites.remove(db_song)
 
             db_song.delete()
@@ -311,7 +310,7 @@ def reload_songs() -> None:
         insert_song(filename)
 
 
-@db.db_session
+@db_session
 def next_song() -> str:
     """
     Gets the song to play next from the queue
@@ -321,11 +320,11 @@ def next_song() -> str:
     generate_queue()
 
     try:
-        queue_entry = db.Queue.select().sort_by(db.Queue.id)[:1][0]
+        queue_entry = Queue.select().sort_by(Queue.id)[:1][0]
     except IndexError:
         return None
 
-    song = db.Song[queue_entry.song.id]
+    song = Song[queue_entry.song.id]
     song.playcount += 1
     song.lastplayed = datetime.utcnow()
 
@@ -340,15 +339,15 @@ class QueueStatus(NamedTuple):
     time: Optional[datetime]
 
 
-@db.db_session
-def queue_status(song: db.Song) -> QueueStatus:
+@db_session
+def queue_status(song: Song) -> QueueStatus:
     """
     Gets the queue status for a given song
 
     :param song: song to get status of
     :return: queue details for given song
     """
-    song_queue = db.Queue.select(lambda s: s.song.id == song.id)[:]
+    song_queue = Queue.select(lambda s: s.song.id == song.id)[:]
 
     if song_queue:
         song_queue = song_queue[-1]
@@ -374,8 +373,8 @@ def humanize_lastplayed(seconds: Union[arrow.arrow.Arrow, int]) -> str:
         return "Never before"
 
 
-@db.db_session
-def request_status(song: db.Song) -> RequestStatus:
+@db_session
+def request_status(song: Song) -> RequestStatus:
     """
     Gets the requestable status for a given song
 
@@ -385,7 +384,7 @@ def request_status(song: db.Song) -> RequestStatus:
     status = queue_status(song)
     info = RequestStatus(requestable=not status.queued)
 
-    if db.count(x for x in db.Queue) >= 10:
+    if count(x for x in Queue) >= 10:
         info.reason = "Queue is full. Please wait until there are less than 10 entries"
         info.requestable = False
     elif status.queued:

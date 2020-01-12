@@ -1,11 +1,10 @@
-from dataclasses import dataclass, make_dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, Union
+from typing import Optional
 from uuid import UUID
 
 from marshmallow import Schema, fields, validate
 from radio import app
-from radio import models as db
 
 
 @dataclass

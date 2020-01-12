@@ -177,7 +177,7 @@ const SignUp: FunctionComponent = () => {
                 />
                 <LoaderButton
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || Object.keys(errors).length !== 0}
                   loading={isSubmitting}>
                   Create Account
                 </LoaderButton>

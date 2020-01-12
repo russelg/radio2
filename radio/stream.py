@@ -1,4 +1,3 @@
-import io
 import logging
 import multiprocessing
 import os
@@ -118,7 +117,6 @@ class Worker(multiprocessing.Process):
             data = f"{meta['artist']} - {meta['title']}"
 
         ffmpeg = None
-        devnull = open(os.devnull, "w")
         with open(song_path, "rb") as song:
             src: IO = song
 
@@ -138,7 +136,7 @@ class Worker(multiprocessing.Process):
                     ],
                     stdin=song,
                     stdout=subprocess.PIPE,
-                    stderr=devnull,
+                    stderr=subprocess.DEVNULL,
                 )
                 src = ffmpeg.stdout
 

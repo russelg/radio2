@@ -1,7 +1,7 @@
 import argparse
 
-from radio import models as db
 from radio.common.users import register, user_exists, valid_username
+from radio.models import User, commit, db_session
 
 parser = argparse.ArgumentParser()
 parser.add_argument('username', type=str)
@@ -9,15 +9,15 @@ parser.add_argument('-p', '--password', type=str)
 parser.add_argument('--admin', action='store_true')
 args = parser.parse_args()
 
-with db.db_session:
+with db_session:
     if user_exists(args.username):
         if not args.admin:
             print(f'User "{args.username}" already exists.')
         else:
             print(f'User "{args.username}" exists. Making them an admin.')
-            user = db.User.get(username=args.username)
+            user = User.get(username=args.username)
             user.admin = True
-            db.commit()
+            commit()
 
     else:
         validator = valid_username(args.username)
