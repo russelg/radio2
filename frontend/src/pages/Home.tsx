@@ -2,8 +2,8 @@ import { css } from 'emotion'
 import React, {
   FunctionComponent,
   useCallback,
-  useState,
-  useEffect
+  useEffect,
+  useState
 } from 'react'
 import {
   Button,
@@ -27,9 +27,15 @@ import {
   Progress,
   Row
 } from 'reactstrap'
-import { SongListItem, SongItem } from '/api/Schemas'
+import { SongItem, SongListItem } from '/api/Schemas'
 import LoaderSkeleton from '/components/LoaderSkeleton'
-import { useControlContext } from '/contexts/control'
+import { FavouriteButton } from '/components/SongRow'
+import { useAuthContext } from '/contexts/auth'
+import {
+  setVolume,
+  useControlContext,
+  useControlState
+} from '/contexts/control'
 import { useRadioInfoContext } from '/contexts/radio'
 import { useRadioStatusContext } from '/contexts/radioStatus'
 import { useSettingsContext } from '/contexts/settings'
@@ -38,10 +44,9 @@ import {
   fuzzyTime,
   navbarMarginStyle,
   readableFilesize,
-  readableSeconds
+  readableSeconds,
+  setLocalStorage
 } from '/utils'
-import { FavouriteButton } from '/components/SongRow'
-import { useAuthContext } from '/contexts/auth'
 
 interface HomeProps {
   togglePlaying: () => void
@@ -261,7 +266,7 @@ const Controls: FunctionComponent<HomeProps> = React.memo(
     const { getStreamUrl } = useSettingsContext()
     const streamUrl = getStreamUrl()
 
-    const { playing } = useControlContext()
+    const { playing } = useControlState()
 
     const [showModal, setShowModal] = useState<boolean>(false)
     const [showDropdown, setShowDropdown] = useState<boolean>(false)
@@ -314,14 +319,18 @@ const Controls: FunctionComponent<HomeProps> = React.memo(
 )
 
 const VolumeControl: FunctionComponent = React.memo(() => {
-  const { volume, setVolume } = useControlContext()
+  const [{ volume }, dispatch] = useControlContext()
 
   const volumeChange = useCallback(
     (event: React.FormEvent<HTMLInputElement>) => {
-      setVolume(parseInt(event.currentTarget.value, 10))
+      setVolume(dispatch, parseInt(event.currentTarget.value, 10))
     },
     []
   )
+
+  useEffect(() => {
+    setLocalStorage('volume', volume)
+  }, [volume])
 
   return (
     <Card className="my-3 text-center">
@@ -347,44 +356,54 @@ const homeStyle = css`
   ${containerWidthStyle};
 `
 
-const Home: FunctionComponent<HomeProps> = ({ togglePlaying }) => {
+const SongLists: FunctionComponent = () => {
   const {
     serverInfo: { queue, lastPlayed }
   } = useRadioInfoContext()
 
   return (
+    <>
+      <Col lg="6" className="py-3">
+        <SongList songs={lastPlayed} title="Last Played" alignment="right">
+          No songs played recently.
+        </SongList>
+      </Col>
+      <Col lg="6" className="py-3">
+        <SongList songs={queue} title="Queue" alignment="left">
+          No songs currently queued.
+        </SongList>
+      </Col>
+    </>
+  )
+}
+
+const Home: FunctionComponent<HomeProps> = ({ togglePlaying }) => {
+  return (
     <Container className={homeStyle}>
-      <Row>
-        <Col>
-          <Row>
-            <Col lg="6" className="pb-3">
-              <Branding />
-            </Col>
-            <Col lg="6" className="pb-3">
-              <Controls togglePlaying={togglePlaying} />
-            </Col>
-          </Row>
-          <Row className="py-5">
-            <Col>
-              <useRadioStatusContext.Provider>
-                <BigProgress />
-              </useRadioStatusContext.Provider>
-            </Col>
-          </Row>
-        </Col>
-      </Row>
-      <Row>
-        <Col lg="6" className="py-3">
-          <SongList songs={lastPlayed} title="Last Played" alignment="right">
-            No songs played recently.
-          </SongList>
-        </Col>
-        <Col lg="6" className="py-3">
-          <SongList songs={queue} title="Queue" alignment="left">
-            No songs currently queued.
-          </SongList>
-        </Col>
-      </Row>
+      <useRadioInfoContext.Provider>
+        <Row>
+          <Col>
+            <Row>
+              <Col lg="6" className="pb-3">
+                <Branding />
+              </Col>
+              <Col lg="6" className="pb-3">
+                <Controls togglePlaying={togglePlaying} />
+              </Col>
+            </Row>
+            <Row className="py-5">
+              <Col>
+                <useRadioStatusContext.Provider>
+                  <BigProgress />
+                </useRadioStatusContext.Provider>
+              </Col>
+            </Row>
+          </Col>
+        </Row>
+        <Row>
+          <SongLists />
+        </Row>
+      </useRadioInfoContext.Provider>
     </Container>
   )
 }

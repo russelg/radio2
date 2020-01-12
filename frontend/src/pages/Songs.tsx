@@ -336,7 +336,7 @@ const PlaceholderTable = (
 
 const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
   const { canUpload } = useSettingsContext()
-  const { username, isAdmin, showAdmin } = useAuthContext()
+  const { isAdmin, showAdmin } = useAuthContext()
 
   // request related state
   const [paginationState, setPaginationState] = useState<PaginationState>({

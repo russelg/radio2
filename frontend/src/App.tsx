@@ -19,8 +19,11 @@ import ErrorBoundary from '/components/ErrorBoundary'
 import LoaderSpinner from '/components/LoaderSpinner'
 import MiniPlayer from '/components/MiniPlayer'
 import Navbar from '/components/Navbar'
-import { useAuthContext } from '/contexts/auth'
-import { useControlContext } from '/contexts/control'
+import {
+  togglePlaying,
+  useControlDispatch,
+  useControlState
+} from '/contexts/control'
 import { useRadioInfoContext } from '/contexts/radio'
 import { useRadioStatusContext } from '/contexts/radioStatus'
 import { useSettingsContext } from '/contexts/settings'
@@ -49,14 +52,14 @@ const switchStyle = css`
 `
 
 const TitleSetter: FunctionComponent = () => {
-  const { playing } = useControlContext()
+  const { playing } = useControlState()
   const { songInfo } = useRadioInfoContext()
   const { title: pageTitle } = useSettingsContext()
 
   return (
     <Helmet>
       <title>
-        {playing
+        {playing && songInfo.title !== ''
           ? `▶ ${songInfo.title} - ${songInfo.artist} | ${pageTitle}`
           : pageTitle}
       </title>
@@ -103,17 +106,11 @@ const bounceTransition = {
 const App: FunctionComponent = () => {
   const player = useRef<ReactHowler>(null)
 
-  const { title, styles, getStreamUrl } = useSettingsContext()
+  const { getStreamUrl } = useSettingsContext()
   const streamUrl = getStreamUrl()
 
-  const {
-    volume,
-    playing,
-    togglePlaying,
-    setShouldFetchInfo
-  } = useControlContext()
-
-  // const { setShouldFetchInfo } = useRadioInfoContext()
+  const { volume, playing } = useControlState()
+  const dispatch = useControlDispatch()
 
   const toggleHowlerPlaying = useCallback(() => {
     const howler = player.current && player.current.howler
@@ -126,22 +123,24 @@ const App: FunctionComponent = () => {
         howler.load()
         howler.play()
       }
-      togglePlaying()
+      togglePlaying(dispatch)
     }
-  }, [player, playing, togglePlaying])
+  }, [player, playing])
 
   return (
     <Router>
       <QueryParamProvider ReactRouterRoute={Route}>
         <ErrorBoundary>
-          <TitleSetter />
           <div className="h-100">
             <Navbar>
               <Collapse isOpen={playing}>
                 {playing && (
-                  <useRadioStatusContext.Provider>
-                    <MiniPlayer />
-                  </useRadioStatusContext.Provider>
+                  <useRadioInfoContext.Provider>
+                    <useRadioStatusContext.Provider>
+                      <TitleSetter />
+                      <MiniPlayer />
+                    </useRadioStatusContext.Provider>
+                  </useRadioInfoContext.Provider>
                 )}
               </Collapse>
             </Navbar>
@@ -167,10 +166,9 @@ const App: FunctionComponent = () => {
                 path="/"
                 exact
                 render={props => {
-                  setShouldFetchInfo(true)
                   return (
                     <Suspense fallback={<LoaderSpinner />}>
-                      <Home {...props} togglePlaying={toggleHowlerPlaying} />
+                      <Home togglePlaying={toggleHowlerPlaying} />
                     </Suspense>
                   )
                 }}
@@ -179,7 +177,6 @@ const App: FunctionComponent = () => {
                 path="/songs"
                 exact
                 render={props => {
-                  setShouldFetchInfo(playing)
                   return (
                     <Suspense fallback={<LoaderSpinner />}>
                       <Songs {...props} favourites={false} />
@@ -191,7 +188,6 @@ const App: FunctionComponent = () => {
                 path="/favourites"
                 exact
                 render={props => {
-                  setShouldFetchInfo(playing)
                   return (
                     <Suspense fallback={<LoaderSpinner />}>
                       <Songs {...props} favourites={true} />
@@ -203,7 +199,6 @@ const App: FunctionComponent = () => {
                 path="/sign-up"
                 exact
                 render={props => {
-                  setShouldFetchInfo(playing)
                   return <SignUp />
                 }}
               />
@@ -211,7 +206,6 @@ const App: FunctionComponent = () => {
                 path="/sign-in"
                 exact
                 render={props => {
-                  setShouldFetchInfo(playing)
                   return <SignIn />
                 }}
               />

@@ -5,8 +5,7 @@ import { render } from 'react-dom'
 import { BrowserRouter } from 'react-router-dom'
 import App from '/App'
 import { useAuthContext } from '/contexts/auth'
-import { useControlContext } from '/contexts/control'
-import { useRadioInfoContext } from '/contexts/radio'
+import { ControlProvider } from '/contexts/control'
 import { useSettingsContext } from '/contexts/settings'
 import '/index.css'
 
@@ -14,15 +13,13 @@ const root = document.getElementById('root')
 
 render(
   <BrowserRouter>
-    <useControlContext.Provider>
-      <useSettingsContext.Provider>
+    <useSettingsContext.Provider>
+      <ControlProvider>
         <useAuthContext.Provider>
-          <useRadioInfoContext.Provider>
-            <App />
-          </useRadioInfoContext.Provider>
+          <App />
         </useAuthContext.Provider>
-      </useSettingsContext.Provider>
-    </useControlContext.Provider>
+      </ControlProvider>
+    </useSettingsContext.Provider>
   </BrowserRouter>,
   root
 )

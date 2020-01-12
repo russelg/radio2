@@ -6,6 +6,8 @@ services:
       - ./tools/Caddyfile.docker.dev:/etc/Caddyfile
 
   frontend:
+    tty: true
+    stdin_open: false
     command: yarn run start
     restart: on-failure
     environment:

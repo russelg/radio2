@@ -146,7 +146,7 @@ export function useLocalStorage<T>(
       // Save state
       setStoredValue(valueToStore)
       // Save to local storage
-      window.localStorage.setItem(key, JSON.stringify(valueToStore))
+      setLocalStorage(key, valueToStore)
     } catch (error) {
       // A more advanced implementation would handle the error case
       console.log(error)
@@ -177,4 +177,65 @@ export function useInterval(callback: IntervalFunction, delay: number) {
     const id = setInterval(tick, delay)
     return () => clearInterval(id)
   }, [delay])
+}
+
+export function getLocalStorage<T>(key: string, initialValue: T): T {
+  try {
+    const serializedState = localStorage.getItem(key)
+    if (serializedState === null) {
+      return initialValue
+    }
+    try {
+      return JSON.parse(serializedState)
+    } catch (err) {
+      return (serializedState as unknown) as T
+    }
+  } catch (err) {
+    return initialValue
+  }
+}
+
+export function setLocalStorage<T>(key: string, value: T) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value))
+  } catch (error) {
+    // A more advanced implementation would handle the error case
+    console.log(error)
+  }
+}
+
+type PropsObject = { [k: string]: any }
+
+function useWhyDidYouUpdate(name: string, props: PropsObject) {
+  // Get a mutable ref object where we can store props ...
+  // ... for comparison next time this hook runs.
+  const previousProps = useRef<PropsObject>()
+
+  useEffect(() => {
+    if (previousProps.current) {
+      // Get all keys from previous and current props
+      const allKeys = Object.keys({ ...previousProps.current!, ...props })
+      // Use this object to keep track of changed props
+      const changesObj: PropsObject = {}
+      // Iterate through keys
+      allKeys.forEach(key => {
+        // If previous is different from current
+        if (previousProps.current![key] !== props[key]) {
+          // Add to changesObj
+          changesObj[key] = {
+            from: previousProps.current![key],
+            to: props[key]
+          }
+        }
+      })
+
+      // If changesObj not empty then output to console
+      if (Object.keys(changesObj).length) {
+        console.log('[why-did-you-update]', name, changesObj)
+      }
+    }
+
+    // Finally update previousProps with current props for next hook call
+    previousProps.current = props
+  })
 }
