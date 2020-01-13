@@ -153,61 +153,63 @@ const App: FunctionComponent = () => {
               ref={player}
             />
 
-            <AnimatedSwitch
-              runOnMount
-              atEnter={bounceTransition.atEnter}
-              atLeave={bounceTransition.atLeave}
-              atActive={bounceTransition.atActive}
-              mapStyles={mapStyles}
-              className={cx(switchStyle, 'h-100')}>
-              <Route
-                path="/"
-                exact
-                render={props => {
-                  return (
-                    <Suspense fallback={<LoaderSpinner />}>
-                      <Home togglePlaying={toggleHowlerPlaying} />
-                    </Suspense>
-                  )
-                }}
-              />
-              <Route
-                path="/songs"
-                exact
-                render={props => {
-                  return (
-                    <Suspense fallback={<LoaderSpinner />}>
-                      <Songs {...props} favourites={false} />
-                    </Suspense>
-                  )
-                }}
-              />
-              <Route
-                path="/favourites"
-                exact
-                render={props => {
-                  return (
-                    <Suspense fallback={<LoaderSpinner />}>
-                      <Songs {...props} favourites={true} />
-                    </Suspense>
-                  )
-                }}
-              />
-              <Route
-                path="/sign-up"
-                exact
-                render={props => {
-                  return <SignUp />
-                }}
-              />
-              <Route
-                path="/sign-in"
-                exact
-                render={props => {
-                  return <SignIn />
-                }}
-              />
-            </AnimatedSwitch>
+            <useRadioInfoContext.Provider>
+              <AnimatedSwitch
+                runOnMount
+                atEnter={bounceTransition.atEnter}
+                atLeave={bounceTransition.atLeave}
+                atActive={bounceTransition.atActive}
+                mapStyles={mapStyles}
+                className={cx(switchStyle, 'h-100')}>
+                <Route
+                  path="/"
+                  exact
+                  render={props => {
+                    return (
+                      <Suspense fallback={<LoaderSpinner />}>
+                        <Home togglePlaying={toggleHowlerPlaying} />
+                      </Suspense>
+                    )
+                  }}
+                />
+                <Route
+                  path="/songs"
+                  exact
+                  render={props => {
+                    return (
+                      <Suspense fallback={<LoaderSpinner />}>
+                        <Songs {...props} favourites={false} />
+                      </Suspense>
+                    )
+                  }}
+                />
+                <Route
+                  path="/favourites"
+                  exact
+                  render={props => {
+                    return (
+                      <Suspense fallback={<LoaderSpinner />}>
+                        <Songs {...props} favourites={true} />
+                      </Suspense>
+                    )
+                  }}
+                />
+                <Route
+                  path="/sign-up"
+                  exact
+                  render={props => {
+                    return <SignUp />
+                  }}
+                />
+                <Route
+                  path="/sign-in"
+                  exact
+                  render={props => {
+                    return <SignIn />
+                  }}
+                />
+              </AnimatedSwitch>
+            </useRadioInfoContext.Provider>
           </div>
         </ErrorBoundary>
       </QueryParamProvider>

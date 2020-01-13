@@ -362,30 +362,28 @@ const SongLists: FunctionComponent = () => {
 const Home: FunctionComponent<HomeProps> = ({ togglePlaying }) => {
   return (
     <Container className={homeStyle}>
-      <useRadioInfoContext.Provider>
-        <Row>
-          <Col>
-            <Row>
-              <Col lg="6" className="pb-3">
-                <Branding />
-              </Col>
-              <Col lg="6" className="pb-3">
-                <Controls togglePlaying={togglePlaying} />
-              </Col>
-            </Row>
-            <Row className="py-5">
-              <Col>
-                <useRadioStatusContext.Provider>
-                  <BigProgress />
-                </useRadioStatusContext.Provider>
-              </Col>
-            </Row>
-          </Col>
-        </Row>
-        <Row>
-          <SongLists />
-        </Row>
-      </useRadioInfoContext.Provider>
+      <Row>
+        <Col>
+          <Row>
+            <Col lg="6" className="pb-3">
+              <Branding />
+            </Col>
+            <Col lg="6" className="pb-3">
+              <Controls togglePlaying={togglePlaying} />
+            </Col>
+          </Row>
+          <Row className="py-5">
+            <Col>
+              <useRadioStatusContext.Provider>
+                <BigProgress />
+              </useRadioStatusContext.Provider>
+            </Col>
+          </Row>
+        </Col>
+      </Row>
+      <Row>
+        <SongLists />
+      </Row>
     </Container>
   )
 }
