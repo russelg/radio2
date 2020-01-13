@@ -4,7 +4,7 @@ import React from 'react'
 import { render } from 'react-dom'
 import { BrowserRouter } from 'react-router-dom'
 import App from '/App'
-import { useAuthContext } from '/contexts/auth'
+import { AuthProvider } from '/contexts/auth'
 import { ControlProvider } from '/contexts/control'
 import { useSettingsContext } from '/contexts/settings'
 import '/index.css'
@@ -15,9 +15,9 @@ render(
   <BrowserRouter>
     <useSettingsContext.Provider>
       <ControlProvider>
-        <useAuthContext.Provider>
+        <AuthProvider>
           <App />
-        </useAuthContext.Provider>
+        </AuthProvider>
       </ControlProvider>
     </useSettingsContext.Provider>
   </BrowserRouter>,

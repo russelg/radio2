@@ -5,13 +5,16 @@ import 'filepond/dist/filepond.min.css'
 import React, {
   FormEvent,
   FunctionComponent,
-  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState
 } from 'react'
-import { AsyncTypeahead, Highlighter } from 'react-bootstrap-typeahead'
+import {
+  AsyncTypeahead,
+  Highlighter,
+  TypeaheadMenuProps
+} from 'react-bootstrap-typeahead'
 import 'react-bootstrap-typeahead/css/Typeahead-bs4.css'
 import 'react-bootstrap-typeahead/css/Typeahead.css'
 import { File as FilePondFile, FilePond, registerPlugin } from 'react-filepond'
@@ -49,12 +52,13 @@ import {
 import Error from '/components/Error'
 import NotificationToast from '/components/NotificationToast'
 import SongsTable from '/components/SongsTable'
-import { useAuthContext } from '/contexts/auth'
+import { useAuthState } from '/contexts/auth'
 import { useSettingsContext } from '/contexts/settings'
 import {
   containerWidthStyle,
   navbarMarginStyle,
-  useDelayedLoader
+  useDelayedLoader,
+  useLocalStorage
 } from '/utils'
 
 registerPlugin(FilePondPluginFileValidateType)
@@ -66,7 +70,7 @@ interface SongUploadFormProps {
 const SongUploadForm: FunctionComponent<SongUploadFormProps> = ({
   refreshSong
 }) => {
-  const { accessToken } = useAuthContext()
+  const { accessToken } = useAuthState()
 
   const pond = useRef<FilePond>(null)
   const [files, setFiles] = useState<FilePondFile[]>([])
@@ -84,32 +88,26 @@ const SongUploadForm: FunctionComponent<SongUploadFormProps> = ({
     }
   }
 
-  const onupdatefiles = useCallback(
-    fileItems => {
-      setFiles(fileItems)
-    },
-    [setFiles]
-  )
+  const onupdatefiles = (fileItems: FilePondFile[]) => {
+    setFiles(fileItems)
+  }
 
-  const onprocessfile = useCallback(
-    (err, file) => {
-      if (!err) {
-        // @ts-ignore
-        toast(<NotificationToast>Song uploaded!</NotificationToast>)
-        refreshSong(file.serverId)
+  const onprocessfile = (err: any, file: FilePondFile) => {
+    if (!err) {
+      // @ts-ignore
+      toast(<NotificationToast>Song uploaded!</NotificationToast>)
+      refreshSong(file.serverId)
 
-        // remove file after uploaded
-        pond.current && pond.current.removeFile(file.id)
-        setFiles(files => files.filter(itm => itm.file !== file.file))
-      } else {
-        let msg = 'Song upload failed'
-        // @ts-ignore
-        if (err.code === 413) msg += ' (file too large)'
-        toast(<NotificationToast error>{msg}</NotificationToast>)
-      }
-    },
-    [refreshSong, setFiles]
-  )
+      // remove file after uploaded
+      pond.current && pond.current.removeFile(file.id)
+      setFiles(files => files.filter(itm => itm.file !== file.file))
+    } else {
+      let msg = 'Song upload failed'
+      // @ts-ignore
+      if (err.code === 413) msg += ' (file too large)'
+      toast(<NotificationToast error>{msg}</NotificationToast>)
+    }
+  }
 
   return (
     <FilePond
@@ -161,56 +159,43 @@ const SearchField: FunctionComponent<SearchFieldProps> = ({
 
   const [typeahead, setTypeahead] = useState<any>(null)
 
-  const onSubmit = useCallback(
-    event => {
+  const onSubmit = (event: FormEvent) => {
+    event.preventDefault()
+    setQuery(input)
+  }
+
+  const onChange = (selected: AutocompleteItemJson[]) => {
+    const res: AutocompleteItemJson = selected[0] || {
+      result: ''
+    }
+    setInput(res.result)
+  }
+  const onKeyDown = (event: any) => {
+    // only submit on enter if the user has not selected a typeahead option
+    if (event.keyCode === 13 && input === event.target.defaultValue) {
       event.preventDefault()
       setQuery(input)
-    },
-    [setQuery, input]
-  )
+    }
+  }
 
-  const onChange = useCallback(
-    (selected: AutocompleteItemJson[]) => {
-      const res: AutocompleteItemJson = selected[0] || {
-        result: ''
-      }
-      setInput(res.result)
-    },
-    [setInput]
-  )
+  const onSearch = (query: string) => {
+    setLoading(true)
+    fetch(`${API_BASE}/autocomplete?query=${query}`)
+      .then(resp => resp.clone().json())
+      .then((json: ApiResponse<AutocompleteJson>) => {
+        setLoading(false)
+        setOptions(json.suggestions)
+      })
+  }
 
-  const onKeyDown = useCallback(
-    (event: any) => {
-      // only submit on enter if the user has not selected a typeahead option
-      if (event.keyCode === 13 && input === event.target.defaultValue) {
-        event.preventDefault()
-        setQuery(input)
-      }
-    },
-    [setQuery, input]
-  )
-
-  const onSearch = useCallback(
-    (query: string) => {
-      setLoading(true)
-      fetch(`${API_BASE}/autocomplete?query=${query}`)
-        .then(resp => resp.clone().json())
-        .then((json: ApiResponse<AutocompleteJson>) => {
-          setLoading(false)
-          setOptions(json.suggestions)
-        })
-    },
-    [setLoading, setOptions]
-  )
-
-  const renderMenuItemChildren = useCallback(
-    (result: AutocompleteItemJson, props) => (
-      <span>
-        <b>{result.type}</b>:&nbsp;
-        <Highlighter search={props.text || ''}>{result.result}</Highlighter>
-      </span>
-    ),
-    []
+  const renderMenuItemChildren = (
+    result: AutocompleteItemJson,
+    props: TypeaheadMenuProps<AutocompleteItemJson>
+  ) => (
+    <span>
+      <b>{result.type}</b>:&nbsp;
+      <Highlighter search={props.text || ''}>{result.result}</Highlighter>
+    </span>
   )
 
   useEffect(() => {
@@ -253,9 +238,15 @@ const SearchField: FunctionComponent<SearchFieldProps> = ({
   )
 }
 
-const ShowAdminToggle: FunctionComponent = () => {
-  const { showAdmin, setShowAdmin } = useAuthContext()
+type ShowAdminToggleProps = {
+  showAdmin: boolean
+  setShowAdmin: (value: boolean) => void
+}
 
+const ShowAdminToggle: FunctionComponent<ShowAdminToggleProps> = ({
+  showAdmin,
+  setShowAdmin
+}) => {
   return (
     <Row>
       <Col>
@@ -285,20 +276,17 @@ const LoadFavesField: FunctionComponent<LoadFavesFieldProps> = ({
   queryParam
 }) => {
   const history = useHistory()
-  const { username } = useAuthContext()
+  const { username } = useAuthState()
   const [userInput, setUserInput] = useState<string>(queryParam.user || '')
 
-  const handleFaves = useCallback(
-    (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault()
-      const url = getApiUrl(
-        { ...queryParam, user: userInput || username || undefined },
-        true
-      )
-      history.push(url)
-    },
-    [queryParam, userInput, history, username]
-  )
+  const handleFaves = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const url = getApiUrl(
+      { ...queryParam, user: userInput || username || undefined },
+      true
+    )
+    history.push(url)
+  }
 
   return (
     <Form onSubmit={handleFaves}>
@@ -330,13 +318,14 @@ interface PaginationState {
 }
 
 const placeholders = [...Array(25).fill(null)]
-const PlaceholderTable = (
-  <SongsTable songs={placeholders} updateSong={() => {}} />
-)
 
 const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
+  const [showAdmin, setShowAdmin] = useLocalStorage<boolean>(
+    'show_admin',
+    false
+  )
   const { canUpload } = useSettingsContext()
-  const { isAdmin, showAdmin } = useAuthContext()
+  const { admin } = useAuthState()
 
   // request related state
   const [paginationState, setPaginationState] = useState<PaginationState>({
@@ -358,44 +347,42 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
   const { query = undefined, page = 1, user = undefined } = queryParam
 
   const PlaceholderTable = useMemo(
-    () => <SongsTable songs={placeholders} updateSong={() => {}} />,
-    []
+    () => (
+      <SongsTable
+        songs={placeholders}
+        updateSong={() => {}}
+        showAdmin={showAdmin}
+      />
+    ),
+    [showAdmin]
   )
 
-  const updateSong = useCallback(
-    (id: string, song: SongItem | null): boolean => {
-      let songsCopy = [...songs]
-      const stateSong: number = songsCopy.findIndex(
-        element => element.id === id
-      )
-      if (stateSong > -1) {
-        console.log('updating:', { id, song })
-        if (song !== null) {
-          songsCopy[stateSong] = { ...songsCopy[stateSong], ...song }
-        } else {
-          // remove song if null
-          songsCopy = songsCopy.filter(item => item !== songs[stateSong])
-        }
-        setSongs(songsCopy)
-        return true
+  const updateSong = (id: string, song: SongItem | null): boolean => {
+    let songsCopy = [...songs]
+    const stateSong: number = songsCopy.findIndex(element => element.id === id)
+    if (stateSong > -1) {
+      console.log('updating:', { id, song })
+      if (song !== null) {
+        songsCopy[stateSong] = { ...songsCopy[stateSong], ...song }
+      } else {
+        // remove song if null
+        songsCopy = songsCopy.filter(item => item !== songs[stateSong])
       }
-      return false
-    },
-    [songs]
-  )
+      setSongs(songsCopy)
+      return true
+    }
+    return false
+  }
 
-  const refreshSong = useCallback(
-    (song: string): void => {
-      fetch(`${API_BASE}/song/${song}`, { method: 'GET' })
-        .then(res => res.clone().json())
-        .then((result: ApiResponse<SongItem>) => {
-          // update existing song if it exists
-          const updated = updateSong(song, result)
-          if (!updated) setSongs([result, ...songs])
-        })
-    },
-    [songs]
-  )
+  const refreshSong = (song: string): void => {
+    fetch(`${API_BASE}/song/${song}`, { method: 'GET' })
+      .then(res => res.clone().json())
+      .then((result: ApiResponse<SongItem>) => {
+        // update existing song if it exists
+        const updated = updateSong(song, result)
+        if (!updated) setSongs([result, ...songs])
+      })
+  }
 
   const pagination = (
     <Pagination
@@ -416,7 +403,7 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
     />
   )
 
-  const loadSongs = useCallback(() => {
+  const loadSongs = () => {
     setLoading(true)
     fetch(API_BASE + getApiUrl({ page, user, query }, favourites), {
       method: 'GET'
@@ -436,7 +423,7 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
           if (msg) setError(msg)
         }
       })
-  }, [page, user, query, favourites])
+  }
 
   // update request url on query change
   useEffect(() => {
@@ -456,8 +443,10 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
 
   return (
     <Container className={cx(containerWidthStyle, navbarMarginStyle)}>
-      {isAdmin && <ShowAdminToggle />}
-      {(canUpload || (isAdmin && showAdmin)) && (
+      {admin && (
+        <ShowAdminToggle showAdmin={showAdmin} setShowAdmin={setShowAdmin} />
+      )}
+      {(canUpload || (admin && showAdmin)) && (
         <Row>
           <Col>
             <SongUploadForm refreshSong={refreshSong} />
@@ -498,7 +487,11 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
               (loading ? (
                 PlaceholderTable
               ) : (
-                <SongsTable songs={songs} updateSong={updateSong} />
+                <SongsTable
+                  songs={songs}
+                  updateSong={updateSong}
+                  showAdmin={showAdmin}
+                />
               ))}
           </animated.div>
         </Col>

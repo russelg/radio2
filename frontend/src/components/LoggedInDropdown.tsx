@@ -9,17 +9,18 @@ import {
   DropdownToggle,
   UncontrolledDropdown
 } from 'reactstrap'
-import { useAuthContext } from '/contexts/auth'
+import { logout, useAuthDispatch, useAuthState } from '/contexts/auth'
 
 const LoggedInDropdown: FunctionComponent = () => {
-  const { username, isAdmin, logout } = useAuthContext()
+  const { username, admin } = useAuthState()
+  const dispatch = useAuthDispatch()
 
   return (
     <UncontrolledDropdown nav inNavbar>
       <DropdownToggle nav caret>
         <FontAwesomeIcon fixedWidth icon={faUser} />
         <span className="mx-2">{username}</span>
-        {isAdmin && (
+        {admin && (
           <Badge pill variant="info" className="align-middle badge-admin">
             Admin
           </Badge>
@@ -30,7 +31,7 @@ const LoggedInDropdown: FunctionComponent = () => {
           View your favourites
         </DropdownItem>
         <DropdownItem divider />
-        <DropdownItem onClick={logout}>Logout</DropdownItem>
+        <DropdownItem onClick={() => logout(dispatch)}>Logout</DropdownItem>
       </DropdownMenu>
     </UncontrolledDropdown>
   )

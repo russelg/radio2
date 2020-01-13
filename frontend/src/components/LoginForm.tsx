@@ -8,7 +8,7 @@ import React, {
 import { Form, FormFeedback, FormGroup, Input } from 'reactstrap'
 import LoaderButton from './LoaderButton'
 import { Description } from '/api/Schemas'
-import { useAuthContext } from '/contexts/auth'
+import { login, useAuthDispatch } from '/contexts/auth'
 
 const formControlStyle = css`
   .form-control {
@@ -25,7 +25,7 @@ const formControlStyle = css`
 `
 
 const LoginForm: FunctionComponent = () => {
-  const { login } = useAuthContext()
+  const dispatch = useAuthDispatch()
 
   const [values, setValues] = useState({
     username: '' as string,
@@ -41,7 +41,7 @@ const LoginForm: FunctionComponent = () => {
   const handleLogin = (event: FormEvent) => {
     event.preventDefault()
     setSubmitting(true)
-    login(values.username, values.password).then(resp => {
+    login(dispatch, values.username, values.password).then(resp => {
       setSubmitting(false)
       if (resp.error !== null) setError(resp.description!)
     })

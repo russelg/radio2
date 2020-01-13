@@ -43,7 +43,7 @@ export function fuzzyTime(time: string): string {
   return formatDistanceToNow(parseISO(time), { addSuffix: true })
 }
 
-type JWT = {
+export type JWT = {
   ait: number
   nbf: number
   jti: number
@@ -52,11 +52,13 @@ type JWT = {
   type: 'access' | 'refresh'
 }
 
-type JWTClaims<T> = {
+export type JWTClaims<T> = {
   user_claims: T
 }
 
-export function parseJwt<T>(token: string): (JWT & JWTClaims<T>) | null {
+export type JWTWithClaims<T> = (JWT & JWTClaims<T>) | null
+
+export function parseJwt<T>(token: string): JWTWithClaims<T> {
   const base64Url = token.split('.')[1]
   const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
   const jsonPayload = decodeURIComponent(

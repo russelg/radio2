@@ -4,7 +4,6 @@ import React, {
   FunctionComponent,
   lazy,
   Suspense,
-  useCallback,
   useRef
 } from 'react'
 import { Helmet } from 'react-helmet'
@@ -106,13 +105,12 @@ const bounceTransition = {
 const App: FunctionComponent = () => {
   const player = useRef<ReactHowler>(null)
 
-  const { getStreamUrl } = useSettingsContext()
-  const streamUrl = getStreamUrl()
+  const { streamUrl } = useSettingsContext()
 
   const { volume, playing } = useControlState()
   const dispatch = useControlDispatch()
 
-  const toggleHowlerPlaying = useCallback(() => {
+  const toggleHowlerPlaying = () => {
     const howler = player.current && player.current.howler
     if (howler) {
       // Force howler to unload and reload the song
@@ -125,7 +123,7 @@ const App: FunctionComponent = () => {
       }
       togglePlaying(dispatch)
     }
-  }, [player, playing])
+  }
 
   return (
     <Router>

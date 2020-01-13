@@ -2,6 +2,7 @@ import React, { FunctionComponent, lazy } from 'react'
 import { Table } from 'reactstrap'
 import { SongItem } from '/api/Schemas'
 import SongRow from '/components/SongRow'
+import { useAuthState } from '/contexts/auth'
 
 // @ts-ignore
 const Editable = lazy(() =>
@@ -11,26 +12,35 @@ const Editable = lazy(() =>
 interface Props {
   songs: (SongItem | null)[]
   updateSong: (id: string, song: SongItem | null) => void
+  showAdmin: boolean
 }
 
-interface State {
-  deleting: SongItem[]
-}
+const SongsTable: FunctionComponent<Props> = ({
+  songs,
+  updateSong,
+  showAdmin
+}) => {
+  const { admin: isAdmin, loggedIn } = useAuthState()
+  const admin = isAdmin && showAdmin
 
-const SongsTable: FunctionComponent<Props> = ({ songs, updateSong }) => {
   return (
     <Table striped>
       <thead>
         <tr className="d-flex">
           <th className="col-1">Length</th>
-          <th className="col-2">Artist</th>
-          <th className="col-5">Title</th>
-          <th className="col" />
+          <th className={admin ? 'col-2' : 'col-3'}>Artist</th>
+          <th className="col">Title</th>
+          <th className="col-auto" />
         </tr>
       </thead>
       <tbody>
         {songs.map((song: SongItem | null, idx) => (
-          <SongRow key={idx} song={song} updateSong={updateSong} />
+          <SongRow
+            key={idx}
+            song={song}
+            updateSong={updateSong}
+            showAdmin={showAdmin}
+          />
         ))}
       </tbody>
     </Table>

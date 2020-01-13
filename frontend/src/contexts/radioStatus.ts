@@ -1,5 +1,5 @@
 import createUseContext from 'constate'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { SYNC_OFFSET, useRadioInfoContext } from '/contexts/radio'
 import { useInterval } from '/utils'
 
@@ -22,34 +22,35 @@ function useRadioStatusHook(callback: () => void) {
     duration: 0
   })
 
-  const updateProgress = useCallback(
-    (start: number, end: number, serverTime: number): void => {
-      if (end !== 0) {
-        const clientTime = Math.round(new Date().getTime() / 1000.0)
-        const syncSeconds = serverTime - clientTime
-        const localStart = start + syncSeconds
-        const localEnd = end + syncSeconds
-        const duration = localEnd - localStart
-        const position = clientTime - localStart
-        const progress = (100 / duration) * position
-        const progressIncrement = (100 / duration) * 0.5
-        setRadioStatus(radioStatus => ({
-          ...radioStatus,
-          syncSeconds,
-          duration,
-          position,
-          progress,
-          progressIncrement
-        }))
-      } else {
-        setRadioStatus(radioStatus => ({
-          ...radioStatus,
-          progress: 0
-        }))
-      }
-    },
-    []
-  )
+  const updateProgress = (
+    start: number,
+    end: number,
+    serverTime: number
+  ): void => {
+    if (end !== 0) {
+      const clientTime = Math.round(new Date().getTime() / 1000.0)
+      const syncSeconds = serverTime - clientTime
+      const localStart = start + syncSeconds
+      const localEnd = end + syncSeconds
+      const duration = localEnd - localStart
+      const position = clientTime - localStart
+      const progress = (100 / duration) * position
+      const progressIncrement = (100 / duration) * 0.5
+      setRadioStatus(radioStatus => ({
+        ...radioStatus,
+        syncSeconds,
+        duration,
+        position,
+        progress,
+        progressIncrement
+      }))
+    } else {
+      setRadioStatus(radioStatus => ({
+        ...radioStatus,
+        progress: 0
+      }))
+    }
+  }
 
   useInterval(() => {
     let progress = 0

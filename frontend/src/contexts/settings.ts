@@ -1,5 +1,5 @@
 import createUseContext from 'constate'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { API_BASE } from '/api'
 import { ApiResponse, SettingsJson } from '/api/Schemas'
 import { useLocalStorage } from '/utils'
@@ -15,7 +15,7 @@ function useSettings() {
   const [canDownload, setCanDownload] = useState<boolean>(false)
   const [canUpload, setCanUpload] = useState<boolean>(false)
 
-  const fetchSettings = useCallback(() => {
+  const fetchSettings = () => {
     fetch(`${API_BASE}/settings`)
       .then(resp => resp.clone().json())
       .then((resp: ApiResponse<SettingsJson>) => {
@@ -29,7 +29,7 @@ function useSettings() {
         setCanDownload(resp.downloads_enabled)
         setCanUpload(resp.uploads_enabled)
       })
-  }, [stylesheet])
+  }
 
   // fetch settings on first use
   useEffect(() => {
@@ -58,7 +58,7 @@ function useSettings() {
     title,
     canDownload,
     canUpload,
-    getStreamUrl: useCallback(() => icecast.url + icecast.mount, [icecast])
+    streamUrl: icecast.url + icecast.mount
   }
 }
 

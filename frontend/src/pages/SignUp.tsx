@@ -7,7 +7,7 @@ import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
 import { faUser } from '@fortawesome/free-solid-svg-icons/faUser'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { Formik } from 'formik'
-import React, { FunctionComponent, useCallback, useState } from 'react'
+import React, { FunctionComponent, useState } from 'react'
 import { Link, Redirect } from 'react-router-dom'
 import {
   Form,
@@ -21,7 +21,7 @@ import { InputType } from 'reactstrap/lib/Input'
 import * as yup from 'yup'
 import Dialog from '/components/Dialog'
 import LoaderButton from '/components/LoaderButton'
-import { useAuthContext } from '/contexts/auth'
+import { register, useAuthState } from '/contexts/auth'
 
 export interface FormInputProps {
   icon?: IconName | [IconPrefix, IconName] | IconLookup
@@ -98,17 +98,22 @@ export interface SignUpFormInputs {
 
 const SignUp: FunctionComponent = () => {
   const [registered, setRegistered] = useState<boolean | string>(false)
-  const { loggedIn, register } = useAuthContext()
+  const { loggedIn } = useAuthState()
 
-  const onSubmit = useCallback(
-    (values: SignUpFormInputs, { setSubmitting, setErrors }) => {
-      register(values.username, values.password)
-        .then(resp => setRegistered(resp))
-        .catch(error => setErrors({ username: error.message }))
-      setSubmitting(false)
-    },
-    []
-  )
+  type onSubmitProps = {
+    setSubmitting: (val: boolean) => void
+    setErrors: (val: any) => void
+  }
+
+  const onSubmit = (
+    values: SignUpFormInputs,
+    { setSubmitting, setErrors }: onSubmitProps
+  ) => {
+    register(values.username, values.password)
+      .then(resp => setRegistered(resp))
+      .catch(error => setErrors({ username: error.message }))
+    setSubmitting(false)
+  }
 
   if (loggedIn) return <Redirect to="/" />
 

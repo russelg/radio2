@@ -16,7 +16,7 @@ import LoaderSkeleton from '/components/LoaderSkeleton'
 import LoggedInDropdown from '/components/LoggedInDropdown'
 import LoginDropdown from '/components/LoginDropdown'
 import ThemeChooser from '/components/ThemeChooser'
-import { useAuthContext } from '/contexts/auth'
+import { useAuthState } from '/contexts/auth'
 import { useSettingsContext } from '/contexts/settings'
 import { containerWidthStyle } from '/utils'
 
@@ -35,7 +35,7 @@ const navbar = css`
 `
 
 const Navbar: FunctionComponent = ({ children }) => {
-  const { loggedIn } = useAuthContext()
+  const { loggedIn } = useAuthState()
   const { styles, title } = useSettingsContext()
 
   const [collapsed, setCollapsed] = useState(true)

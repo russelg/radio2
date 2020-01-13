@@ -1,10 +1,5 @@
 import { css } from 'emotion'
-import React, {
-  FunctionComponent,
-  useCallback,
-  useEffect,
-  useState
-} from 'react'
+import React, { FunctionComponent, useEffect, useState } from 'react'
 import {
   Button,
   ButtonGroup,
@@ -30,7 +25,7 @@ import {
 import { SongItem, SongListItem } from '/api/Schemas'
 import LoaderSkeleton from '/components/LoaderSkeleton'
 import { FavouriteButton } from '/components/SongRow'
-import { useAuthContext } from '/contexts/auth'
+import { useAuthState } from '/contexts/auth'
 import {
   setVolume,
   useControlContext,
@@ -59,8 +54,7 @@ interface UsageModalProps {
 
 const UsageModal: FunctionComponent<UsageModalProps> = React.memo(
   ({ open, toggle }) => {
-    const { getStreamUrl } = useSettingsContext()
-    const streamUrl = getStreamUrl()
+    const { streamUrl } = useSettingsContext()
 
     return (
       <Modal isOpen={open} toggle={toggle}>
@@ -210,7 +204,7 @@ const BigProgress: FunctionComponent = () => {
   const {
     radioStatus: { position, duration, progress, progressIncrement }
   } = useRadioStatusContext()
-  const { loggedIn } = useAuthContext()
+  const { loggedIn } = useAuthState()
 
   return (
     <>
@@ -263,23 +257,14 @@ const BigProgress: FunctionComponent = () => {
 
 const Controls: FunctionComponent<HomeProps> = React.memo(
   ({ togglePlaying }) => {
-    const { getStreamUrl } = useSettingsContext()
-    const streamUrl = getStreamUrl()
-
+    const { streamUrl } = useSettingsContext()
     const { playing } = useControlState()
 
     const [showModal, setShowModal] = useState<boolean>(false)
     const [showDropdown, setShowDropdown] = useState<boolean>(false)
 
-    const toggleModal = useCallback(
-      () => setShowModal(showModal => !showModal),
-      []
-    )
-
-    const toggleDropdown = useCallback(
-      () => setShowDropdown(showDropdown => !showDropdown),
-      []
-    )
+    const toggleModal = () => setShowModal(showModal => !showModal)
+    const toggleDropdown = () => setShowDropdown(showDropdown => !showDropdown)
 
     return (
       <>
@@ -321,12 +306,9 @@ const Controls: FunctionComponent<HomeProps> = React.memo(
 const VolumeControl: FunctionComponent = React.memo(() => {
   const [{ volume }, dispatch] = useControlContext()
 
-  const volumeChange = useCallback(
-    (event: React.FormEvent<HTMLInputElement>) => {
-      setVolume(dispatch, parseInt(event.currentTarget.value, 10))
-    },
-    []
-  )
+  const volumeChange = (event: React.FormEvent<HTMLInputElement>) => {
+    setVolume(dispatch, parseInt(event.currentTarget.value, 10))
+  }
 
   useEffect(() => {
     setLocalStorage('volume', volume)

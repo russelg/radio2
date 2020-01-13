@@ -10,7 +10,6 @@ import React, {
   FormEvent,
   FunctionComponent,
   Suspense,
-  useCallback,
   useRef,
   useState
 } from 'react'
@@ -28,7 +27,7 @@ import {
 import LoaderButton from '/components/LoaderButton'
 import LoaderSkeleton from '/components/LoaderSkeleton'
 import LoaderSpinner from '/components/LoaderSpinner'
-import { useAuthContext } from '/contexts/auth'
+import { useAuthState } from '/contexts/auth'
 import { useSettingsContext } from '/contexts/settings'
 import { readableFilesize, readableSeconds } from '/utils'
 
@@ -64,21 +63,18 @@ const RequestButton: FunctionComponent<SongRowUpdateProps> = ({
 }) => {
   const { data, loading, errors, run } = useFetch(`${API_BASE}/request`)
   const tooltipRef = useRef<HTMLDivElement>(null)
-  const requestSong = useCallback(
-    (event: FormEvent<HTMLButtonElement>) => {
-      event.preventDefault()
-      run({
-        method: 'PUT',
-        body: JSON.stringify({ id: song.id })
+  const requestSong = (event: FormEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    run({
+      method: 'PUT',
+      body: JSON.stringify({ id: song.id })
+    })
+      .then(handleResponse)
+      .then((resp: ApiResponse<SongItem>) => {
+        updateSong(song.id, { ...song, meta: resp.meta })
       })
-        .then(handleResponse)
-        .then((resp: ApiResponse<SongItem>) => {
-          updateSong(song.id, { ...song, meta: resp.meta })
-        })
-        .catch(handleError)
-    },
-    [song]
-  )
+      .catch(handleError)
+  }
 
   return (
     <>
@@ -114,23 +110,20 @@ export const FavouriteButton: FunctionComponent<SongRowUpdateProps &
   FavouriteButtonProps> = ({ song, updateSong, useIcon = true }) => {
   const { data, loading, errors, run } = useFetch(`${API_BASE}/favourites`)
   const tooltipRef = useRef<HTMLDivElement>(null)
-  const favouriteSong = useCallback(
-    (event: FormEvent<HTMLButtonElement>) => {
-      event.preventDefault()
-      run({
-        method: song.meta.favourited ? 'DELETE' : 'PUT',
-        body: JSON.stringify({ id: song.id })
+  const favouriteSong = (event: FormEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    run({
+      method: song.meta.favourited ? 'DELETE' : 'PUT',
+      body: JSON.stringify({ id: song.id })
+    })
+      .then(handleResponse)
+      .then((resp: ApiBaseResponse) => {
+        const { meta } = song
+        meta.favourited = !meta.favourited
+        updateSong(song.id, { ...song, meta })
       })
-        .then(handleResponse)
-        .then((resp: ApiBaseResponse) => {
-          const { meta } = song
-          meta.favourited = !meta.favourited
-          updateSong(song.id, { ...song, meta })
-        })
-        .catch(handleError)
-    },
-    [song]
-  )
+      .catch(handleError)
+  }
 
   const tooltipText = song.meta.favourited
     ? loading
@@ -173,30 +166,27 @@ export const FavouriteButton: FunctionComponent<SongRowUpdateProps &
 const DownloadButton: FunctionComponent<SongRowButtonProps> = ({ song }) => {
   const { data, loading, errors, run } = useFetch(`${API_BASE}/auth/download`)
   const tooltipRef = useRef<HTMLDivElement>(null)
-  const downloadSong = useCallback(
-    (event: FormEvent<HTMLButtonElement>) => {
-      event.preventDefault()
-      run({
-        method: 'POST',
-        body: JSON.stringify({ id: song.id })
+  const downloadSong = (event: FormEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    run({
+      method: 'POST',
+      body: JSON.stringify({ id: song.id })
+    })
+      .then((resp: ApiResponse<SongDownloadJson>) => {
+        if ('download_token' in resp) {
+          const token = resp.download_token
+          const link = document.createElement('a')
+          document.body.appendChild(link)
+          link.href = `${API_BASE}/download?token=${token}`
+          link.setAttribute('type', 'hidden')
+          link.click()
+          document.body.removeChild(link)
+        } else {
+          throw resp
+        }
       })
-        .then((resp: ApiResponse<SongDownloadJson>) => {
-          if ('download_token' in resp) {
-            const token = resp.download_token
-            const link = document.createElement('a')
-            document.body.appendChild(link)
-            link.href = `${API_BASE}/download?token=${token}`
-            link.setAttribute('type', 'hidden')
-            link.click()
-            document.body.removeChild(link)
-          } else {
-            throw resp
-          }
-        })
-        .catch(handleError)
-    },
-    [song]
-  )
+      .catch(handleError)
+  }
 
   return (
     <>
@@ -224,26 +214,23 @@ const DeleteButton: FunctionComponent<SongRowUpdateProps> = ({
   const [confirming, setConfirming] = useState<boolean>(false)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const cancelTooltipRef = useRef<HTMLDivElement>(null)
-  const deleteSong = useCallback(
-    (event: FormEvent<HTMLButtonElement>) => {
-      event.preventDefault()
-      if (confirming) {
-        run({ method: 'DELETE' })
-          .then(handleResponse)
-          .then((resp: ApiBaseResponse) => {
-            updateSong(song.id, null)
-            setConfirming(false)
-          })
-          .catch(reason => {
-            handleError(reason)
-            setConfirming(false)
-          })
-      } else {
-        setConfirming(true)
-      }
-    },
-    [confirming, song]
-  )
+  const deleteSong = (event: FormEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    if (confirming) {
+      run({ method: 'DELETE' })
+        .then(handleResponse)
+        .then((resp: ApiBaseResponse) => {
+          updateSong(song.id, null)
+          setConfirming(false)
+        })
+        .catch(reason => {
+          handleError(reason)
+          setConfirming(false)
+        })
+    } else {
+      setConfirming(true)
+    }
+  }
 
   const cancelDeleting = () => {
     setConfirming(false)
@@ -310,21 +297,18 @@ const EditableValue: FunctionComponent<EditableValueProps> = ({
   updateSong
 }) => {
   const { data, loading, errors, run } = useFetch(`${API_BASE}/song/${song.id}`)
-  const editSongMetadata = useCallback(
-    (newValue: string) => {
-      if (newValue === song[field]) return
-      run({
-        method: 'PUT',
-        body: JSON.stringify({ [field]: newValue })
-      })
-        .then(handleResponse)
-        .then((resp: ApiResponse<SongItem>) =>
-          updateSong(song.id, { ...song, ...resp })
-        )
-        .catch(handleError)
-    },
-    [field, song]
-  )
+  const editSongMetadata = (newValue: string) => {
+    if (newValue === song[field]) return
+    run({
+      method: 'PUT',
+      body: JSON.stringify({ [field]: newValue })
+    })
+      .then(handleResponse)
+      .then((resp: ApiResponse<SongItem>) =>
+        updateSong(song.id, { ...song, ...resp })
+      )
+      .catch(handleError)
+  }
 
   return (
     <Suspense fallback={<LoaderSpinner />}>
@@ -346,19 +330,24 @@ const EditableValue: FunctionComponent<EditableValueProps> = ({
 interface SongRowProps {
   song: SongItem | null
   updateSong: UpdateSong
+  showAdmin: boolean
 }
 
 function getRandomArbitrary(min: number, max: number): string {
   return `${Math.random() * (max - min) + min}%`
 }
 
-const SongRow: FunctionComponent<SongRowProps> = ({ song, updateSong }) => {
+const SongRow: FunctionComponent<SongRowProps> = ({
+  song,
+  updateSong,
+  showAdmin
+}) => {
   const { canDownload } = useSettingsContext()
-  const { isAdmin, loggedIn, showAdmin } = useAuthContext()
+  const { admin: isAdmin, loggedIn } = useAuthState()
   const admin = isAdmin && showAdmin
 
-  const [artistWidth, setArtistWidth] = useState(getRandomArbitrary(20, 80))
-  const [titleWidth, setTitleWidth] = useState(getRandomArbitrary(20, 80))
+  const artistWidth = useState(getRandomArbitrary(20, 80))[0]
+  const titleWidth = useState(getRandomArbitrary(20, 80))[0]
 
   return (
     <tr className="d-flex">
@@ -367,7 +356,7 @@ const SongRow: FunctionComponent<SongRowProps> = ({ song, updateSong }) => {
           {() => readableSeconds(song!.length)}
         </LoaderSkeleton>
       </td>
-      <td className="col-2">
+      <td className={admin ? 'col-2' : 'col-3'}>
         <LoaderSkeleton loading={song === null} width={artistWidth}>
           {() =>
             admin ? (
@@ -382,7 +371,7 @@ const SongRow: FunctionComponent<SongRowProps> = ({ song, updateSong }) => {
           }
         </LoaderSkeleton>
       </td>
-      <td className="col-5">
+      <td className="col">
         <LoaderSkeleton loading={song === null} width={titleWidth}>
           {() =>
             admin ? (
@@ -397,7 +386,7 @@ const SongRow: FunctionComponent<SongRowProps> = ({ song, updateSong }) => {
           }
         </LoaderSkeleton>
       </td>
-      <td className="col text-right d-flex align-items-center justify-content-end">
+      <td className="col-auto text-right d-flex align-items-center justify-content-end">
         <Form inline className="justify-content-center mt-n1">
           <LoaderSkeleton loading={song === null} width={80} height={36}>
             {() => <RequestButton song={song!} updateSong={updateSong} />}

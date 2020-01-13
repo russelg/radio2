@@ -1,9 +1,4 @@
-import React, {
-  FormEvent,
-  FunctionComponent,
-  useCallback,
-  useState
-} from 'react'
+import React, { FormEvent, FunctionComponent, useState } from 'react'
 import { useSettingsContext } from '/contexts/settings'
 
 export interface ThemeChooserProps {
@@ -21,11 +16,11 @@ const ThemeChooser: FunctionComponent<ThemeChooserProps> = ({ className }) => {
     stylesheet || (stylesheetLink && (stylesheetLink.href as string)) || ''
   )
 
-  const onChange = useCallback((event: FormEvent<HTMLSelectElement>) => {
+  const onChange = (event: FormEvent<HTMLSelectElement>) => {
     const { value } = event.currentTarget as HTMLSelectElement
     setStylesheet(value)
     setSelected(value)
-  }, [])
+  }
 
   return (
     <select className={className || ''} value={selected} onChange={onChange}>
