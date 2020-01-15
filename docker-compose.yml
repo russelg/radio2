@@ -21,6 +21,8 @@ services:
     image: infiniteproject/icecast
     restart: on-failure
     volumes:
+      - ./tools/fallback.mp3:/usr/share/icecast/web/fallback.mp3
+      - ./tools/fallback.ogg:/usr/share/icecast/web/fallback.ogg
       - ./icecast.xml:/etc/icecast.xml
     expose:
       - 8067

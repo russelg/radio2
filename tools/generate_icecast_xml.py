@@ -6,7 +6,8 @@ sys.path.append("radio/")
 from config import Config
 
 
-icecast_xml = """<icecast>
+icecast_xml = """
+<icecast>
     <location>{ICECAST_LOCATION}</location>
     <admin>{ICECAST_CONTACT}</admin>
     <limits>
@@ -35,15 +36,35 @@ icecast_xml = """<icecast>
     <mount type="normal">
         <mount-name>{ICECAST_MOUNT}.ogg</mount-name>
         <charset>UTF-8</charset>
-    </mount>"""
+        <fallback-mount>/fallback.ogg</fallback-mount>
+        <fallback-override>1</fallback-override>
+        <fallback-when-full>1</fallback-when-full>
+    </mount>
+"""
 
 if Config.ICECAST_TRANSCODE:
-    icecast_xml += """    <mount type="normal">
+    icecast_xml += """    
+    <mount type="normal">
         <mount-name>{ICECAST_MOUNT}.mp3</mount-name>
         <charset>UTF-8</charset>
-    </mount>"""
+        <fallback-mount>/fallback.mp3</fallback-mount>
+        <fallback-override>1</fallback-override>
+        <fallback-when-full>1</fallback-when-full>
+    </mount>
+"""
 
-icecast_xml += """<fileserve>1</fileserve>
+icecast_xml += """
+    <mount>
+        <mount-name>/fallback.mp3</mount-name>
+        <dump-file>fallback.mp3</dump-file>
+        <burst-size>65536</burst-size>
+    </mount>
+    <mount>
+        <mount-name>/fallback.ogg</mount-name>
+        <dump-file>fallback.ogg</dump-file>
+        <burst-size>65536</burst-size>
+    </mount>
+    <fileserve>1</fileserve>
     <paths>
         <basedir>/usr/share/icecast</basedir>
         <logdir>/var/log/icecast</logdir>
@@ -74,7 +95,9 @@ POSTGRES_USER={DB_USER}
 POSTGRES_DB={DB_DATABASE}"""
 
 with open("icecast.xml", "w") as f:
-    f.write(icecast_xml.format(**Config.__dict__))
+    config = {**Config.__dict__}
+    config['ICECAST_URL'] = config['ICECAST_URL'].split('://')[-1]
+    f.write(icecast_xml.format(**config))
     print("wrote icecast.xml with values from radio/config.py")
 
 with open("icecast.env", "w") as f:

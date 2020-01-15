@@ -78,7 +78,7 @@ class ShoutInstance:
             pylibshout.SHOUT_FORMAT_MP3 if mp3 else pylibshout.SHOUT_FORMAT_OGG
         )
         if mp3:
-            shout.audio_info = {"bitrate": f"{config['TRANSCODE_BITRATE']}"}
+            shout.audio_info = {"bitrate": f"{config['TRANSCODE_BITRATE'] * 1000}"}
 
         # Stream metadata
         shout.name = config["ICECAST_NAME"]
@@ -94,13 +94,9 @@ class Worker(multiprocessing.Process):
         self, group=None, target=None, name=None, args=(), kwargs=None, *, daemon=None
     ):
         super().__init__(group=group, target=target, name=name, daemon=daemon)
-        self.args = args
-        self.kwargs = kwargs
-
-        self.queue = multiprocessing.JoinableQueue()
         self.config = args[0]
         self.is_mp3 = args[1]
-
+        self.queue = multiprocessing.JoinableQueue()
         self.instance = ShoutInstance(self.config, self.is_mp3)
 
     def put_queue(self, song_path: str):
@@ -110,6 +106,7 @@ class Worker(multiprocessing.Process):
         self.queue.join()
 
     def stream(self, song_path: str):
+        logger.info(f'{self.instance.format}: Streaming "{song_path}"...')
         start_time = time.time()
         meta = get_metadata(song_path)
         data = ""
@@ -117,58 +114,57 @@ class Worker(multiprocessing.Process):
             data = f"{meta['artist']} - {meta['title']}"
 
         ffmpeg = None
-        with open(song_path, "rb") as song:
-            src: IO = song
+        song = open(song_path, "rb")
+        src: IO = song
 
-            # pass ogg thru ffmpeg if mp3 wanted
-            if self.instance.is_mp3:
-                self.instance.shout.metadata = {"song": data.encode("utf-8")}
-                ffmpeg = subprocess.Popen(
-                    [
-                        self.config["PATH_FFMPEG_BINARY"],
-                        "-i",
-                        "-",
-                        "-f",
-                        "mp3",
-                        "-ab",
-                        f'{self.config["TRANSCODE_BITRATE"]}k',
-                        "-",
-                    ],
-                    stdin=song,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.DEVNULL,
-                )
-                src = ffmpeg.stdout
+        # pass ogg thru ffmpeg if mp3 wanted
+        if self.instance.is_mp3:
+            self.instance.shout.metadata = {"song": data.encode("utf-8")}
+            logger.info(
+                f"{self.instance.format}: Setting metadata: <{self.instance.shout.metadata}>..."
+            )
+            logger.debug(f"{self.instance.format}: Starting ffmpeg...")
+            ffmpeg = subprocess.Popen(
+                [
+                    self.config["PATH_FFMPEG_BINARY"],
+                    "-i",
+                    "-",
+                    "-f",
+                    "mp3",
+                    "-ab",
+                    f'{self.config["TRANSCODE_BITRATE"]}k',
+                    "-",
+                ],
+                stdin=song,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+            )
+            logger.debug(f"{self.instance.format}: Started ffmpeg.")
+            src = ffmpeg.stdout
 
-            sent_bytes = 0
-            retries = 0
-            if src:
-                buffer = src.read(4096)
-                while buffer:
-                    while retries < 3:
-                        try:
-                            if not self.instance.connected:
-                                raise pylibshout.ShoutException()
+        chunk_size = 4096
+        sent_bytes = 0
+        if src:
+            while True:
+                buffer = src.read(chunk_size)
+                buf_size = len(buffer)
+                sent_bytes += buf_size
+                if buffer:
+                    ret = self.instance.shout.send(buffer)
+                    if ret < 0:
+                        logger.error(f"{self.instance.format}: csend: <{ret}>")
+                        break
+                else:
+                    logger.debug(
+                        f"{self.instance.format}: Buffer is empty, breaking..."
+                    )
+                    break
+                self.instance.shout.sync()
 
-                            self.instance.shout.send(buffer)
-                            sent_bytes += len(buffer)
-                            self.instance.shout.sync()
-                            retries = 0
-                            break
-                        except pylibshout.ShoutException:
-                            # keep trying to connect
-                            logger.warning(
-                                "%s: stream died, resetting shout instance...",
-                                self.instance.format,
-                            )
-                            self.instance.reset()
-                            time.sleep(1)
-                            retries += 1
-                            continue
-                    buffer = src.read(1024)
-
-            if ffmpeg:
-                ffmpeg.wait()
+        if ffmpeg:
+            logger.debug(f"{self.instance.format}: Waiting on ffmpeg...")
+            ffmpeg.wait()
+            logger.debug(f"{self.instance.format}: Finished waiting on ffmpeg.")
 
         finish_time = time.time()
         kbps = int(sent_bytes * 0.008 / (finish_time - start_time))
@@ -180,15 +176,13 @@ class Worker(multiprocessing.Process):
     def run(self):
         self.instance.connect()
         while True:
-            if not self.instance.connected:
-                logger.warning('%s: Connection lost, resetting', self.instance.format)
-                self.instance.reset()
             song_path = self.queue.get(block=True)
             logger.info(f'{self.instance.format}: Got new file "{song_path}"')
             if song_path is None:
                 break
             self.stream(song_path)
             self.queue.task_done()
+            self.instance.reset()
 
 
 def run():
