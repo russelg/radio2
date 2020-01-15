@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from 'react'
+import React, { FunctionComponent, useEffect } from 'react'
 import { Alert } from 'reactstrap'
 
 interface NotificationToastProps {
@@ -11,6 +11,14 @@ const NotificationToast: FunctionComponent<NotificationToastProps> = ({
   children,
   error = false
 }) => {
+  useEffect(() => {
+    if (closeToast) {
+      const id = setTimeout(closeToast, 3000)
+      return () => clearTimeout(id)
+    }
+    return () => {}
+  }, [closeToast])
+
   return (
     <Alert
       color={error ? 'danger' : 'success'}

@@ -54,31 +54,38 @@ const Navbar: FunctionComponent = ({ children }) => {
       color="primary"
       expand="lg"
       dark
-      className={cx(navbar, 'fixed-top')}>
+      className={cx(navbar, 'sticky-top', 'order-1')}>
       <Container className={containerWidthStyle}>
-        <NavbarBrand to="/" activeClassName="active" tag={RRNavLink}>
+        <NavbarBrand
+          to="/"
+          className="order-first"
+          activeClassName="active"
+          tag={RRNavLink}>
           <LoaderSkeleton loading={title === ''} width={100}>
             {() => title}
           </LoaderSkeleton>
         </NavbarBrand>
-        {collapsed && (
-          <Collapse
-            isOpen={!collapsed}
-            navbar
-            className={cx(flexGrow(0), 'justify-content-start')}>
-            <Nav navbar>{songsButton}</Nav>
-          </Collapse>
-        )}
-        <Nav navbar className={cx(flexGrow(1), 'mx-n1 my-auto')}>
-          <NavItem className="text-center mx-auto">{children}</NavItem>
-        </Nav>
-        <NavbarToggler onClick={toggle} className="mr-2" />
         <Collapse
           isOpen={!collapsed}
           navbar
-          className={cx(flexGrow(0), 'justify-content-end')}>
+          className={cx(
+            flexGrow(0),
+            'justify-content-start',
+            'order-5 order-lg-2'
+          )}>
+          <Nav navbar>{songsButton}</Nav>
+        </Collapse>
+        <Nav
+          navbar
+          className={cx(flexGrow(1), 'mx-n1 my-auto order-1 order-lg-3')}>
+          <NavItem className="text-center mx-auto">{children}</NavItem>
+        </Nav>
+        <NavbarToggler onClick={toggle} className="mr-2 order-4" />
+        <Collapse
+          isOpen={!collapsed}
+          navbar
+          className={cx(flexGrow(0), 'justify-content-end order-6')}>
           <Nav navbar>
-            {!collapsed && songsButton}
             {loggedIn ? <LoggedInDropdown /> : <LoginDropdown />}
             {styles !== null && (
               <NavItem>

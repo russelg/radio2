@@ -31,8 +31,12 @@ import {
   useControlContext,
   useControlState
 } from '/contexts/control'
-import { useRadioInfoContext } from '/contexts/radio'
-import { useRadioStatusContext } from '/contexts/radioStatus'
+import {
+  setFavourited,
+  useRadioInfoContext,
+  useRadioInfoState
+} from '/contexts/radio'
+import { useRadioStatusState } from '/contexts/radioStatus'
 import { useSettingsContext } from '/contexts/settings'
 import {
   containerWidthStyle,
@@ -134,8 +138,8 @@ const SongList: FunctionComponent<SongListProps> = ({
           (item: SongListItem | null, idx: number) => {
             return (
               <ListGroupItem
-                key={item ? item.time : idx}
-                className="clearfix p-4"
+                key={idx}
+                className="clearfix py-3 px-1 py-lg-4 px-md-3"
                 active={item ? item.requested : undefined}>
                 <Col xs="8" className={`float-${alignment} text-${alignment}`}>
                   <LoaderSkeleton loading={item === null} count={2}>
@@ -145,7 +149,11 @@ const SongList: FunctionComponent<SongListProps> = ({
                 <Col xs="4" className={`float-${flipped} text-${flipped}`}>
                   <LoaderSkeleton loading={item === null}>
                     {() => (
-                      <span title={item!.time}>{fuzzyTime(item!.time)}</span>
+                      <small
+                        className="text-muted font-italic"
+                        title={item!.time}>
+                        {fuzzyTime(item!.time)}
+                      </small>
                     )}
                   </LoaderSkeleton>
                 </Col>
@@ -160,7 +168,7 @@ const SongList: FunctionComponent<SongListProps> = ({
 
 const Branding: FunctionComponent = () => {
   const { title } = useSettingsContext()
-  const { serverInfo } = useRadioInfoContext()
+  const { serverInfo } = useRadioInfoState()
 
   return (
     <>
@@ -194,65 +202,94 @@ const Branding: FunctionComponent = () => {
   )
 }
 
-const BigProgress: FunctionComponent = () => {
-  const {
-    songInfo,
-    serverInfo,
-    favourited,
-    setFavourited
-  } = useRadioInfoContext()
-  const {
-    radioStatus: { position, duration, progress, progressIncrement }
-  } = useRadioStatusContext()
+const ListenersCount: FunctionComponent = () => {
+  const { songInfo, serverInfo } = useRadioInfoState()
+
+  return (
+    <LoaderSkeleton loading={!songInfo.title} width="30%">
+      {() => `Listeners: ${serverInfo.listeners}`}
+    </LoaderSkeleton>
+  )
+}
+
+const FavouriteSongButton: FunctionComponent = () => {
+  const [{ songInfo, favourited }, dispatch] = useRadioInfoContext()
+
+  return (
+    <FavouriteButton
+      // useIcon={false}
+      updateSong={(id: string, song: SongItem | null) => {
+        setFavourited(dispatch, (song && song.meta.favourited) || false)
+      }}
+      song={{
+        id: songInfo.id,
+        // @ts-ignore
+        meta: { favourited }
+      }}
+    />
+  )
+}
+
+const SongPosition: FunctionComponent = () => {
+  const { songInfo } = useRadioInfoState()
+  const { position, duration } = useRadioStatusState()
+
+  return (
+    <LoaderSkeleton loading={!songInfo.length} width="30%">
+      {() => `${readableSeconds(position)} / ${readableSeconds(duration)}`}
+    </LoaderSkeleton>
+  )
+}
+
+const BigProgressInfo: FunctionComponent = () => {
   const { loggedIn } = useAuthState()
 
   return (
-    <>
-      <h2 className="pb-2 text-center">
-        <LoaderSkeleton loading={!songInfo.title} width="50%">
-          {() => (
-            <>
-              {songInfo.artist} - {songInfo.title}
-            </>
-          )}
-        </LoaderSkeleton>
-      </h2>
-      <Progress value={progress + progressIncrement} />
-      <Row className="pt-2">
-        <Col
-          sm={{ size: loggedIn ? 3 : 5, offset: 1 }}
-          className="text-muted text-center pt-3 order-last order-sm-first">
-          <LoaderSkeleton loading={!songInfo.title} width="30%">
-            {() => `Listeners: ${serverInfo.listeners}`}
-          </LoaderSkeleton>
+    <Row className="pt-2">
+      <Col
+        sm={{ size: loggedIn ? 3 : 5, offset: 1 }}
+        className="text-muted text-center pt-3 order-last order-sm-first">
+        <ListenersCount />
+      </Col>
+      {loggedIn && (
+        <Col sm={{ size: 4 }} className="text-center pt-1">
+          <FavouriteSongButton />
         </Col>
-        {loggedIn && (
-          <Col sm={{ size: 4 }} className="text-center pt-1">
-            <FavouriteButton
-              // useIcon={false}
-              updateSong={(id: string, song: SongItem | null) => {
-                setFavourited((song && song.meta.favourited) || false)
-              }}
-              song={{
-                id: songInfo.id,
-                // @ts-ignore
-                meta: { favourited }
-              }}
-            />
-          </Col>
-        )}
-        <Col
-          sm={{ size: loggedIn ? 3 : 5 }}
-          className="text-muted text-center pt-3">
-          <LoaderSkeleton loading={!songInfo.length} width="30%">
-            {() =>
-              `${readableSeconds(position)} / ${readableSeconds(duration)}`
-            }
-          </LoaderSkeleton>
-        </Col>
-      </Row>
-    </>
+      )}
+      <Col
+        sm={{ size: loggedIn ? 3 : 5 }}
+        className="text-muted text-center pt-3">
+        <SongPosition />
+      </Col>
+    </Row>
   )
+}
+
+const BigProgressTitle: FunctionComponent = () => {
+  const { songInfo } = useRadioInfoState()
+
+  return (
+    <h2 className="pb-2 text-center">
+      <LoaderSkeleton loading={!songInfo.title} width="50%">
+        {() => (
+          <>
+            {songInfo.artist} - {songInfo.title}
+          </>
+        )}
+      </LoaderSkeleton>
+    </h2>
+  )
+}
+
+const BigProgress: FunctionComponent = () => {
+  const {
+    position,
+    duration,
+    progress,
+    progressIncrement
+  } = useRadioStatusState()
+
+  return <Progress value={progress + progressIncrement} />
 }
 
 const Controls: FunctionComponent<HomeProps> = React.memo(
@@ -263,8 +300,8 @@ const Controls: FunctionComponent<HomeProps> = React.memo(
     const [showModal, setShowModal] = useState<boolean>(false)
     const [showDropdown, setShowDropdown] = useState<boolean>(false)
 
-    const toggleModal = () => setShowModal(showModal => !showModal)
-    const toggleDropdown = () => setShowDropdown(showDropdown => !showDropdown)
+    const toggleModal = () => setShowModal(show => !show)
+    const toggleDropdown = () => setShowDropdown(show => !show)
 
     return (
       <>
@@ -341,7 +378,7 @@ const homeStyle = css`
 const SongLists: FunctionComponent = () => {
   const {
     serverInfo: { queue, lastPlayed }
-  } = useRadioInfoContext()
+  } = useRadioInfoState()
 
   return (
     <>
@@ -374,9 +411,9 @@ const Home: FunctionComponent<HomeProps> = ({ togglePlaying }) => {
           </Row>
           <Row className="py-5">
             <Col>
-              <useRadioStatusContext.Provider>
-                <BigProgress />
-              </useRadioStatusContext.Provider>
+              <BigProgressTitle />
+              <BigProgress />
+              <BigProgressInfo />
             </Col>
           </Row>
         </Col>

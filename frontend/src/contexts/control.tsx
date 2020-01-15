@@ -59,7 +59,7 @@ function ControlProvider({ children }: ProviderProps) {
 function useControlState(): State {
   const context = useContext(StateContext)
   if (context === undefined) {
-    throw new Error('useCountState must be used within a CountProvider')
+    throw new Error('useControlState must be used within a ControlProvider')
   }
   return context
 }
@@ -67,7 +67,7 @@ function useControlState(): State {
 function useControlDispatch(): Dispatch {
   const context = useContext(DispatchContext)
   if (context === undefined) {
-    throw new Error('useCountDispatch must be used within a CountProvider')
+    throw new Error('useControlDispatch must be used within a ControlProvider')
   }
   return context
 }

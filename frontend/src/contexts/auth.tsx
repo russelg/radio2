@@ -1,23 +1,21 @@
 // @ts-ignore
 import { authorize, clear, configure } from '@shoutem/fetch-token-intercept'
-import React, {
-  createContext,
-  useContext,
-  useReducer,
-  FunctionComponent,
-  memo,
-  useEffect
-} from 'react'
+import React, { createContext, useContext, useEffect, useReducer } from 'react'
 import { API_BASE } from '/api'
 import { ApiResponse, LoginJson } from '/api/Schemas'
-import { getLocalStorage, JWTWithClaims, parseJwt } from '/utils'
+import {
+  getLocalStorage,
+  JWTWithClaims,
+  parseJwt,
+  setLocalStorage
+} from '/utils'
 
 // exclude login because multiple requests are made on incorrect details
 // settings/np do not need auth headers, so skip those.
 const ignoredUrls = ['/auth/login', '/settings', '/np']
 
 type UserClaims = {
-  roles: 'admin'[]
+  roles: Array<'admin'>
   username: string
 }
 
@@ -136,19 +134,20 @@ function AuthProvider({ children }: ProviderProps) {
     },
     shouldInvalidateAccessToken: () => false,
     shouldWaitForTokenRenewal: true,
-    authorizeRequest: (request: Request, accessToken: string) => {
-      request.headers.set('Authorization', `Bearer ${accessToken}`)
+    authorizeRequest: (request: Request, inAccessToken: string) => {
+      request.headers.set('Authorization', `Bearer ${inAccessToken}`)
       return request
     },
-    createAccessTokenRequest: (refreshToken: string) => {
+    createAccessTokenRequest: (inRefreshToken: string) => {
       return new Request(`${API_BASE}/auth/refresh`, {
-        headers: { Authorization: `Bearer ${refreshToken}` },
+        headers: { Authorization: `Bearer ${inRefreshToken}` },
         method: 'POST'
       })
     },
     fetchRetryCount: 3,
-    onAccessTokenChange: (accessToken: string) => {
-      dispatch({ type: 'SET_ACCESS_TOKEN', value: accessToken })
+    onAccessTokenChange: (inAccessToken: string) => {
+      setLocalStorage('access_token', inAccessToken)
+      dispatch({ type: 'SET_ACCESS_TOKEN', value: inAccessToken })
     }
   }
 
@@ -170,7 +169,7 @@ function AuthProvider({ children }: ProviderProps) {
 function useAuthState(): State {
   const context = useContext(StateContext)
   if (context === undefined) {
-    throw new Error('useAuthState must be used within a CountProvider')
+    throw new Error('useAuthState must be used within an AuthProvider')
   }
   return context
 }
@@ -178,7 +177,7 @@ function useAuthState(): State {
 function useAuthDispatch(): Dispatch {
   const context = useContext(DispatchContext)
   if (context === undefined) {
-    throw new Error('useAuthDispatch must be used within a CountProvider')
+    throw new Error('useAuthDispatch must be used within an AuthProvider')
   }
   return context
 }
@@ -190,6 +189,8 @@ function useAuthContext(): [State, Dispatch] {
 // Action creators
 function logout(dispatch: Dispatch) {
   clear()
+  setLocalStorage('access_token', '')
+  setLocalStorage('refresh_token', '')
   dispatch({ type: 'LOGOUT' })
 }
 
@@ -208,6 +209,8 @@ async function login(
       if ('access_token' in resp && 'refresh_token' in resp) {
         if (resp.error === null) {
           dispatch({ type: 'LOGIN', value: resp })
+          setLocalStorage('access_token', resp.access_token)
+          setLocalStorage('refresh_token', resp.refresh_token)
           authorize(resp.refresh_token, resp.access_token)
         } else {
           console.log(resp)

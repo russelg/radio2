@@ -1,3 +1,5 @@
+// @ts-ignore
+import MediaSession from '@mebtte/react-media-session'
 import { css, cx } from 'emotion'
 import React, {
   CSSProperties,
@@ -23,8 +25,7 @@ import {
   useControlDispatch,
   useControlState
 } from '/contexts/control'
-import { useRadioInfoContext } from '/contexts/radio'
-import { useRadioStatusContext } from '/contexts/radioStatus'
+import { useRadioInfoState } from '/contexts/radio'
 import { useSettingsContext } from '/contexts/settings'
 import SignIn from '/pages/SignIn'
 import SignUp from '/pages/SignUp'
@@ -52,7 +53,7 @@ const switchStyle = css`
 
 const TitleSetter: FunctionComponent = () => {
   const { playing } = useControlState()
-  const { songInfo } = useRadioInfoContext()
+  const { songInfo } = useRadioInfoState()
   const { title: pageTitle } = useSettingsContext()
 
   return (
@@ -64,6 +65,26 @@ const TitleSetter: FunctionComponent = () => {
       </title>
     </Helmet>
   )
+}
+
+type MediaSessionSetterProps = {
+  togglePlaying: () => void
+}
+
+const MediaSessionSetter: FunctionComponent<MediaSessionSetterProps> = ({
+  togglePlaying
+}) => {
+  const { playing } = useControlState()
+  const { songInfo } = useRadioInfoState()
+
+  return playing ? (
+    <MediaSession
+      title={songInfo.title}
+      artist={songInfo.artist}
+      onPlay={togglePlaying}
+      onPause={togglePlaying}
+    />
+  ) : null
 }
 
 // we need to map the `scale` prop we define below
@@ -131,16 +152,7 @@ const App: FunctionComponent = () => {
         <ErrorBoundary>
           <div className="h-100">
             <Navbar>
-              <Collapse isOpen={playing}>
-                {playing && (
-                  <useRadioInfoContext.Provider>
-                    <useRadioStatusContext.Provider>
-                      <TitleSetter />
-                      <MiniPlayer />
-                    </useRadioStatusContext.Provider>
-                  </useRadioInfoContext.Provider>
-                )}
-              </Collapse>
+              <Collapse isOpen={playing}>{playing && <MiniPlayer />}</Collapse>
             </Navbar>
 
             <ReactHowler
@@ -153,63 +165,63 @@ const App: FunctionComponent = () => {
               ref={player}
             />
 
-            <useRadioInfoContext.Provider>
-              <AnimatedSwitch
-                runOnMount
-                atEnter={bounceTransition.atEnter}
-                atLeave={bounceTransition.atLeave}
-                atActive={bounceTransition.atActive}
-                mapStyles={mapStyles}
-                className={cx(switchStyle, 'h-100')}>
-                <Route
-                  path="/"
-                  exact
-                  render={props => {
-                    return (
-                      <Suspense fallback={<LoaderSpinner />}>
-                        <Home togglePlaying={toggleHowlerPlaying} />
-                      </Suspense>
-                    )
-                  }}
-                />
-                <Route
-                  path="/songs"
-                  exact
-                  render={props => {
-                    return (
-                      <Suspense fallback={<LoaderSpinner />}>
-                        <Songs {...props} favourites={false} />
-                      </Suspense>
-                    )
-                  }}
-                />
-                <Route
-                  path="/favourites"
-                  exact
-                  render={props => {
-                    return (
-                      <Suspense fallback={<LoaderSpinner />}>
-                        <Songs {...props} favourites={true} />
-                      </Suspense>
-                    )
-                  }}
-                />
-                <Route
-                  path="/sign-up"
-                  exact
-                  render={props => {
-                    return <SignUp />
-                  }}
-                />
-                <Route
-                  path="/sign-in"
-                  exact
-                  render={props => {
-                    return <SignIn />
-                  }}
-                />
-              </AnimatedSwitch>
-            </useRadioInfoContext.Provider>
+            <TitleSetter />
+            <MediaSessionSetter togglePlaying={toggleHowlerPlaying} />
+            <AnimatedSwitch
+              runOnMount
+              atEnter={bounceTransition.atEnter}
+              atLeave={bounceTransition.atLeave}
+              atActive={bounceTransition.atActive}
+              mapStyles={mapStyles}
+              className={cx(switchStyle, 'h-100')}>
+              <Route
+                path="/"
+                exact
+                render={props => {
+                  return (
+                    <Suspense fallback={<LoaderSpinner />}>
+                      <Home togglePlaying={toggleHowlerPlaying} />
+                    </Suspense>
+                  )
+                }}
+              />
+              <Route
+                path="/songs"
+                exact
+                render={props => {
+                  return (
+                    <Suspense fallback={<LoaderSpinner />}>
+                      <Songs {...props} favourites={false} />{' '}
+                    </Suspense>
+                  )
+                }}
+              />
+              <Route
+                path="/favourites"
+                exact
+                render={props => {
+                  return (
+                    <Suspense fallback={<LoaderSpinner />}>
+                      <Songs {...props} favourites={true} />
+                    </Suspense>
+                  )
+                }}
+              />
+              <Route
+                path="/sign-up"
+                exact
+                render={props => {
+                  return <SignUp />
+                }}
+              />
+              <Route
+                path="/sign-in"
+                exact
+                render={props => {
+                  return <SignIn />
+                }}
+              />
+            </AnimatedSwitch>
           </div>
         </ErrorBoundary>
       </QueryParamProvider>

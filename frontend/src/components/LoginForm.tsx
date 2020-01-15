@@ -6,8 +6,8 @@ import React, {
   useState
 } from 'react'
 import { Form, FormFeedback, FormGroup, Input } from 'reactstrap'
-import LoaderButton from './LoaderButton'
 import { Description } from '/api/Schemas'
+import LoaderButton from '/components/LoaderButton'
 import { login, useAuthDispatch } from '/contexts/auth'
 
 const formControlStyle = css`

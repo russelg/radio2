@@ -16,7 +16,7 @@ export const containerWidthStyle = css`
 `
 
 export const navbarMarginStyle = css`
-  margin-top: 8rem;
+  margin-top: 4rem;
 `
 
 export function readableFilesize(size: number): string {
@@ -162,19 +162,17 @@ export function useLocalStorage<T>(
 // https://gist.github.com/babakness/faca3b633bc23d9a0924efb069c9f1f5
 type IntervalFunction = () => unknown | void
 export function useInterval(callback: IntervalFunction, delay: number) {
-  const savedCallback = useRef<IntervalFunction | null>(null)
+  const savedCallback = useRef<IntervalFunction>(callback)
 
   // Remember the latest callback.
   useEffect(() => {
     savedCallback.current = callback
-  })
+  }, [callback])
 
   // Set up the interval.
   useEffect(() => {
     function tick() {
-      if (savedCallback.current !== null) {
-        savedCallback.current()
-      }
+      savedCallback.current()
     }
     const id = setInterval(tick, delay)
     return () => clearInterval(id)

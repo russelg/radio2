@@ -32,7 +32,8 @@ import {
   InputGroup,
   InputGroupAddon,
   Label,
-  Row
+  Row,
+  Collapse
 } from 'reactstrap'
 import {
   NumberParam,
@@ -446,14 +447,16 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
       {admin && (
         <ShowAdminToggle showAdmin={showAdmin} setShowAdmin={setShowAdmin} />
       )}
-      {(canUpload || (admin && showAdmin)) && (
-        <Row>
-          <Col>
-            <SongUploadForm refreshSong={refreshSong} />
-            <hr />
-          </Col>
-        </Row>
-      )}
+      <Collapse isOpen={canUpload || (admin && showAdmin)}>
+        {(canUpload || (admin && showAdmin)) && (
+          <Row>
+            <Col>
+              <SongUploadForm refreshSong={refreshSong} />
+              <hr />
+            </Col>
+          </Row>
+        )}
+      </Collapse>
       <Row>
         <Col xs={12} md={6}>
           <LoadFavesField queryParam={queryParam} />

@@ -15,7 +15,6 @@ import React, {
 } from 'react'
 import { toast } from 'react-toastify'
 import { Button, Form, UncontrolledTooltip } from 'reactstrap'
-import NotificationToast from './NotificationToast'
 import Editable from '/../lib/react-bootstrap-editable/src/Editable'
 import { API_BASE, handleResponse, useFetch } from '/api'
 import {
@@ -27,6 +26,7 @@ import {
 import LoaderButton from '/components/LoaderButton'
 import LoaderSkeleton from '/components/LoaderSkeleton'
 import LoaderSpinner from '/components/LoaderSpinner'
+import NotificationToast from '/components/NotificationToast'
 import { useAuthState } from '/contexts/auth'
 import { useSettingsContext } from '/contexts/settings'
 import { readableFilesize, readableSeconds } from '/utils'
