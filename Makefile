@@ -2,7 +2,7 @@ init: setup pull build install
 
 setup:
 	docker volume create frontend_nodemodules
-	python -m tools.generate_icecast_xml
+	python3 -m tools.generate_icecast_xml
 
 pull: 
 	docker-compose pull caddy icecast db
