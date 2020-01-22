@@ -20,10 +20,10 @@ type UserClaims = {
 }
 
 type Action =
-  | { type: 'LOGIN'; value: ApiResponse<LoginJson> }
-  | { type: 'LOGIN_FROM_JWT'; value: JWTWithClaims<UserClaims> }
+  | { type: 'LOGIN'; payload: ApiResponse<LoginJson> }
+  | { type: 'LOGIN_FROM_JWT'; payload: JWTWithClaims<UserClaims> }
   | { type: 'LOGOUT' }
-  | { type: 'SET_ACCESS_TOKEN'; value: string }
+  | { type: 'SET_ACCESS_TOKEN'; payload: string }
 type Dispatch = (action: Action) => void
 type State = {
   username: string
@@ -40,7 +40,7 @@ const DispatchContext = createContext<Dispatch | undefined>(undefined)
 function authReducer(state: State, action: Action) {
   switch (action.type) {
     case 'LOGIN': {
-      const resp = action.value
+      const resp = action.payload
       const refreshToken =
         'refresh_token' in resp ? { refreshToken: resp.refresh_token } : {}
       const outState = {
@@ -54,7 +54,7 @@ function authReducer(state: State, action: Action) {
       return outState
     }
     case 'LOGIN_FROM_JWT': {
-      const jwt = action.value
+      const jwt = action.payload
       if (jwt) {
         return {
           ...state,
@@ -76,7 +76,7 @@ function authReducer(state: State, action: Action) {
       }
     }
     case 'SET_ACCESS_TOKEN': {
-      return { ...state, accessToken: action.value }
+      return { ...state, accessToken: action.payload }
     }
     default: {
       return state
@@ -96,7 +96,7 @@ function autoLogin(
     if (jwt) {
       const expired = jwt.exp > Date.now()
       if (!expired) {
-        dispatch({ type: 'LOGIN_FROM_JWT', value: jwt })
+        dispatch({ type: 'LOGIN_FROM_JWT', payload: jwt })
       }
     }
   } else if (state.refreshToken) {
@@ -105,7 +105,7 @@ function autoLogin(
     fetch(createAccessTokenRequest(state.refreshToken))
       .then(resp => resp.clone().json())
       .then((resp: ApiResponse<LoginJson>) =>
-        dispatch({ type: 'LOGIN', value: resp })
+        dispatch({ type: 'LOGIN', payload: resp })
       )
       .catch(() => logout(dispatch))
   }
@@ -147,7 +147,7 @@ function AuthProvider({ children }: ProviderProps) {
     fetchRetryCount: 3,
     onAccessTokenChange: (inAccessToken: string) => {
       setLocalStorage('access_token', inAccessToken)
-      dispatch({ type: 'SET_ACCESS_TOKEN', value: inAccessToken })
+      dispatch({ type: 'SET_ACCESS_TOKEN', payload: inAccessToken })
     }
   }
 
@@ -208,7 +208,7 @@ async function login(
     .then((resp: ApiResponse<LoginJson>) => {
       if ('access_token' in resp && 'refresh_token' in resp) {
         if (resp.error === null) {
-          dispatch({ type: 'LOGIN', value: resp })
+          dispatch({ type: 'LOGIN', payload: resp })
           setLocalStorage('access_token', resp.access_token)
           setLocalStorage('refresh_token', resp.refresh_token)
           authorize(resp.refresh_token, resp.access_token)

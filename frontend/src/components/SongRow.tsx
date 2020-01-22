@@ -28,7 +28,7 @@ import LoaderSkeleton from '/components/LoaderSkeleton'
 import LoaderSpinner from '/components/LoaderSpinner'
 import NotificationToast from '/components/NotificationToast'
 import { useAuthState } from '/contexts/auth'
-import { useSettingsContext } from '/contexts/settings'
+import { useSiteSettingsState } from '/contexts/settings'
 import { readableFilesize, readableSeconds } from '/utils'
 
 const disabledButtonStyle = css`
@@ -342,7 +342,7 @@ const SongRow: FunctionComponent<SongRowProps> = ({
   updateSong,
   showAdmin
 }) => {
-  const { canDownload } = useSettingsContext()
+  const { canDownload } = useSiteSettingsState()
   const { admin: isAdmin, loggedIn } = useAuthState()
   const admin = isAdmin && showAdmin
 

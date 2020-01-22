@@ -2,14 +2,12 @@ import React, { createContext, useContext, useReducer } from 'react'
 import { getLocalStorage } from '/utils'
 
 type Action =
-  | { type: 'SET_VOLUME'; value: number }
+  | { type: 'SET_VOLUME'; payload: number }
   | { type: 'TOGGLE_PLAYING' }
-  | { type: 'SET_SHOULD_FETCH_NOW_PLAYING'; value: boolean }
 type Dispatch = (action: Action) => void
 type State = {
   playing: boolean
   volume: number
-  shouldFetchNowPlaying: boolean
 }
 type ProviderProps = { children: React.ReactNode }
 
@@ -19,7 +17,7 @@ const DispatchContext = createContext<Dispatch | undefined>(undefined)
 function controlReducer(state: State, action: Action) {
   switch (action.type) {
     case 'SET_VOLUME': {
-      return { ...state, volume: action.value }
+      return { ...state, volume: action.payload }
     }
     case 'TOGGLE_PLAYING': {
       const playing = !state.playing
@@ -28,9 +26,6 @@ function controlReducer(state: State, action: Action) {
         playing,
         shouldFetchNowPlaying: playing
       }
-    }
-    case 'SET_SHOULD_FETCH_NOW_PLAYING': {
-      return { ...state, shouldFetchNowPlaying: action.value }
     }
     default: {
       return state
@@ -43,8 +38,7 @@ function ControlProvider({ children }: ProviderProps) {
 
   const [state, dispatch] = useReducer(controlReducer, {
     playing: false,
-    volume: localVolume,
-    shouldFetchNowPlaying: true
+    volume: localVolume
   })
 
   return (
@@ -78,15 +72,11 @@ function useControlContext(): [State, Dispatch] {
 
 // Action creators
 function setVolume(dispatch: Dispatch, volume: number) {
-  dispatch({ type: 'SET_VOLUME', value: volume })
+  dispatch({ type: 'SET_VOLUME', payload: volume })
 }
 
 function togglePlaying(dispatch: Dispatch) {
   dispatch({ type: 'TOGGLE_PLAYING' })
-}
-
-function setShouldFetchInfo(dispatch: Dispatch, value: boolean) {
-  dispatch({ type: 'SET_SHOULD_FETCH_NOW_PLAYING', value })
 }
 
 export {
@@ -95,6 +85,5 @@ export {
   useControlState,
   useControlDispatch,
   setVolume,
-  togglePlaying,
-  setShouldFetchInfo
+  togglePlaying
 }

@@ -17,7 +17,7 @@ import LoggedInDropdown from '/components/LoggedInDropdown'
 import LoginDropdown from '/components/LoginDropdown'
 import ThemeChooser from '/components/ThemeChooser'
 import { useAuthState } from '/contexts/auth'
-import { useSettingsContext } from '/contexts/settings'
+import { useSiteSettingsState } from '/contexts/settings'
 import { containerWidthStyle } from '/utils'
 
 const flexGrow = (val: number) => css`
@@ -36,7 +36,7 @@ const navbar = css`
 
 const Navbar: FunctionComponent = ({ children }) => {
   const { loggedIn } = useAuthState()
-  const { styles, title } = useSettingsContext()
+  const { styles, title } = useSiteSettingsState()
 
   const [collapsed, setCollapsed] = useState(true)
   const toggle = () => setCollapsed(collapsed => !collapsed)

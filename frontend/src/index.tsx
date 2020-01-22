@@ -8,14 +8,14 @@ import { AuthProvider } from '/contexts/auth'
 import { ControlProvider } from '/contexts/control'
 import { RadioInfoProvider } from '/contexts/radio'
 import { RadioStatusProvider } from '/contexts/radioStatus'
-import { useSettingsContext } from '/contexts/settings'
+import { SiteSettingsProvider } from '/contexts/settings'
 import '/index.css'
 
 const root = document.getElementById('root')
 
 render(
   <BrowserRouter>
-    <useSettingsContext.Provider>
+    <SiteSettingsProvider>
       <ControlProvider>
         <AuthProvider>
           <RadioInfoProvider>
@@ -25,7 +25,7 @@ render(
           </RadioInfoProvider>
         </AuthProvider>
       </ControlProvider>
-    </useSettingsContext.Provider>
+    </SiteSettingsProvider>
   </BrowserRouter>,
   root
 )

@@ -59,12 +59,9 @@ function radioStatusReducer(state: State, action: Action) {
       if (state.progress > 0) {
         progress = state.progress + state.progressIncrement
       }
-      let counter = state.counter + 0.5
+      const counter = state.counter + 0.5
       const position = state.position + 0.5
       // reset counter as song changes
-      if (position > state.duration) {
-        counter = 0.0
-      }
       return { ...state, progress, counter, position }
     }
     default: {
@@ -73,8 +70,16 @@ function radioStatusReducer(state: State, action: Action) {
   }
 }
 
-function RadioStatusUpdater() {
-  const [state, dispatch] = useRadioStatusContext()
+function RadioStatusProvider({ children }: ProviderProps) {
+  const [state, dispatch] = useReducer(radioStatusReducer, {
+    counter: 0.0,
+    syncSeconds: 0,
+    progress: 0.0,
+    progressIncrement: 0.0,
+    position: 0,
+    duration: 0
+  })
+
   const radioInfoDispatch = useRadioInfoDispatch()
 
   useInterval(() => {
@@ -98,23 +103,9 @@ function RadioStatusUpdater() {
     dispatch({ type: 'UPDATE_COUNTER' })
   }, 500) // update progress every 500ms (counter +0.5 per run)
 
-  return null
-}
-
-function RadioStatusProvider({ children }: ProviderProps) {
-  const [state, dispatch] = useReducer(radioStatusReducer, {
-    counter: 0.0,
-    syncSeconds: 0,
-    progress: 0.0,
-    progressIncrement: 0.0,
-    position: 0,
-    duration: 0
-  })
-
   return (
     <StateContext.Provider value={state}>
       <DispatchContext.Provider value={dispatch}>
-        <RadioStatusUpdater />
         {children}
       </DispatchContext.Provider>
     </StateContext.Provider>
@@ -147,7 +138,6 @@ function useRadioStatusContext(): [State, Dispatch] {
 
 export {
   RadioStatusProvider,
-  RadioStatusUpdater,
   useRadioStatusContext,
   useRadioStatusState,
   useRadioStatusDispatch

@@ -37,7 +37,7 @@ import {
   useRadioInfoState
 } from '/contexts/radio'
 import { useRadioStatusState } from '/contexts/radioStatus'
-import { useSettingsContext } from '/contexts/settings'
+import { useSettingsContext, useSiteSettingsState } from '/contexts/settings'
 import {
   containerWidthStyle,
   fuzzyTime,
@@ -58,7 +58,7 @@ interface UsageModalProps {
 
 const UsageModal: FunctionComponent<UsageModalProps> = React.memo(
   ({ open, toggle }) => {
-    const { streamUrl } = useSettingsContext()
+    const { streamUrl } = useSiteSettingsState()
 
     return (
       <Modal isOpen={open} toggle={toggle}>
@@ -167,7 +167,7 @@ const SongList: FunctionComponent<SongListProps> = ({
 }
 
 const Branding: FunctionComponent = () => {
-  const { title } = useSettingsContext()
+  const { title } = useSiteSettingsState()
   const { serverInfo } = useRadioInfoState()
 
   return (
@@ -294,7 +294,7 @@ const BigProgress: FunctionComponent = () => {
 
 const Controls: FunctionComponent<HomeProps> = React.memo(
   ({ togglePlaying }) => {
-    const { streamUrl } = useSettingsContext()
+    const { streamUrl } = useSiteSettingsState()
     const { playing } = useControlState()
 
     const [showModal, setShowModal] = useState<boolean>(false)

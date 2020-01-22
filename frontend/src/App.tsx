@@ -26,7 +26,7 @@ import {
   useControlState
 } from '/contexts/control'
 import { useRadioInfoState } from '/contexts/radio'
-import { useSettingsContext } from '/contexts/settings'
+import { useSiteSettingsState } from '/contexts/settings'
 import SignIn from '/pages/SignIn'
 import SignUp from '/pages/SignUp'
 
@@ -54,7 +54,7 @@ const switchStyle = css`
 const TitleSetter: FunctionComponent = () => {
   const { playing } = useControlState()
   const { songInfo } = useRadioInfoState()
-  const { title: pageTitle } = useSettingsContext()
+  const { title: pageTitle } = useSiteSettingsState()
 
   return (
     <Helmet>
@@ -126,7 +126,7 @@ const bounceTransition = {
 const App: FunctionComponent = () => {
   const player = useRef<ReactHowler>(null)
 
-  const { streamUrl } = useSettingsContext()
+  const { streamUrl } = useSiteSettingsState()
 
   const { volume, playing } = useControlState()
   const dispatch = useControlDispatch()
@@ -156,8 +156,8 @@ const App: FunctionComponent = () => {
             </Navbar>
 
             <ReactHowler
-              src={[`${streamUrl}.ogg`, `${streamUrl}.mp3`]}
-              format={['ogg', 'mp3']}
+              src={[`${streamUrl}.mp3`, `${streamUrl}.ogg`]}
+              format={['mp3', 'ogg']}
               preload={false}
               html5={true}
               playing={playing}
@@ -191,7 +191,7 @@ const App: FunctionComponent = () => {
                 render={props => {
                   return (
                     <Suspense fallback={<LoaderSpinner />}>
-                      <Songs {...props} favourites={false} />{' '}
+                      <Songs {...props} favourites={false} />
                     </Suspense>
                   )
                 }}

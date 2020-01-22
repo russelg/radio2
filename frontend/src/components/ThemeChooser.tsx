@@ -1,12 +1,12 @@
 import React, { FormEvent, FunctionComponent, useState } from 'react'
-import { useSettingsContext } from '/contexts/settings'
+import { setStylesheet, useSiteSettingsContext } from '/contexts/settings'
 
 export interface ThemeChooserProps {
   className?: string
 }
 
 const ThemeChooser: FunctionComponent<ThemeChooserProps> = ({ className }) => {
-  const { styles, stylesheet, setStylesheet } = useSettingsContext()
+  const [{ styles, stylesheet }, dispatch] = useSiteSettingsContext()
 
   const stylesheetLink = document.getElementById(
     'change_stylesheet'
@@ -18,7 +18,7 @@ const ThemeChooser: FunctionComponent<ThemeChooserProps> = ({ className }) => {
 
   const onChange = (event: FormEvent<HTMLSelectElement>) => {
     const { value } = event.currentTarget as HTMLSelectElement
-    setStylesheet(value)
+    setStylesheet(dispatch, value)
     setSelected(value)
   }
 

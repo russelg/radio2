@@ -25,6 +25,7 @@ import { toast } from 'react-toastify'
 import {
   Button,
   Col,
+  Collapse,
   Container,
   Form,
   FormGroup,
@@ -32,8 +33,7 @@ import {
   InputGroup,
   InputGroupAddon,
   Label,
-  Row,
-  Collapse
+  Row
 } from 'reactstrap'
 import {
   NumberParam,
@@ -54,7 +54,7 @@ import Error from '/components/Error'
 import NotificationToast from '/components/NotificationToast'
 import SongsTable from '/components/SongsTable'
 import { useAuthState } from '/contexts/auth'
-import { useSettingsContext } from '/contexts/settings'
+import { useSiteSettingsState } from '/contexts/settings'
 import {
   containerWidthStyle,
   navbarMarginStyle,
@@ -325,7 +325,7 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
     'show_admin',
     false
   )
-  const { canUpload } = useSettingsContext()
+  const { canUpload } = useSiteSettingsState()
   const { admin } = useAuthState()
 
   // request related state

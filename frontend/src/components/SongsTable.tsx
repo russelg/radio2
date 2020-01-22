@@ -36,7 +36,7 @@ const SongsTable: FunctionComponent<Props> = ({
       <tbody>
         {songs.map((song: SongItem | null, idx) => (
           <SongRow
-            key={song ? song.id : idx}
+            key={idx}
             song={song}
             updateSong={updateSong}
             showAdmin={showAdmin}
