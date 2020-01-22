@@ -53,6 +53,10 @@ class Config:
     # Transcode stream to MP3 for browser compatibility
     ICECAST_TRANSCODE = False
 
+    # Redis configuration
+    # Used to enable song skipping, among other things
+    REDIS_URL = "redis://redis:6379/0"
+
     # General app configuration
     # Largest allowed size for music uploads, in bytes (if PUBLIC_UPLOADS is True)
     FILE_SIZE_LIMIT = 524288000

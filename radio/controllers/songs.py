@@ -13,7 +13,7 @@ from flask import Blueprint, Response, make_response, request, send_from_directo
 from flask_jwt_extended import current_user, decode_token, jwt_optional, jwt_required
 from marshmallow import ValidationError, fields, validate
 from pony.orm import commit, db_session, desc, select
-from radio import app
+from radio import app, redis_client
 from radio.common.pagination import Pagination
 from radio.common.schemas import (
     DownloadSchema,
@@ -400,6 +400,13 @@ class FavouriteController(rest.Resource):
         )
 
 
+class SkipController(rest.Resource):
+    @admin_required
+    def post(self) -> Response:
+        redis_client.publish('skip', "True")
+        return make_api_response(200, None, "Successfully skipped current playing song")
+
+
 api.add_resource(SongController, "/song/<id>")
 api.add_resource(SongsController, "/songs")
 api.add_resource(RequestController, "/request")
@@ -407,3 +414,4 @@ api.add_resource(FavouriteController, "/favourites")
 api.add_resource(AutocompleteController, "/autocomplete")
 api.add_resource(DownloadController, "/download")
 api.add_resource(UploadController, "/upload")
+api.add_resource(SkipController, "/skip")

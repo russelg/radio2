@@ -3,6 +3,7 @@ version: '3'
 volumes:
   db-data:
   logs:
+  redis-data:
   frontend_build:
   frontend_nodemodules:
     external: true
@@ -67,10 +68,12 @@ services:
       - 9555:80
     links:
       - db
+      - redis
     depends_on:
       - frontend
       - db
       - icecast
+      - redis
 
   stream:
     image: radio
@@ -82,7 +85,17 @@ services:
     links:
       - db
       - icecast
+      - redis
     depends_on:
       - db
       - icecast
+      - redis
     tty: true
+
+  redis:
+    restart: on-failure
+    image: redis:5
+    volumes:
+      - redis-data:/data
+    expose:
+      - 6379

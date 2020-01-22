@@ -5,7 +5,7 @@ setup:
 	python3 -m tools.generate_icecast_xml
 
 pull: 
-	docker-compose pull caddy icecast db
+	docker-compose pull caddy icecast db redis
 
 build:
 	docker-compose build

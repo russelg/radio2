@@ -5,7 +5,8 @@ import subprocess
 import time
 from typing import IO, List
 
-from radio.api import app
+# import redis
+from radio import app, redis_client
 from radio.common.utils import get_metadata, next_song
 
 # try import pylibshout from env first
@@ -98,6 +99,9 @@ class Worker(multiprocessing.Process):
         self.is_mp3 = args[1]
         self.queue = multiprocessing.JoinableQueue()
         self.instance = ShoutInstance(self.config, self.is_mp3)
+        # self.redis = redis.StrictRedis.from_url(self.config["REDIS_URL"])
+        self.pubsub = redis_client.pubsub(ignore_subscribe_messages=True)
+        self.pubsub.subscribe("skip")
 
     def put_queue(self, song_path: str):
         self.queue.put(song_path)
@@ -121,7 +125,7 @@ class Worker(multiprocessing.Process):
         if self.instance.is_mp3:
             self.instance.shout.metadata = {"song": data.encode("utf-8")}
             logger.info(
-                f"{self.instance.format}: Setting metadata: <{self.instance.shout.metadata}>..."
+                f"{self.instance.format}: Setting metadata: {self.instance.shout.metadata}..."
             )
             logger.debug(f"{self.instance.format}: Starting ffmpeg...")
             ffmpeg = subprocess.Popen(
@@ -149,22 +153,34 @@ class Worker(multiprocessing.Process):
                 buffer = src.read(chunk_size)
                 buf_size = len(buffer)
                 sent_bytes += buf_size
-                if buffer:
+
+                # check for any redis skip messages
+                message = self.pubsub.get_message()
+                should_skip = "False"
+                if message:
+                    # parse skip message to see if we should skip or not
+                    # "False" == do not skip, anything else will skip.
+                    should_skip = message.get("data", "False").decode()
+
+                if buffer and should_skip == "False":
                     ret = self.instance.shout.send(buffer)
                     if ret < 0:
                         logger.error(f"{self.instance.format}: csend: <{ret}>")
                         break
                 else:
                     logger.debug(
+                        f"{self.instance.format}: Redis message: <{message!r}>..."
+                    )
+                    logger.debug(
                         f"{self.instance.format}: Buffer is empty, breaking..."
                     )
                     break
                 self.instance.shout.sync()
 
-        if ffmpeg:
-            logger.debug(f"{self.instance.format}: Waiting on ffmpeg...")
-            ffmpeg.wait()
-            logger.debug(f"{self.instance.format}: Finished waiting on ffmpeg.")
+        # if ffmpeg:
+        #     logger.debug(f"{self.instance.format}: Waiting on ffmpeg...")
+        #     ffmpeg.wait()
+        #     logger.debug(f"{self.instance.format}: Finished waiting on ffmpeg.")
 
         finish_time = time.time()
         kbps = int(sent_bytes * 0.008 / (finish_time - start_time))
@@ -177,7 +193,6 @@ class Worker(multiprocessing.Process):
         self.instance.connect()
         while True:
             song_path = self.queue.get(block=True)
-            logger.info(f'{self.instance.format}: Got new file "{song_path}"')
             if song_path is None:
                 break
             self.stream(song_path)
@@ -209,6 +224,9 @@ def run():
 
         for worker in workers:
             worker.join_queue()
+
+        logger.info(f"Resetting skip flag...")
+        redis_client.publish("skip", "False")
 
 
 if __name__ == "__main__":

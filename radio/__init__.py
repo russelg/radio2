@@ -5,12 +5,14 @@ import arrow
 from flask import Flask
 from flask.json import JSONEncoder
 from flask_jwt_extended import JWTManager
+from flask_redis import FlaskRedis
 
 from .config import Config
 
 app = Flask(__name__)
 app.config.from_object(Config)
 jwt = JWTManager(app)
+redis_client = FlaskRedis(app)
 
 
 class CustomJSONEncoder(JSONEncoder):
