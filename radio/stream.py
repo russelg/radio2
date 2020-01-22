@@ -127,7 +127,6 @@ class Worker(multiprocessing.Process):
             logger.info(
                 f"{self.instance.format}: Setting metadata: {self.instance.shout.metadata}..."
             )
-            logger.debug(f"{self.instance.format}: Starting ffmpeg...")
             ffmpeg = subprocess.Popen(
                 [
                     self.config["PATH_FFMPEG_BINARY"],
@@ -177,10 +176,9 @@ class Worker(multiprocessing.Process):
                     break
                 self.instance.shout.sync()
 
-        # if ffmpeg:
-        #     logger.debug(f"{self.instance.format}: Waiting on ffmpeg...")
-        #     ffmpeg.wait()
-        #     logger.debug(f"{self.instance.format}: Finished waiting on ffmpeg.")
+        if ffmpeg:
+            ffmpeg.terminate()
+            logger.debug(f"{self.instance.format}: Stopped ffmpeg.")
 
         finish_time = time.time()
         kbps = int(sent_bytes * 0.008 / (finish_time - start_time))
@@ -218,15 +216,15 @@ def run():
             continue
 
         song = os.path.join(app.config["PATH_MUSIC"], nxt_song)
-        logger.info(f'streaming file "{song}"')
+        logger.info(f'Streaming file "{song}"')
         for worker in workers:
             worker.put_queue(song)
 
         for worker in workers:
             worker.join_queue()
 
-        logger.info(f"Resetting skip flag...")
         redis_client.publish("skip", "False")
+        logger.info(f"Reset skip flag.")
 
 
 if __name__ == "__main__":
