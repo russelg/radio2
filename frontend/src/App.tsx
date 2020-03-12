@@ -74,17 +74,16 @@ type MediaSessionSetterProps = {
 const MediaSessionSetter: FunctionComponent<MediaSessionSetterProps> = ({
   togglePlaying
 }) => {
-  const { playing } = useControlState()
   const { songInfo } = useRadioInfoState()
 
-  return playing ? (
+  return (
     <MediaSession
       title={songInfo.title}
       artist={songInfo.artist}
       onPlay={togglePlaying}
       onPause={togglePlaying}
     />
-  ) : null
+  )
 }
 
 // we need to map the `scale` prop we define below

@@ -9,23 +9,31 @@ import { ControlProvider } from '/contexts/control'
 import { RadioInfoProvider } from '/contexts/radio'
 import { RadioStatusProvider } from '/contexts/radioStatus'
 import { SiteSettingsProvider } from '/contexts/settings'
+import { SWRConfig } from 'swr'
 import '/index.css'
 
 const root = document.getElementById('root')
 
 render(
   <BrowserRouter>
-    <SiteSettingsProvider>
-      <ControlProvider>
-        <AuthProvider>
-          <RadioInfoProvider>
-            <RadioStatusProvider>
-              <App />
-            </RadioStatusProvider>
-          </RadioInfoProvider>
-        </AuthProvider>
-      </ControlProvider>
-    </SiteSettingsProvider>
+    <SWRConfig
+      value={{
+        fetcher: (...args) =>
+          // @ts-ignore incorrect argument number
+          fetch(...args).then((res: Response) => res.clone().json())
+      }}>
+      <SiteSettingsProvider>
+        <ControlProvider>
+          <AuthProvider>
+            <RadioInfoProvider>
+              <RadioStatusProvider>
+                <App />
+              </RadioStatusProvider>
+            </RadioInfoProvider>
+          </AuthProvider>
+        </ControlProvider>
+      </SiteSettingsProvider>
+    </SWRConfig>
   </BrowserRouter>,
   root
 )

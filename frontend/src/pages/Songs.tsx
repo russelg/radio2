@@ -362,7 +362,6 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
     let songsCopy = [...songs]
     const stateSong: number = songsCopy.findIndex(element => element.id === id)
     if (stateSong > -1) {
-      console.log('updating:', { id, song })
       if (song !== null) {
         songsCopy[stateSong] = { ...songsCopy[stateSong], ...song }
       } else {

@@ -15,7 +15,7 @@ import {
 const ignoredUrls = ['/auth/login', '/settings', '/np']
 
 type UserClaims = {
-  roles: Array<'admin'>
+  roles: 'admin'[]
   username: string
 }
 
@@ -43,7 +43,7 @@ function authReducer(state: State, action: Action) {
       const resp = action.payload
       const refreshToken =
         'refresh_token' in resp ? { refreshToken: resp.refresh_token } : {}
-      const outState = {
+      return {
         ...state,
         ...refreshToken,
         accessToken: resp.access_token,
@@ -51,7 +51,6 @@ function authReducer(state: State, action: Action) {
         admin: resp.admin || false,
         loggedIn: true
       }
-      return outState
     }
     case 'LOGIN_FROM_JWT': {
       const jwt = action.payload
@@ -104,9 +103,14 @@ function autoLogin(
     // ... so get a new access token using that :)
     fetch(createAccessTokenRequest(state.refreshToken))
       .then(resp => resp.clone().json())
-      .then((resp: ApiResponse<LoginJson>) =>
+      .then((resp: ApiResponse<LoginJson>) => {
+        if (resp.status_code === 401) {
+          // refresh token request failed, let's give up and logout.
+          const msg = resp.description || resp.message || ''
+          throw new Error(msg.toString())
+        }
         dispatch({ type: 'LOGIN', payload: resp })
-      )
+      })
       .catch(() => logout(dispatch))
   }
 }
@@ -129,10 +133,9 @@ function AuthProvider({ children }: ProviderProps) {
       return json.access_token
     },
     shouldIntercept: (request: Request) => {
-      if (ignoredUrls.some(url => request.url.includes(url))) return false
-      return true
+      return !ignoredUrls.some(url => request.url.includes(url))
     },
-    shouldInvalidateAccessToken: () => false,
+    shouldInvalidateAccessToken: (response: Response) => false,
     shouldWaitForTokenRenewal: true,
     authorizeRequest: (request: Request, inAccessToken: string) => {
       request.headers.set('Authorization', `Bearer ${inAccessToken}`)
@@ -213,7 +216,6 @@ async function login(
           setLocalStorage('refresh_token', resp.refresh_token)
           authorize(resp.refresh_token, resp.access_token)
         } else {
-          console.log(resp)
           logout(dispatch)
         }
       }

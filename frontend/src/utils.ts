@@ -132,7 +132,6 @@ export function useLocalStorage<T>(
       }
       return initialValue
     } catch (error) {
-      console.log(error)
       // If error also return initialValue
       return initialValue
     }
@@ -150,8 +149,7 @@ export function useLocalStorage<T>(
       // Save to local storage
       setLocalStorage(key, valueToStore)
     } catch (error) {
-      // A more advanced implementation would handle the error case
-      console.log(error)
+      // Oh well, not an issue likely.
     }
   }
 
@@ -199,8 +197,7 @@ export function setLocalStorage<T>(key: string, value: T) {
   try {
     window.localStorage.setItem(key, JSON.stringify(value))
   } catch (error) {
-    // A more advanced implementation would handle the error case
-    console.log(error)
+    // Not particularly important
   }
 }
 

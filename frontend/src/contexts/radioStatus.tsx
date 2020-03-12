@@ -86,7 +86,6 @@ function RadioStatusProvider({ children }: ProviderProps) {
     // once counter hits 8 (i.e. 8 seconds) or song has finished
     // then fetch current song info from server
     if (state.counter >= 8.0 || state.position > state.duration) {
-      console.log('fetching info')
       fetchInfo(radioInfoDispatch).then(info => {
         const { songInfo } = info
         dispatch({
