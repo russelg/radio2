@@ -99,7 +99,6 @@ class Worker(multiprocessing.Process):
         self.is_mp3 = args[1]
         self.queue = multiprocessing.JoinableQueue()
         self.instance = ShoutInstance(self.config, self.is_mp3)
-        # self.redis = redis.StrictRedis.from_url(self.config["REDIS_URL"])
         self.pubsub = redis_client.pubsub(ignore_subscribe_messages=True)
         self.pubsub.subscribe("skip")
 

@@ -16,10 +16,10 @@ import marshmallow
 import mutagen
 import xmltodict
 from flask import Response, jsonify
+from pony.orm import commit, count, db_session, max, select, sum
 from radio import app
 from radio.common.schemas import RequestStatus
 from radio.models import Queue, Song, User
-from pony.orm import commit, count, db_session, max, select, sum
 from webargs import flaskparser
 from werkzeug.exceptions import HTTPException
 
@@ -95,7 +95,8 @@ def get_folder_size(path: str = ".") -> int:
 
 
 def allowed_file(filename: str) -> bool:
-    """Check if the given filename is an allowed extension for upload
+    """
+    Check if the given filename is an allowed extension for upload
 
     :param str filename: Filename to validate
     :return: True if filename is valid
@@ -191,17 +192,16 @@ def get_metadata(filename: str) -> Optional[Dict[str, Any]]:
     }
 
 
-def get_song_or_abort(song_id: UUID) -> Song:
+def get_song_or_abort(song_id: Optional[UUID]) -> Song:
     song = Song.get(id=song_id)
     if not song:
         resp = make_api_response(404, "Not Found", "Song does not exist")
-        raise HTTPException(description=resp.get_data(), response=resp)
-    else:
-        return song
+        raise HTTPException(description=resp.get_data(as_text=True), response=resp)
+    return song
 
 
 @db_session
-def insert_song(filename: str) -> Song:
+def insert_song(filename: str) -> Optional[Song]:
     """
     Adds a song to the database
 

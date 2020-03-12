@@ -1,7 +1,8 @@
 import argparse
 
+from pony.orm import commit, db_session
 from radio.common.users import register, user_exists, valid_username
-from radio.models import User, commit, db_session
+from radio.models import User
 
 parser = argparse.ArgumentParser()
 parser.add_argument('username', type=str)
@@ -23,8 +24,7 @@ with db_session:
         validator = valid_username(args.username)
         if validator.valid:
             if args.password:
-                success = register(args.username, args.password,
-                                   admin=args.admin, validate=False)
+                success = register(args.username, args.password, admin=args.admin)
                 if success:
                     print(f'User "{args.username}" successfully created.')
             else:
