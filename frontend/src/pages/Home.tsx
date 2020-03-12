@@ -37,7 +37,7 @@ import {
   useRadioInfoState
 } from '/contexts/radio'
 import { useRadioStatusState } from '/contexts/radioStatus'
-import { useSettingsContext, useSiteSettingsState } from '/contexts/settings'
+import { useSiteSettingsState } from '/contexts/settings'
 import {
   containerWidthStyle,
   fuzzyTime,
@@ -98,12 +98,11 @@ const UsageModal: FunctionComponent<UsageModalProps> = React.memo(
           </p>
           <p>
             Then, click on &nbsp;
-            <Button color="success" size="sm">
+            <Button color="primary" size="sm">
               Play Stream
             </Button>
             &nbsp;
           </p>
-          <p>You can only request every 2 hours.</p>
         </ModalBody>
         <ModalFooter>
           <Button color="secondary" onClick={toggle}>
@@ -124,8 +123,7 @@ interface SongListProps {
 const SongList: FunctionComponent<SongListProps> = ({
   songs,
   title,
-  alignment,
-  children
+  alignment
 }) => {
   const flipped = alignment === 'left' ? 'right' : 'left'
 
@@ -282,13 +280,7 @@ const BigProgressTitle: FunctionComponent = () => {
 }
 
 const BigProgress: FunctionComponent = () => {
-  const {
-    position,
-    duration,
-    progress,
-    progressIncrement
-  } = useRadioStatusState()
-
+  const { progress, progressIncrement } = useRadioStatusState()
   return <Progress value={progress + progressIncrement} />
 }
 

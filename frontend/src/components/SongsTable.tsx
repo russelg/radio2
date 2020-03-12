@@ -24,7 +24,7 @@ const SongsTable: FunctionComponent<Props> = ({
   const admin = isAdmin && showAdmin
 
   return (
-    <Table striped>
+    <Table striped className="mb-0">
       <thead>
         <tr className="d-flex">
           <th className="col-1">Length</th>

@@ -39,7 +39,7 @@ export function useFetch<T>(
   }
 
   const makeFetch = useCallback(() => {
-    const fetchData = async (newUrl?: string, inputOptions = {}) => {
+    return async (newUrl?: string, inputOptions: object = {}) => {
       controller.current = new AbortController()
       controller.current.signal.onabort = onAbort
 
@@ -65,8 +65,6 @@ export function useFetch<T>(
 
       return data.current
     }
-
-    return fetchData
   }, [url, options])
 
   // onMount or onUpdate

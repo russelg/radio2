@@ -1,6 +1,6 @@
 // @ts-ignore
 import MediaSession from '@mebtte/react-media-session'
-import { css, cx } from 'emotion'
+import { css } from 'emotion'
 import React, {
   CSSProperties,
   FunctionComponent,
@@ -172,54 +172,28 @@ const App: FunctionComponent = () => {
               atLeave={bounceTransition.atLeave}
               atActive={bounceTransition.atActive}
               mapStyles={mapStyles}
-              className={cx(switchStyle, 'h-100')}>
-              <Route
-                path="/"
-                exact
-                render={props => {
-                  return (
-                    <Suspense fallback={<LoaderSpinner />}>
-                      <Home togglePlaying={toggleHowlerPlaying} />
-                    </Suspense>
-                  )
-                }}
-              />
-              <Route
-                path="/songs"
-                exact
-                render={props => {
-                  return (
-                    <Suspense fallback={<LoaderSpinner />}>
-                      <Songs {...props} favourites={false} />
-                    </Suspense>
-                  )
-                }}
-              />
-              <Route
-                path="/favourites"
-                exact
-                render={props => {
-                  return (
-                    <Suspense fallback={<LoaderSpinner />}>
-                      <Songs {...props} favourites={true} />
-                    </Suspense>
-                  )
-                }}
-              />
-              <Route
-                path="/sign-up"
-                exact
-                render={props => {
-                  return <SignUp />
-                }}
-              />
-              <Route
-                path="/sign-in"
-                exact
-                render={props => {
-                  return <SignIn />
-                }}
-              />
+              className={switchStyle}>
+              <Route path="/" exact>
+                <Suspense fallback={<LoaderSpinner />}>
+                  <Home togglePlaying={toggleHowlerPlaying} />
+                </Suspense>
+              </Route>
+              <Route path="/songs" exact>
+                <Suspense fallback={<LoaderSpinner />}>
+                  <Songs favourites={false} />
+                </Suspense>
+              </Route>
+              <Route path="/favourites" exact>
+                <Suspense fallback={<LoaderSpinner />}>
+                  <Songs favourites={true} />
+                </Suspense>
+              </Route>
+              <Route path="/sign-up" exact>
+                <SignUp />
+              </Route>
+              <Route path="/sign-in" exact>
+                <SignIn />
+              </Route>
             </AnimatedSwitch>
           </div>
         </ErrorBoundary>

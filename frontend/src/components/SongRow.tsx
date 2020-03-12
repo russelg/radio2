@@ -6,13 +6,7 @@ import { faTimes } from '@fortawesome/free-solid-svg-icons/faTimes'
 import { faTrash } from '@fortawesome/free-solid-svg-icons/faTrash'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { css, cx } from 'emotion'
-import React, {
-  FormEvent,
-  FunctionComponent,
-  Suspense,
-  useRef,
-  useState
-} from 'react'
+import React, { FormEvent, FunctionComponent, useRef, useState } from 'react'
 import { toast } from 'react-toastify'
 import { Button, Form, UncontrolledTooltip } from 'reactstrap'
 import Editable from '/../lib/react-bootstrap-editable/src/Editable'
@@ -25,7 +19,6 @@ import {
 } from '/api/Schemas'
 import LoaderButton from '/components/LoaderButton'
 import LoaderSkeleton from '/components/LoaderSkeleton'
-import LoaderSpinner from '/components/LoaderSpinner'
 import NotificationToast from '/components/NotificationToast'
 import { useAuthState } from '/contexts/auth'
 import { useSiteSettingsState } from '/contexts/settings'
@@ -311,19 +304,17 @@ const EditableValue: FunctionComponent<EditableValueProps> = ({
   }
 
   return (
-    <Suspense fallback={<LoaderSpinner />}>
-      <Editable
-        className={cx(editableStyle, {
-          'font-italic font-weight-bold': loading
-        })}
-        name={field}
-        dataType="textfield"
-        mode="inline"
-        isValueClickable
-        initialValue={song[field]}
-        onSubmit={editSongMetadata}
-      />
-    </Suspense>
+    <Editable
+      className={cx(editableStyle, {
+        'font-italic font-weight-bold': loading
+      })}
+      name={field}
+      dataType="textfield"
+      mode="inline"
+      isValueClickable
+      initialValue={song[field]}
+      onSubmit={editSongMetadata}
+    />
   )
 }
 

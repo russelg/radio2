@@ -2,40 +2,22 @@ import React, { FunctionComponent } from 'react'
 import { animated, useSpring } from 'react-spring'
 import { Col, Spinner } from 'reactstrap'
 
-export interface Props {
-  style?: object
-  size?: string | object
-}
+export interface LoaderSpinnerProps {}
 
-const LoaderSpinner: FunctionComponent<Props> = ({
-  style = {},
-  size = 'lg'
-}) => {
+const LoaderSpinner: FunctionComponent<LoaderSpinnerProps> = () => {
   const props = useSpring({
     opacity: 1,
     from: { opacity: 0 }
   })
-  const isStr = Object.prototype.toString.call(size) === '[object String]'
   return (
     <animated.div style={props}>
-      <Col
-        sm="12"
-        className="d-flex justify-content-center fa-3x"
-        style={style}>
+      <Col sm="12" className="d-flex justify-content-center fa-3x mt-5">
         <Spinner
-          className=""
-          size={isStr ? size : undefined}
           color="info"
-          style={
-            size === undefined
-              ? {
-                  width: '8rem',
-                  height: '8rem'
-                }
-              : isStr
-              ? undefined
-              : (size as object)
-          }
+          style={{
+            width: '8rem',
+            height: '8rem'
+          }}
         />
       </Col>
     </animated.div>

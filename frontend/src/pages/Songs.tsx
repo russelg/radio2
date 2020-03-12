@@ -89,11 +89,11 @@ const SongUploadForm: FunctionComponent<SongUploadFormProps> = ({
     }
   }
 
-  const onupdatefiles = (fileItems: FilePondFile[]) => {
+  const onUpdateFiles = (fileItems: FilePondFile[]) => {
     setFiles(fileItems)
   }
 
-  const onprocessfile = (err: any, file: FilePondFile) => {
+  const onProcessFile = (err: any, file: FilePondFile) => {
     if (!err) {
       // @ts-ignore
       toast(<NotificationToast>Song uploaded!</NotificationToast>)
@@ -121,8 +121,8 @@ const SongUploadForm: FunctionComponent<SongUploadFormProps> = ({
       instantUpload={true}
       // @ts-ignore
       server={server}
-      onupdatefiles={onupdatefiles}
-      onprocessfile={onprocessfile}
+      onupdatefiles={onUpdateFiles}
+      onprocessfile={onProcessFile}
     />
   )
 }
@@ -471,7 +471,6 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
         <Col className="justify-content-center">
           <hr />
           {pagination}
-          <hr />
         </Col>
       </Row>
       <Row>
@@ -500,7 +499,7 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
       </Row>
       <Row>
         <Col>
-          <hr />
+          <hr className="mt-0" />
           <div className="justify-content-center">{pagination}</div>
           <hr />
         </Col>
