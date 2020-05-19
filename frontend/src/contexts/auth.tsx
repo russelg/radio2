@@ -154,10 +154,9 @@ function AuthProvider({ children }: ProviderProps) {
     }
   }
 
-  configure(tokenInterceptConfig)
-
   // login to site using existing tokens
   useEffect(() => {
+    configure(tokenInterceptConfig)
     autoLogin(dispatch, state, tokenInterceptConfig.createAccessTokenRequest)
   }, [])
 

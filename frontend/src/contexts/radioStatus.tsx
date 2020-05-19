@@ -125,17 +125,13 @@ function RadioStatusProvider({ children }: ProviderProps) {
         })
       }
       dispatch({ type: 'UPDATE_COUNTER' })
+      if (isFirstRun.current) {
+        isFirstRun.current = false
+      }
     },
     500,
-    true
+    false
   ) // update progress every 500ms (counter +0.5 per run)
-
-  useEffect(() => {
-    if (isFirstRun.current) {
-      isFirstRun.current = false
-      return
-    }
-  })
 
   return (
     <StateContext.Provider value={state}>
