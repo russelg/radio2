@@ -1,15 +1,18 @@
+import json
 import sys
 
-# do this to bypass importing __init__.py
-# this allows us to generate these config files in a very minimal py env
-sys.path.append("radio/")
-from config import Config
+# do this to avoid reformatting the imports in wrong order
+if True:
+    # do this to bypass importing __init__.py
+    # this allows us to generate these config files in a very minimal py env
+    sys.path.append("radio/")
+    from config import Config
 
 
-icecast_xml = """
+icecast_xml = f"""
 <icecast>
-    <location>{ICECAST_LOCATION}</location>
-    <admin>{ICECAST_CONTACT}</admin>
+    <location>{Config.ICECAST_LOCATION}</location>
+    <admin>{Config.ICECAST_CONTACT}</admin>
     <limits>
         <clients>2048</clients>
         <sources>5</sources>
@@ -21,20 +24,20 @@ icecast_xml = """
         <burst-size>65535</burst-size>
     </limits>
     <authentication>
-        <source-password>{ICECAST_PASSWORD}</source-password>
-        <relay-password>{ICECAST_PASSWORD}</relay-password>
-        <admin-user>{ICECAST_USER}</admin-user>
-        <admin-password>{ICECAST_PASSWORD}</admin-password>
+        <source-password>{Config.ICECAST_PASSWORD}</source-password>
+        <relay-password>{Config.ICECAST_PASSWORD}</relay-password>
+        <admin-user>{Config.ICECAST_USER}</admin-user>
+        <admin-password>{Config.ICECAST_PASSWORD}</admin-password>
     </authentication>
-    <hostname>{ICECAST_URL}</hostname>
+    <hostname>{(Config.ICECAST_URL).split("://")[-1]}</hostname>
     <listen-socket>
-        <port>{ICECAST_PORT}</port>
+        <port>{Config.ICECAST_PORT}</port>
     </listen-socket>
     <http-headers>
         <header name="Access-Control-Allow-Origin" value="*"/>
     </http-headers>
     <mount type="normal">
-        <mount-name>{ICECAST_MOUNT}.ogg</mount-name>
+        <mount-name>{Config.ICECAST_MOUNT}.ogg</mount-name>
         <charset>UTF-8</charset>
         <fallback-mount>/fallback.ogg</fallback-mount>
         <fallback-override>1</fallback-override>
@@ -45,7 +48,7 @@ icecast_xml = """
 if Config.ICECAST_TRANSCODE:
     icecast_xml += """    
     <mount type="normal">
-        <mount-name>{ICECAST_MOUNT}.mp3</mount-name>
+        <mount-name>{Config.ICECAST_MOUNT}.mp3</mount-name>
         <charset>UTF-8</charset>
         <fallback-mount>/fallback.mp3</fallback-mount>
         <fallback-override>1</fallback-override>
@@ -87,19 +90,24 @@ icecast_xml += """
     </security>
 </icecast>"""
 
-env = """ICECAST_SOURCE_PASSWORD={ICECAST_PASSWORD}
-ICECAST_ADMIN_PASSWORD={ICECAST_PASSWORD}
-ICECAST_RELAY_PASSWORD={ICECAST_PASSWORD}
-POSTGRES_PASSWORD={DB_PASSWORD}
-POSTGRES_USER={DB_USER}
-POSTGRES_DB={DB_DATABASE}"""
+env = f"""POSTGRES_PASSWORD={Config.DB_PASSWORD}
+POSTGRES_USER={Config.DB_USER}
+POSTGRES_DB={Config.DB_DATABASE}"""
 
-with open("icecast.xml", "w") as f:
-    config = {**Config.__dict__}
-    config['ICECAST_URL'] = config['ICECAST_URL'].split('://')[-1]
-    f.write(icecast_xml.format(**config))
-    print("wrote icecast.xml with values from radio/config.py")
+react_env = f"""REACT_APP_CSS={Config.CSS[Config.DEFAULT_CSS]}
+REACT_APP_STYLES={json.dumps(Config.CSS)}
+REACT_APP_ICECAST={json.dumps({"mount": Config.ICECAST_MOUNT, "url": Config.ICECAST_URL})}
+REACT_APP_TITLE={Config.TITLE}
+REACT_APP_DOWNLOADS_ENABLED={'true' if Config.PUBLIC_DOWNLOADS else 'false'}
+REACT_APP_UPLOADS_ENABLED={'true' if Config.PUBLIC_UPLOADS else 'false'}"""
 
-with open("icecast.env", "w") as f:
-    f.write(env.format(**Config.__dict__))
-    print("wrote icecast.env with values from radio/config.py")
+
+def write(filename, data):
+    with open(filename, "w") as f:
+        f.write(data)
+        print(f"wrote {filename}")
+
+
+write("icecast.xml", icecast_xml)
+write("database.env", env)
+write("frontend/.env", react_env)

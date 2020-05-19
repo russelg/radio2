@@ -10,7 +10,7 @@ volumes:
 
 services:
   caddy:
-    image: abiosoft/caddy
+    image: abiosoft/caddy:no-stats
     volumes:
       - ./tools/Caddyfile.docker:/etc/Caddyfile
       - frontend_build:/srv
@@ -31,12 +31,12 @@ services:
       - 8067:8067
 
   db:
-    image: postgres:alpine
+    image: postgres:12-alpine
     restart: on-failure
     volumes:
       - db-data:/var/lib/postgresql/data
     env_file:
-      - icecast.env
+      - database.env
     expose:
       - 5432
 

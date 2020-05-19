@@ -305,11 +305,11 @@ paths/*/*
 # config files
 radio/config.py
 icecast.xml
+*.env
 .vscode/
 todo.md
 
 *.sh
-icecast.env
 .yarn_cache/*
 !.yarn_cache/.gitkeep
 .dockerignore
