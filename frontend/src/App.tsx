@@ -6,7 +6,8 @@ import React, {
   FunctionComponent,
   lazy,
   Suspense,
-  useRef
+  useRef,
+  useState
 } from 'react'
 import { Helmet } from 'react-helmet'
 import ReactHowler from 'react-howler'
@@ -130,6 +131,8 @@ const App: FunctionComponent = () => {
   const { volume, playing } = useControlState()
   const dispatch = useControlDispatch()
 
+  const [cacheBuster, setCacheBuster] = useState(new Date().getTime())
+
   const toggleHowlerPlaying = () => {
     const howler = player.current && player.current.howler
     if (howler) {
@@ -138,6 +141,7 @@ const App: FunctionComponent = () => {
       if (playing) {
         howler.unload()
       } else {
+        setCacheBuster(new Date().getTime())
         howler.load()
         howler.play()
       }
@@ -156,8 +160,8 @@ const App: FunctionComponent = () => {
 
             <ReactHowler
               src={[
-                `${streamUrl}.mp3?nocache=${new Date().getTime()}`,
-                `${streamUrl}.ogg?nocache=${new Date().getTime()}`
+                `${streamUrl}.mp3?nocache=${cacheBuster}`,
+                `${streamUrl}.ogg?nocache=${cacheBuster}`
               ]}
               format={['mp3', 'ogg']}
               preload={false}
