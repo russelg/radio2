@@ -102,13 +102,12 @@ function RadioStatusProvider({ children }: ProviderProps) {
       // once counter hits 8 (i.e. 8 seconds) or song has finished
       // then fetch current song info from server
       if (
+        isFirstRun.current ||
         // only request info if radio is playing, or we are on the homepage
-        (controlState.playing || window.location.pathname === '/') &&
-        (state.counter >= 8.0 ||
-          // next song should have started by now, so refresh
-          state.position > state.duration ||
-          // allows initial fetch
-          isFirstRun.current)
+        ((controlState.playing || window.location.pathname === '/') &&
+          (state.counter >= 8.0 ||
+            // next song should have started by now, so refresh
+            state.position > state.duration))
       ) {
         fetchInfo(radioInfoDispatch).then(info => {
           const { songInfo } = info
