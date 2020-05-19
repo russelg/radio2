@@ -194,7 +194,8 @@ class Worker(multiprocessing.Process):
                 break
             self.stream(song_path)
             self.queue.task_done()
-            self.instance.reset()
+            if not self.instance.connected:
+                self.instance.reset()
 
 
 def run():
