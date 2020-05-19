@@ -4,7 +4,7 @@ import { getLocalStorage, setLocalStorage } from '/utils'
 import { API_BASE } from '/api'
 
 type Action =
-  | { type: 'SET_INFO'; payload: ApiResponse<SettingsJson> }
+  | { type: 'SET_INFO'; payload: SettingsJson | ApiResponse<SettingsJson> }
   | { type: 'SET_STYLESHEET'; payload: string }
 type Dispatch = (action: Action) => void
 type State = {
@@ -46,19 +46,10 @@ function siteSettingsReducer(state: State, action: Action) {
 function SiteSettingsProvider({ children }: ProviderProps) {
   const localStylesheet = getLocalStorage<string>('css', '')
 
-  const [state, dispatch] = useReducer(siteSettingsReducer, {
-    stylesheet: localStylesheet,
-    styles: null,
-    title: '',
-    canDownload: false,
-    canUpload: false,
-    streamUrl: ''
-  })
-
-  // fetch settings on first use
-  useEffect(() => {
-    fetchSettings(dispatch)
-  }, [])
+  const [state, dispatch] = useReducer(
+    siteSettingsReducer,
+    getEnvSettings(localStylesheet)
+  )
 
   // set document title
   useEffect(() => {
@@ -106,15 +97,31 @@ function useSiteSettingsContext(): [State, Dispatch] {
   return [useSiteSettingsState(), useSiteSettingsDispatch()]
 }
 
-// Action creators
-function fetchSettings(dispatch: Dispatch) {
-  fetch(`${API_BASE}/settings`)
-    .then(resp => resp.clone().json())
-    .then((resp: ApiResponse<SettingsJson>) =>
-      dispatch({ type: 'SET_INFO', payload: resp })
-    )
+// read settings from .env file
+function getEnvSettings(localStylesheet: string) {
+  // check a single env item to reasonably assume the rest have been set
+  if (process.env.REACT_APP_TITLE) {
+    const icecast = JSON.parse(process.env.REACT_APP_ICECAST!)
+    return {
+      stylesheet: localStylesheet || process.env.REACT_APP_CSS!,
+      styles: JSON.parse(process.env.REACT_APP_STYLES!),
+      streamUrl: icecast.url + icecast.mount,
+      title: process.env.REACT_APP_TITLE!,
+      canDownload: JSON.parse(process.env.REACT_APP_DOWNLOADS_ENABLED!),
+      canUpload: JSON.parse(process.env.REACT_APP_UPLOADS_ENABLED!)
+    }
+  }
+  return {
+    stylesheet: localStylesheet,
+    styles: null,
+    title: '',
+    canDownload: false,
+    canUpload: false,
+    streamUrl: ''
+  }
 }
 
+// Action creators
 function setStylesheet(dispatch: Dispatch, stylesheet: string) {
   setLocalStorage('css', stylesheet)
   dispatch({ type: 'SET_STYLESHEET', payload: stylesheet })

@@ -7,12 +7,8 @@
       content="width=device-width, initial-scale=1, shrink-to-fit=no"
     />
     <meta name="theme-color" content="#333333" />
-    <title>Radio</title>
-    <link
-      rel="stylesheet"
-      id="change_stylesheet"
-      href="https://bootswatch.com/4/pulse/bootstrap.min.css"
-    />
+    <title>{{ TITLE || 'Radio' }}</title>
+    <link rel="stylesheet" id="change_stylesheet" />
     <script type="text/javascript">
       let customCSS = document.getElementById('change_stylesheet')
       if (customCSS) {
@@ -25,6 +21,10 @@
             // just take it at face value if not valid json
           }
           customCSS.href = item || ''
+        } else {
+          customCSS.href =
+            process.env.REACT_APP_CSS ||
+            'https://bootswatch.com/4/pulse/bootstrap.min.css'
         }
       }
     </script>
