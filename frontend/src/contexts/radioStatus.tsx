@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useReducer } from 'react'
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useReducer,
+  useRef
+} from 'react'
 import { fetchInfo, useRadioInfoDispatch } from '/contexts/radio'
 import { useInterval } from '/utils'
 
@@ -59,8 +65,12 @@ function radioStatusReducer(state: State, action: Action) {
       if (state.progress > 0) {
         progress = state.progress + state.progressIncrement
       }
-      const counter = state.counter + 0.5
-      const position = state.position + 0.5
+      let counter = state.counter + 0.5
+      let position = state.position
+      // only increment if duration is set (i.e. there is a song)
+      if (state.duration) {
+        position += 0.5
+      }
       // reset counter as song changes
       return { ...state, progress, counter, position }
     }
@@ -71,6 +81,8 @@ function radioStatusReducer(state: State, action: Action) {
 }
 
 function RadioStatusProvider({ children }: ProviderProps) {
+  const isFirstRun = useRef(true)
+
   const [state, dispatch] = useReducer(radioStatusReducer, {
     counter: 0.0,
     syncSeconds: 0,
@@ -82,25 +94,48 @@ function RadioStatusProvider({ children }: ProviderProps) {
 
   const radioInfoDispatch = useRadioInfoDispatch()
 
-  useInterval(() => {
-    // once counter hits 8 (i.e. 8 seconds) or song has finished
-    // then fetch current song info from server
-    if (state.counter >= 8.0 || state.position > state.duration) {
-      fetchInfo(radioInfoDispatch).then(info => {
-        const { songInfo } = info
-        dispatch({
-          type: 'UPDATE',
-          payload: {
-            start: songInfo.startTime + SYNC_OFFSET,
-            end: songInfo.endTime + SYNC_OFFSET,
-            serverTime: songInfo.serverTime,
-            clientTime: Math.round(new Date().getTime() / 1000.0)
-          }
+  useInterval(
+    () => {
+      // once counter hits 8 (i.e. 8 seconds) or song has finished
+      // then fetch current song info from server
+      if (
+        state.counter >= 8.0 ||
+        // next song should have started by now, so refresh
+        state.position > state.duration ||
+        // allows initial fetch
+        isFirstRun.current
+      ) {
+        fetchInfo(radioInfoDispatch).then(info => {
+          const { songInfo } = info
+          dispatch({
+            type: 'UPDATE',
+            payload: {
+              start: songInfo.startTime + SYNC_OFFSET,
+              // set end to 0 to reset the counter
+              // this is done to make sure the counter still progresses
+              // even if there are no songs.
+              end:
+                songInfo.startTime !== songInfo.endTime
+                  ? songInfo.endTime + SYNC_OFFSET
+                  : 0,
+              serverTime: songInfo.serverTime,
+              clientTime: Math.round(new Date().getTime() / 1000.0)
+            }
+          })
         })
-      })
+      }
+      dispatch({ type: 'UPDATE_COUNTER' })
+    },
+    500,
+    true
+  ) // update progress every 500ms (counter +0.5 per run)
+
+  useEffect(() => {
+    if (isFirstRun.current) {
+      isFirstRun.current = false
+      return
     }
-    dispatch({ type: 'UPDATE_COUNTER' })
-  }, 500) // update progress every 500ms (counter +0.5 per run)
+  })
 
   return (
     <StateContext.Provider value={state}>

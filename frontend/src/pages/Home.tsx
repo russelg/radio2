@@ -369,21 +369,25 @@ const homeStyle = css`
 
 const SongLists: FunctionComponent = () => {
   const {
-    serverInfo: { queue, lastPlayed }
+    serverInfo: { queue, lastPlayed, totalPlays, totalSongs }
   } = useRadioInfoState()
 
   return (
     <>
-      <Col lg="6" className="py-3">
-        <SongList songs={lastPlayed} title="Last Played" alignment="right">
-          No songs played recently.
-        </SongList>
-      </Col>
-      <Col lg="6" className="py-3">
-        <SongList songs={queue} title="Queue" alignment="left">
-          No songs currently queued.
-        </SongList>
-      </Col>
+      {totalPlays > 1 && (
+        <Col className="py-3">
+          <SongList songs={lastPlayed} title="Last Played" alignment="right">
+            No songs played recently.
+          </SongList>
+        </Col>
+      )}
+      {totalSongs > 0 && (
+        <Col className="py-3">
+          <SongList songs={queue} title="Queue" alignment="left">
+            No songs currently queued.
+          </SongList>
+        </Col>
+      )}
     </>
   )
 }

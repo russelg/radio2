@@ -159,7 +159,11 @@ export function useLocalStorage<T>(
 // babakness/use-interval.ts
 // https://gist.github.com/babakness/faca3b633bc23d9a0924efb069c9f1f5
 type IntervalFunction = () => unknown | void
-export function useInterval(callback: IntervalFunction, delay: number) {
+export function useInterval(
+  callback: IntervalFunction,
+  delay: number,
+  initial: boolean = false
+) {
   const savedCallback = useRef<IntervalFunction>(callback)
 
   // Remember the latest callback.
@@ -171,6 +175,9 @@ export function useInterval(callback: IntervalFunction, delay: number) {
   useEffect(() => {
     function tick() {
       savedCallback.current()
+    }
+    if (initial) {
+      tick()
     }
     const id = setInterval(tick, delay)
     return () => clearInterval(id)
