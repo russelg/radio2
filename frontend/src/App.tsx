@@ -155,7 +155,10 @@ const App: FunctionComponent = () => {
             </Navbar>
 
             <ReactHowler
-              src={[`${streamUrl}.mp3`, `${streamUrl}.ogg`]}
+              src={[
+                `${streamUrl}.mp3?nocache=${new Date().getTime()}`,
+                `${streamUrl}.ogg?nocache=${new Date().getTime()}`
+              ]}
               format={['mp3', 'ogg']}
               preload={false}
               html5={true}
