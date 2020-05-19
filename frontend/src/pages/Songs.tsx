@@ -2,6 +2,7 @@ import { cx } from 'emotion'
 // @ts-ignore
 import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type'
 import 'filepond/dist/filepond.min.css'
+import { stringify } from 'query-string'
 import React, {
   FormEvent,
   FunctionComponent,
@@ -15,7 +16,6 @@ import {
   Highlighter,
   TypeaheadMenuProps
 } from 'react-bootstrap-typeahead'
-import 'react-bootstrap-typeahead/css/Typeahead-bs4.css'
 import 'react-bootstrap-typeahead/css/Typeahead.css'
 import { File as FilePondFile, FilePond, registerPlugin } from 'react-filepond'
 import Pagination from 'react-js-pagination'
@@ -35,12 +35,7 @@ import {
   Label,
   Row
 } from 'reactstrap'
-import {
-  NumberParam,
-  stringify,
-  StringParam,
-  useQueryParams
-} from 'use-query-params'
+import { NumberParam, StringParam, useQueryParams } from 'use-query-params'
 import { API_BASE, handleResponse } from '/api'
 import {
   ApiBaseResponse,
@@ -61,6 +56,7 @@ import {
   useDelayedLoader,
   useLocalStorage
 } from '/utils'
+// @ts-ignore
 
 registerPlugin(FilePondPluginFileValidateType)
 
@@ -101,7 +97,7 @@ const SongUploadForm: FunctionComponent<SongUploadFormProps> = ({
 
       // remove file after uploaded
       pond.current && pond.current.removeFile(file.id)
-      setFiles(files => files.filter(itm => itm.file !== file.file))
+      setFiles((files) => files.filter((itm) => itm.file !== file.file))
     } else {
       let msg = 'Song upload failed'
       // @ts-ignore
@@ -139,8 +135,8 @@ function getApiUrl(params: SongsQuery, favourites: boolean): string {
 
   // remove page from the query should it be 1 (the default)
   if (params.page === 1) delete params.page
-  if (params.query === null) delete params.query
-  if (params.user === null) delete params.user
+  if (!params.query) delete params.query
+  if (!params.user) delete params.user
 
   return `/${endpoint}?${stringify(params)}`
 }
@@ -158,7 +154,7 @@ const SearchField: FunctionComponent<SearchFieldProps> = ({
   const [loading, setLoading] = useState<boolean>(false)
   const [options, setOptions] = useState<AutocompleteItemJson[]>([])
 
-  const [typeahead, setTypeahead] = useState<any>(null)
+  const ref = useRef()
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault()
@@ -182,10 +178,10 @@ const SearchField: FunctionComponent<SearchFieldProps> = ({
   const onSearch = (query: string) => {
     setLoading(true)
     fetch(`${API_BASE}/autocomplete?query=${query}`)
-      .then(resp => resp.clone().json())
+      .then((resp) => resp.clone().json())
       .then((json: ApiResponse<AutocompleteJson>) => {
-        setLoading(false)
         setOptions(json.suggestions)
+        setLoading(false)
       })
   }
 
@@ -201,13 +197,7 @@ const SearchField: FunctionComponent<SearchFieldProps> = ({
 
   useEffect(() => {
     setInput(query)
-    if (typeahead) {
-      // make sure typeahead input clears when query changes
-      const instance = typeahead.getInstance()
-      instance.setState({ text: query })
-      if (query === '') instance.clear()
-    }
-  }, [query, typeahead])
+  }, [query])
 
   return (
     <Form onSubmit={onSubmit}>
@@ -215,7 +205,7 @@ const SearchField: FunctionComponent<SearchFieldProps> = ({
         <AsyncTypeahead
           id="search"
           labelKey="result"
-          filterBy={['result']}
+          // filterBy={['result']}
           renderMenuItemChildren={renderMenuItemChildren}
           onInputChange={setInput}
           onChange={onChange}
@@ -226,10 +216,10 @@ const SearchField: FunctionComponent<SearchFieldProps> = ({
           options={options}
           defaultInputValue={input}
           highlightOnlyResult={false}
-          minLength={1}
-          selectHintOnEnter={false}
+          minLength={2}
+          maxResults={10}
           caseSensitive={false}
-          ref={typeahead => setTypeahead(typeahead)}
+          ref={ref}
         />
         <InputGroupAddon addonType="append">
           <Button>Search</Button>
@@ -257,7 +247,7 @@ const ShowAdminToggle: FunctionComponent<ShowAdminToggleProps> = ({
               <Input
                 type="checkbox"
                 checked={showAdmin}
-                onChange={event => setShowAdmin(event.currentTarget.checked)}
+                onChange={(event) => setShowAdmin(event.currentTarget.checked)}
               />{' '}
               Enable admin-only functionality
             </Label>
@@ -294,8 +284,8 @@ const LoadFavesField: FunctionComponent<LoadFavesFieldProps> = ({
       <InputGroup>
         <Input
           placeholder="Username"
-          value={userInput || undefined}
-          onChange={event => {
+          value={userInput || ''}
+          onChange={(event) => {
             setUserInput(event.currentTarget.value)
           }}
         />
@@ -360,13 +350,15 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
 
   const updateSong = (id: string, song: SongItem | null): boolean => {
     let songsCopy = [...songs]
-    const stateSong: number = songsCopy.findIndex(element => element.id === id)
+    const stateSong: number = songsCopy.findIndex(
+      (element) => element.id === id
+    )
     if (stateSong > -1) {
       if (song !== null) {
         songsCopy[stateSong] = { ...songsCopy[stateSong], ...song }
       } else {
         // remove song if null
-        songsCopy = songsCopy.filter(item => item !== songs[stateSong])
+        songsCopy = songsCopy.filter((item) => item !== songs[stateSong])
       }
       setSongs(songsCopy)
       return true
@@ -376,7 +368,7 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
 
   const refreshSong = (song: string): void => {
     fetch(`${API_BASE}/song/${song}`, { method: 'GET' })
-      .then(res => res.clone().json())
+      .then((res) => res.clone().json())
       .then((result: ApiResponse<SongItem>) => {
         // update existing song if it exists
         const updated = updateSong(song, result)
@@ -390,7 +382,7 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
       itemsCountPerPage={paginationState.per_page}
       totalItemsCount={paginationState.total_count}
       pageRangeDisplayed={paginationState.total_count}
-      onChange={pageNumber => {
+      onChange={(pageNumber) => {
         setQueryParam({ query, user, page: pageNumber }, 'push')
       }}
       itemClass="page-item"
@@ -408,12 +400,12 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
     fetch(API_BASE + getApiUrl({ page, user, query }, favourites), {
       method: 'GET'
     })
-      .then(resp => {
+      .then((resp) => {
         setLoading(false)
         return resp.clone().json()
       })
-      .then(resp => handleResponse(resp, false))
-      .then(resp => {
+      .then((resp) => handleResponse(resp, false))
+      .then((resp) => {
         setSongs(resp.songs)
         setPaginationState(resp.pagination)
       })
@@ -462,8 +454,10 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
         </Col>
         <Col xs={12} md={6} className="mt-2 mt-md-0">
           <SearchField
-            query={query}
-            setQuery={(query: string) => setQueryParam({ query, page: 1 })}
+            query={query || ''}
+            setQuery={(query: string) =>
+              setQueryParam({ query: query || undefined, page: 1 })
+            }
           />
         </Col>
       </Row>

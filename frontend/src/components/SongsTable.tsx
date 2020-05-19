@@ -28,7 +28,7 @@ const SongsTable: FunctionComponent<Props> = ({
       <thead>
         <tr className="d-flex">
           <th className="col-1">Length</th>
-          <th className={admin ? 'col-2' : 'col-3'}>Artist</th>
+          <th className="col-3">Artist</th>
           <th className="col">Title</th>
           <th className="col-auto" />
         </tr>

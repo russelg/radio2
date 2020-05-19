@@ -99,8 +99,9 @@ type FavouriteButtonProps = {
   useIcon?: boolean
 }
 
-export const FavouriteButton: FunctionComponent<SongRowUpdateProps &
-  FavouriteButtonProps> = ({ song, updateSong, useIcon = true }) => {
+export const FavouriteButton: FunctionComponent<
+  SongRowUpdateProps & FavouriteButtonProps
+> = ({ song, updateSong, useIcon = true }) => {
   const { data, loading, errors, run } = useFetch(`${API_BASE}/favourites`)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const favouriteSong = (event: FormEvent<HTMLButtonElement>) => {
@@ -216,7 +217,7 @@ const DeleteButton: FunctionComponent<SongRowUpdateProps> = ({
           updateSong(song.id, null)
           setConfirming(false)
         })
-        .catch(reason => {
+        .catch((reason) => {
           handleError(reason)
           setConfirming(false)
         })
@@ -347,7 +348,7 @@ const SongRow: FunctionComponent<SongRowProps> = ({
           {() => readableSeconds(song!.length)}
         </LoaderSkeleton>
       </td>
-      <td className={admin ? 'col-2' : 'col-3'}>
+      <td className="col-3">
         <LoaderSkeleton loading={song === null} width={artistWidth}>
           {() =>
             admin ? (
