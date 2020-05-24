@@ -8,14 +8,11 @@ import urllib.parse
 import urllib.request
 import urllib.response
 from http.client import responses
-
-
 from typing import IO
 
 import shouty
-
 from radio import app, redis_client
-from radio.common.utils import next_song, get_metadata
+from radio.common.utils import get_metadata, next_song
 
 logging.basicConfig(
     level=logging.NOTSET,
@@ -40,7 +37,7 @@ def get_shout_params(config: dict, mp3: bool) -> dict:
         "name": config["ICECAST_NAME"],
         "description": config["ICECAST_DESCRIPTION"],
         "genre": config["ICECAST_GENRE"],
-        "url": config["ICECAST_URL"]
+        "url": config["ICECAST_URL"],
     }
 
 
@@ -49,10 +46,14 @@ def set_metadata(config: dict, song_path: str):
     if meta:
         data = urllib.parse.quote_plus(f"{meta['artist']} - {meta['title']}")
         request = urllib.request.Request(
-            "http://{}:{}/admin/metadata?mount={}&mode=updinfo&song={}".format(config["host"], config["port"],
-                                                                               config["mount"], data))
-        base64string = base64.b64encode(bytes(f"{config['user']}:{config['password']}", 'ascii'))
-        request.add_header("Authorization", "Basic %s" % base64string.decode('utf-8'))
+            "http://{}:{}/admin/metadata?mount={}&mode=updinfo&song={}".format(
+                config["host"], config["port"], config["mount"], data
+            )
+        )
+        base64string = base64.b64encode(
+            bytes(f"{config['user']}:{config['password']}", "ascii")
+        )
+        request.add_header("Authorization", "Basic %s" % base64string.decode("utf-8"))
         with urllib.request.urlopen(request) as resp:
             code = resp.getcode()
             logger.debug(f"Set metadata [{code} {responses[code]}]")
@@ -66,7 +67,7 @@ class Worker(multiprocessing.Process):
         self.is_mp3 = args[1]
         self.config = args[0]
         self.params = get_shout_params(self.config, self.is_mp3)
-        self.format = 'MP3' if self.is_mp3 else 'OGG'
+        self.format = "MP3" if self.is_mp3 else "OGG"
         self.queue = multiprocessing.JoinableQueue()
         self.pubsub = redis_client.pubsub(ignore_subscribe_messages=True)
         self.pubsub.subscribe("skip")
@@ -100,9 +101,12 @@ class Worker(multiprocessing.Process):
                 ffmpeg = subprocess.Popen(
                     [
                         self.config["PATH_FFMPEG_BINARY"],
-                        "-i", "-",
-                        "-f", "mp3",
-                        "-ab", f'{self.config["TRANSCODE_BITRATE"]}k',
+                        "-i",
+                        "-",
+                        "-f",
+                        "mp3",
+                        "-ab",
+                        f'{self.config["TRANSCODE_BITRATE"]}k',
                         "-",
                     ],
                     stdin=song,
@@ -123,7 +127,9 @@ class Worker(multiprocessing.Process):
                         # "False" == do not skip, anything else will skip.
                         should_skip = message.get("data", "False").decode()
                         if should_skip != "False":
-                            logger.debug(f"{self.format}: Redis message: <{message!r}>...")
+                            logger.debug(
+                                f"{self.format}: Redis message: <{message!r}>..."
+                            )
                             break
 
                     chunk = src.read(chunk_size)

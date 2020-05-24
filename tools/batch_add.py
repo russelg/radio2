@@ -4,9 +4,9 @@ import concurrent.futures
 from radio.common.utils import encode_file, next_song, reload_songs
 
 parser = argparse.ArgumentParser()
-parser.add_argument('paths', nargs='*')
-parser.add_argument('--skip', action='store_true')
-parser.add_argument('--seed', type=int, default=0)
+parser.add_argument("paths", nargs="*")
+parser.add_argument("--skip", action="store_true")
+parser.add_argument("--seed", type=int, default=0)
 args = parser.parse_args()
 
 

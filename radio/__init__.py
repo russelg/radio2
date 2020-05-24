@@ -30,6 +30,6 @@ class CustomJSONEncoder(JSONEncoder):
         return super().default(obj)
 
 
-app.config['JSON_SORT_KEYS'] = False
+app.config["JSON_SORT_KEYS"] = False
 app.json_encoder = CustomJSONEncoder
 # toolbar = DebugToolbarExtension(app)

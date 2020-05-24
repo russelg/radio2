@@ -11,11 +11,11 @@ from flask_jwt_extended import (
     verify_jwt_in_request,
 )
 from jwt.exceptions import ExpiredSignatureError
+from pony.orm import commit, db_session
 from radio import jwt
 from radio.common.errors import Validator
 from radio.common.utils import make_api_response
 from radio.models import User
-from pony.orm import commit, db_session
 
 
 @jwt.user_loader_callback_loader
@@ -86,9 +86,7 @@ def valid_registration_response(username: str) -> Optional[Response]:
 
 
 @db_session
-def register(
-    username: str, password: str, admin: bool = False
-) -> bool:
+def register(username: str, password: str, admin: bool = False) -> bool:
     """Register a user given a valid username and password
 
     :param str username: username to register
