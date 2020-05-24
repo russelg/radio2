@@ -329,11 +329,11 @@ class UploadController(rest.Resource):
                         return make_api_response(
                             422,
                             "Unprocessable Entity",
-                            f"File was missing metadata, discarded",
+                            "File was missing metadata, discarded",
                         )
 
         return make_api_response(
-            422, "Unprocessable Entity", f"File could not be processed"
+            422, "Unprocessable Entity", "File could not be processed"
         )
 
 
@@ -403,7 +403,7 @@ class FavouriteController(rest.Resource):
 class SkipController(rest.Resource):
     @admin_required
     def post(self) -> Response:
-        redis_client.publish('skip', "True")
+        redis_client.publish("skip", "True")
         return make_api_response(200, None, "Successfully skipped current playing song")
 
 

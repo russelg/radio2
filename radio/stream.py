@@ -186,7 +186,7 @@ def run():
             worker.join_queue()
 
         redis_client.publish("skip", "False")
-        logger.info(f"Reset skip flag.")
+        logger.info("Reset skip flag.")
 
 
 if __name__ == "__main__":
