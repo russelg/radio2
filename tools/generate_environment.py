@@ -29,7 +29,7 @@ icecast_xml = f"""
         <admin-user>{Config.ICECAST_USER}</admin-user>
         <admin-password>{Config.ICECAST_PASSWORD}</admin-password>
     </authentication>
-    <hostname>{(Config.ICECAST_URL).split("://")[-1]}</hostname>
+    <hostname>{Config.ICECAST_URL.split("://")[-1]}</hostname>
     <listen-socket>
         <port>{Config.ICECAST_PORT}</port>
     </listen-socket>
@@ -46,7 +46,7 @@ icecast_xml = f"""
 """
 
 if Config.ICECAST_TRANSCODE:
-    icecast_xml += """    
+    icecast_xml += f"""    
     <mount type="normal">
         <mount-name>{Config.ICECAST_MOUNT}.mp3</mount-name>
         <charset>UTF-8</charset>
