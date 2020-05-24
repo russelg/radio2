@@ -10,7 +10,6 @@ import React, {
   useState
 } from 'react'
 import { Helmet } from 'react-helmet'
-import ReactHowler from 'react-howler'
 import { BrowserRouter as Router, Route } from 'react-router-dom'
 // @ts-ignore
 import { AnimatedSwitch, spring } from 'react-router-transition'
@@ -30,6 +29,7 @@ import { useRadioInfoState } from '/contexts/radio'
 import { useSiteSettingsState } from '/contexts/settings'
 import SignIn from '/pages/SignIn'
 import SignUp from '/pages/SignUp'
+import ReactPlayer from 'react-player'
 
 toast.configure({
   autoClose: 2000,
@@ -124,26 +124,36 @@ const bounceTransition = {
 }
 
 const App: FunctionComponent = () => {
-  const player = useRef<ReactHowler>(null)
+  const player = useRef<ReactPlayer>(null)
 
   const { streamUrl } = useSiteSettingsState()
 
   const { volume, playing } = useControlState()
   const dispatch = useControlDispatch()
 
-  const [cacheBuster, setCacheBuster] = useState(new Date().getTime())
+  const getUrls = () => {
+    return [
+      {
+        src: `${streamUrl}.ogg?nocache=${new Date().getTime()}`,
+        type: 'audio/ogg'
+      },
+      {
+        src: `${streamUrl}.mp3?nocache=${new Date().getTime()}`,
+        type: 'audio/mpeg'
+      }
+    ]
+  }
 
-  const toggleHowlerPlaying = () => {
-    const howler = player.current && player.current.howler
-    if (howler) {
-      // Force howler to unload and reload the song
-      // if we don't do this sometimes the radio will just not resume playback
-      if (playing) {
-        howler.unload()
-      } else {
-        setCacheBuster(new Date().getTime())
-        howler.load()
-        howler.play()
+  const [streamUrls, setStreamUrls] = useState(
+    [] as { src: string; type: string }[]
+  )
+
+  const togglePlayingState = () => {
+    const instance =
+      player.current && (player.current.getInternalPlayer() as HTMLVideoElement)
+    if (instance) {
+      if (!playing) {
+        setStreamUrls(getUrls())
       }
       togglePlaying(dispatch)
     }
@@ -158,21 +168,18 @@ const App: FunctionComponent = () => {
               <Collapse isOpen={playing}>{playing && <MiniPlayer />}</Collapse>
             </Navbar>
 
-            <ReactHowler
-              src={[
-                `${streamUrl}.mp3?nocache=${cacheBuster}`,
-                `${streamUrl}.ogg?nocache=${cacheBuster}`
-              ]}
-              format={['mp3', 'ogg']}
-              preload={false}
-              html5={true}
+            <ReactPlayer
               playing={playing}
+              controls={false}
               volume={volume / 100}
+              url={streamUrls}
+              height="0"
+              width="0"
               ref={player}
             />
 
             <TitleSetter />
-            <MediaSessionSetter togglePlaying={toggleHowlerPlaying} />
+            <MediaSessionSetter togglePlaying={togglePlayingState} />
             <AnimatedSwitch
               runOnMount
               atEnter={bounceTransition.atEnter}
@@ -182,7 +189,7 @@ const App: FunctionComponent = () => {
               className={switchStyle}>
               <Route path="/" exact>
                 <Suspense fallback={<LoaderSpinner />}>
-                  <Home togglePlaying={toggleHowlerPlaying} />
+                  <Home togglePlaying={togglePlayingState} />
                 </Suspense>
               </Route>
               <Route path="/songs" exact>

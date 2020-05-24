@@ -82,13 +82,16 @@ const UsageModal: FunctionComponent<UsageModalProps> = React.memo(
           </p>
           <ul>
             <li>
-              <a href={`${streamUrl}.ogg`}>Direct Stream Link</a>
+              Direct Stream Link: <a href={`${streamUrl}.ogg`}>ogg</a> /{' '}
+              <a href={`${streamUrl}.mp3`}>mp3</a>
             </li>
             <li>
-              <a href={`${streamUrl}.ogg.m3u`}>Stream .m3u Playlist</a>
+              Stream .m3u Playlist: <a href={`${streamUrl}.ogg.m3u`}>ogg</a> /{' '}
+              <a href={`${streamUrl}.mp3.m3u`}>mp3</a>
             </li>
             <li>
-              <a href={`${streamUrl}.ogg.xspf`}>Stream .xspf Playlist</a>
+              Stream .xspf Playlist: <a href={`${streamUrl}.ogg.xspf`}>ogg</a> /{' '}
+              <a href={`${streamUrl}.mp3.xspf`}>mp3</a>
             </li>
           </ul>
           <h3>Requesting Songs</h3>
@@ -131,34 +134,38 @@ const SongList: FunctionComponent<SongListProps> = ({
     <>
       <h4 className="text-center mb-4">{title}</h4>
       <ListGroup>
-        {// show placeholders if songs has not loaded
-        (songs.length > 0 ? songs : Array(4).fill(null)).map(
-          (item: SongListItem | null, idx: number) => {
-            return (
-              <ListGroupItem
-                key={idx}
-                className="clearfix py-3 px-1 py-lg-4 px-md-3"
-                active={item ? item.requested : undefined}>
-                <Col xs="8" className={`float-${alignment} text-${alignment}`}>
-                  <LoaderSkeleton loading={item === null} count={2}>
-                    {() => `${item!.artist} - ${item!.title}`}
-                  </LoaderSkeleton>
-                </Col>
-                <Col xs="4" className={`float-${flipped} text-${flipped}`}>
-                  <LoaderSkeleton loading={item === null}>
-                    {() => (
-                      <small
-                        className="text-muted font-italic"
-                        title={item!.time}>
-                        {fuzzyTime(item!.time)}
-                      </small>
-                    )}
-                  </LoaderSkeleton>
-                </Col>
-              </ListGroupItem>
-            )
-          }
-        )}
+        {
+          // show placeholders if songs has not loaded
+          (songs.length > 0 ? songs : Array(4).fill(null)).map(
+            (item: SongListItem | null, idx: number) => {
+              return (
+                <ListGroupItem
+                  key={idx}
+                  className="clearfix py-3 px-1 py-lg-4 px-md-3"
+                  active={item ? item.requested : undefined}>
+                  <Col
+                    xs="8"
+                    className={`float-${alignment} text-${alignment}`}>
+                    <LoaderSkeleton loading={item === null} count={2}>
+                      {() => `${item!.artist} - ${item!.title}`}
+                    </LoaderSkeleton>
+                  </Col>
+                  <Col xs="4" className={`float-${flipped} text-${flipped}`}>
+                    <LoaderSkeleton loading={item === null}>
+                      {() => (
+                        <small
+                          className="text-muted font-italic"
+                          title={item!.time}>
+                          {fuzzyTime(item!.time)}
+                        </small>
+                      )}
+                    </LoaderSkeleton>
+                  </Col>
+                </ListGroupItem>
+              )
+            }
+          )
+        }
       </ListGroup>
     </>
   )
@@ -292,8 +299,8 @@ const Controls: FunctionComponent<HomeProps> = React.memo(
     const [showModal, setShowModal] = useState<boolean>(false)
     const [showDropdown, setShowDropdown] = useState<boolean>(false)
 
-    const toggleModal = () => setShowModal(show => !show)
-    const toggleDropdown = () => setShowDropdown(show => !show)
+    const toggleModal = () => setShowModal((show) => !show)
+    const toggleDropdown = () => setShowDropdown((show) => !show)
 
     return (
       <>
@@ -310,7 +317,10 @@ const Controls: FunctionComponent<HomeProps> = React.memo(
             </DropdownToggle>
             <DropdownMenu className="btn-block">
               <DropdownItem tag="a" href={`${streamUrl}.ogg`}>
-                Direct Stream Link
+                Direct Stream Link (OGG)
+              </DropdownItem>
+              <DropdownItem tag="a" href={`${streamUrl}.mp3`}>
+                Direct Stream Link (MP3)
               </DropdownItem>
               <DropdownItem tag="a" href={`${streamUrl}.ogg.m3u`}>
                 Stream .m3u Playlist
