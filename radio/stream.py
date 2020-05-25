@@ -41,24 +41,6 @@ def get_shout_params(config: dict, mp3: bool) -> dict:
     }
 
 
-def set_metadata(config: dict, song_path: str):
-    meta = get_metadata(song_path)
-    if meta:
-        data = urllib.parse.quote_plus(f"{meta['artist']} - {meta['title']}")
-        request = urllib.request.Request(
-            "http://{}:{}/admin/metadata?mount={}&mode=updinfo&song={}".format(
-                config["host"], config["port"], config["mount"], data
-            )
-        )
-        base64string = base64.b64encode(
-            bytes(f"{config['user']}:{config['password']}", "ascii")
-        )
-        request.add_header("Authorization", "Basic %s" % base64string.decode("utf-8"))
-        with urllib.request.urlopen(request) as resp:
-            code = resp.getcode()
-            logger.debug(f"Set metadata [{code} {responses[code]}]")
-
-
 class Worker(multiprocessing.Process):
     def __init__(
         self, group=None, target=None, name=None, args=(), kwargs=None, *, daemon=None
@@ -72,6 +54,25 @@ class Worker(multiprocessing.Process):
         self.pubsub = redis_client.pubsub(ignore_subscribe_messages=True)
         self.pubsub.subscribe("skip")
 
+    def set_metadata(self, song_path: str):
+        meta = get_metadata(song_path)
+        if meta:
+            data = urllib.parse.quote_plus(f"{meta['artist']} - {meta['title']}")
+            request = urllib.request.Request(
+                "http://{}:{}/admin/metadata?mount={}&mode=updinfo&song={}".format(
+                    self.params["host"], self.params["port"], self.params["mount"], data
+                )
+            )
+            base64string = base64.b64encode(
+                bytes(f"{self.params['user']}:{self.params['password']}", "ascii")
+            )
+            request.add_header(
+                "Authorization", "Basic %s" % base64string.decode("utf-8")
+            )
+            with urllib.request.urlopen(request) as resp:
+                code = resp.getcode()
+                logger.debug(f"Set metadata [{code} {responses[code]}]")
+
     def put_queue(self, song_path: str):
         self.queue.put(song_path)
 
@@ -84,7 +85,7 @@ class Worker(multiprocessing.Process):
             # parse skip message to see if we should skip or not
             # "False" == do not skip, anything else will skip.
             should_skip = message.get("data", "False").decode()
-            if should_skip != "False":
+            if should_skip == "True":
                 logger.debug(f"{self.format}: Redis message: <{message!r}>...")
                 return True
         return False
@@ -92,6 +93,11 @@ class Worker(multiprocessing.Process):
     def stream(self, connection, song_path: str):
         logger.info(f'{self.format}: Streaming "{song_path}"...')
         start_time = time.time()
+
+        if self.is_mp3:
+            # set title for mp3 streams
+            # ogg is automatically set from file by icecast
+            self.set_metadata(song_path)
 
         with open(song_path, "rb") as song:
             ffmpeg = None
@@ -120,28 +126,18 @@ class Worker(multiprocessing.Process):
             sent_bytes = 0
             if src:
                 while True:
-                    # check for any redis skip messages
-                    message = self.pubsub.get_message()
-                    if message:
-                        # parse skip message to see if we should skip or not
-                        # "False" == do not skip, anything else will skip.
-                        should_skip = message.get("data", "False").decode()
-                        if should_skip != "False":
-                            logger.debug(
-                                f"{self.format}: Redis message: <{message!r}>..."
-                            )
-                            break
+                    # check if we need to skip
+                    if self.should_skip():
+                        break
 
                     chunk = src.read(chunk_size)
                     if not chunk:
                         logger.debug(f"{self.format}: Buffer is empty, breaking...")
                         break
 
-                    buf_size = len(chunk)
-                    sent_bytes += buf_size
-
                     connection.send(chunk)
                     connection.sync()
+                    sent_bytes += len(chunk)
                 src.close()
 
             if ffmpeg:
@@ -156,15 +152,14 @@ class Worker(multiprocessing.Process):
         )
 
     def run(self):
-        with shouty.connect(**self.params) as connection:
-            while True:
+        while True:
+            with shouty.connect(**self.params) as connection:
                 song_path = self.queue.get(block=True)
                 if song_path is None:
                     break
-                if self.is_mp3:
-                    set_metadata(self.params, song_path)
                 self.stream(connection=connection, song_path=song_path)
                 self.queue.task_done()
+
 
 
 def run():
@@ -177,16 +172,17 @@ def run():
         worker.start()
 
     while True:
-        nxt_song = next_song()
-        if nxt_song is None:
+        song = next_song()
+        if song is None:
             time.sleep(5)
             logger.warning("No song to play, waiting...")
             continue
 
-        song = os.path.join(app.config["PATH_MUSIC"], nxt_song)
-        logger.info(f'Streaming file "{song}"')
+        song_path = os.path.join(app.config["PATH_MUSIC"], song)
+        logger.info(f'Streaming file "{song_path}"')
+
         for worker in workers:
-            worker.put_queue(song)
+            worker.put_queue(song_path)
 
         for worker in workers:
             worker.join_queue()
