@@ -2,6 +2,7 @@ import base64
 import logging
 import multiprocessing
 import os
+import queue
 import subprocess
 import time
 import urllib.parse
@@ -154,9 +155,10 @@ class Worker(multiprocessing.Process):
     def run(self):
         while True:
             with shouty.connect(**self.params) as connection:
-                song_path = self.queue.get(block=True)
-                if song_path is None:
-                    break
+                try:
+                    song_path = self.queue.get(block=True, timeout=1.0)
+                except queue.Empty:
+                    continue
                 self.stream(connection=connection, song_path=song_path)
                 self.queue.task_done()
 
@@ -168,7 +170,6 @@ def run():
         workers.append(Worker(args=(app.config, True)))
 
     for worker in workers:
-        worker.daemon = True
         worker.start()
 
     while True:
