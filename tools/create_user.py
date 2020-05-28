@@ -12,14 +12,13 @@ args = parser.parse_args()
 
 with db_session:
     if user_exists(args.username):
-        if not args.admin:
-            print(f'User "{args.username}" already exists.')
-        else:
+        if args.admin:
             print(f'User "{args.username}" exists. Making them an admin.')
             user = User.get(username=args.username)
             user.admin = True
             commit()
-
+        else:
+            print(f'User "{args.username}" already exists.')
     else:
         validator = valid_username(args.username)
         if validator.valid:

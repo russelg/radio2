@@ -11,6 +11,7 @@ from flask_jwt_extended import (
     jwt_refresh_token_required,
     jwt_required,
 )
+
 from radio import app
 from radio.common.schemas import SongBasicSchema, UserSchema
 from radio.common.users import (
@@ -45,6 +46,7 @@ class RefreshController(rest.Resource):
         return make_api_response(500, "Server Error", "Issue loading user")
 
 
+# TODO: move this to songs.py
 class DownloadController(rest.Resource):
     @jwt_optional
     @parser.use_args(

@@ -3,7 +3,7 @@ import os
 import queue
 from functools import partial
 from threading import Thread
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 from urllib.parse import quote
 from uuid import UUID
 
@@ -13,6 +13,9 @@ from flask import Blueprint, Response, make_response, request, send_from_directo
 from flask_jwt_extended import current_user, decode_token, jwt_optional, jwt_required
 from marshmallow import ValidationError, fields, validate
 from pony.orm import commit, db_session, desc, select
+from pony.orm.core import Query
+from werkzeug.utils import secure_filename
+
 from radio import app, redis_client
 from radio.common.pagination import Pagination
 from radio.common.schemas import (
@@ -37,42 +40,42 @@ from radio.common.utils import (
 
 # from radio import models as db
 from radio.models import Queue, Song, User
-from werkzeug.utils import secure_filename
 
 blueprint = Blueprint("songs", __name__)
 api = rest.Api(blueprint)
 
 
+# TODO: break this file up
+# TODO: clean up search code (surely this problem has been solved already?)
+
+
 @db_session
-def song_queries(
-    page: int, query: Optional[str], limit: int, user: Optional[User] = None
-) -> dict:
-    if query and user:
-        songs = user.favourites.select(lambda s: query in s.artist or query in s.title)
-    elif query:
-        songs = Song.select(lambda s: query in s.artist or query in s.title)
-    elif user:
-        songs = user.favourites.select()
+def query_songs(query: Optional[str], user: Optional[User] = None) -> Query:
+    songs: Query
+    src = user.favourites if user else Song
+
+    if query:
+        query = query.lower()
+        songs = select(
+            s for s in src if query in s.artist.lower() or query in s.title.lower()
+        )
     else:
-        songs = Song.select()
+        songs = src.select()
+
+    # sort by date favourited for favourites
     if not user:
         songs = songs.sort_by(desc(Song.added))
-    total_songs = songs.count()
-    pagination = Pagination(page=page, per_page=limit, total_count=total_songs)
-    return {
-        "limit": limit,
-        "songs": songs,
-        "total_songs": total_songs,
-        "pagination": pagination,
-    }
+
+    return songs
 
 
 def songs_links(context, page, query, limit, pagination):
+    # remove args when they are at their default value to simplify URLs
     args = partial(
         filter_default_webargs, args=SongQuerySchema(), query=query, limit=limit
     )
 
-    links = {
+    return {
         "_self": api.url_for(context, **args(page=page), _external=True),
         "_next": api.url_for(context, **args(page=page + 1), _external=True)
         if pagination.has_next
@@ -82,10 +85,8 @@ def songs_links(context, page, query, limit, pagination):
         else None,
     }
 
-    return links
 
-
-def get_song_details(song: Song) -> Dict:
+def get_song_details(song: Song) -> SongData:
     original_song = song
     song = SongData(**song.to_dict(exclude="filename", with_lazy=True))
     song.size = os.path.getsize(
@@ -104,34 +105,39 @@ def process_songs(
     limit: int,
     favourites: Optional[User] = None,
 ) -> Response:
-    info = song_queries(page, query, limit, favourites)
-    songs = info["songs"].page(page, limit)
-    processed_songs = list(map(get_song_details, songs))
+    results = query_songs(query, favourites)
+    pagination = Pagination(page=page, per_page=limit, total_count=results.count())
+    processed_songs = list(map(get_song_details, results.page(page, limit)))
     return make_api_response(
         200,
         None,
         content={
-            "_links": songs_links(context, page, query, limit, info["pagination"]),
+            "_links": songs_links(context, page, query, limit, pagination),
             "query": query,
-            "pagination": info["pagination"].to_json(),
+            "pagination": pagination.to_json(),
             "songs": processed_songs,
         },
     )
 
 
+# TODO: verify page in controllers instead
+# (duplicate queries)
 @db_session
 def validate_page(args: Dict[str, Any]) -> None:
     page = args["page"]
-    info = song_queries(page, args["query"], args["limit"])
-    if page <= 0 or page > info["pagination"].pages:
+    results = query_songs(args["query"])
+    pagination = Pagination(
+        page=page, per_page=args["limit"], total_count=results.count()
+    )
+    if page <= 0 or page > pagination.pages:
         raise ValidationError("Page does not exist")
 
 
 class SongsController(rest.Resource):
     @jwt_optional
-    @parser.use_kwargs(SongQuerySchema(), validate=validate_page)
-    def get(self, page: int, query: Optional[str], limit: int) -> Response:
-        return process_songs(self, page, query, limit)
+    def get(self) -> Response:
+        args = parser.parse(SongQuerySchema(), request, validate=validate_page)
+        return process_songs(self, args["page"], args["query"], args["limit"])
 
 
 @db_session
@@ -169,21 +175,17 @@ class RequestController(rest.Resource):
 
 class AutocompleteController(rest.Resource):
     @parser.use_kwargs(
-        {"query": fields.Str(required=True, validate=validate.Length(min=1))}
+        {"query": fields.Str(required=True, validate=validate.Length(min=2))}
     )
     def get(self, query: str) -> Response:
         data = []
-        query_lower = query.lower()
-        artists = select(
-            s.artist for s in Song if query_lower in s.artist.lower()
-        ).limit(5)
-        titles = select(s.title for s in Song if query_lower in s.title.lower()).limit(
-            5
-        )
-        for artist in artists:
-            data.append({"result": artist, "type": "Artist"})
-        for title in titles:
-            data.append({"result": title, "type": "Title"})
+        artists = select(s.artist for s in Song if query.lower() in s.artist.lower())
+        titles = select(s.title for s in Song if query.lower() in s.title.lower())
+
+        for entry in artists.limit(5):
+            data.append({"result": entry, "type": "Artist"})
+        for entry in titles.limit(5):
+            data.append({"result": entry, "type": "Title"})
 
         return make_api_response(
             200, None, content={"query": query, "suggestions": data}
@@ -350,6 +352,7 @@ class FavouriteController(rest.Resource):
         validate=lambda args: validate_page(args) and validate_user(args),
     )
     def get(self, page: int, query: str, limit: int, user: Optional[str]) -> Response:
+        user: User
         if user:
             user = User.get(username=user)
         elif current_user:
@@ -359,7 +362,6 @@ class FavouriteController(rest.Resource):
             return process_songs(self, page, query, limit, user)
 
         pagination = Pagination(page=page, per_page=limit, total_count=0)
-
         return make_api_response(
             200,
             None,
@@ -373,8 +375,8 @@ class FavouriteController(rest.Resource):
 
     @jwt_required
     @parser.use_args(SongBasicSchema(), validate=validate_song)
-    def put(self, args: List[UUID]) -> Response:
-        song = Song[args["id"]]
+    def put(self, args: Dict[str, UUID]) -> Response:
+        song: Song = Song[args["id"]]
         if song not in current_user.favourites:
             current_user.favourites.add(song)
             return make_api_response(
@@ -387,8 +389,8 @@ class FavouriteController(rest.Resource):
 
     @jwt_required
     @parser.use_args(SongBasicSchema(), validate=validate_song)
-    def delete(self, args: List[UUID]) -> Response:
-        song = Song[args["id"]]
+    def delete(self, args: Dict[str, UUID]) -> Response:
+        song: Song = Song[args["id"]]
         if song in current_user.favourites:
             current_user.favourites.remove(song)
             return make_api_response(

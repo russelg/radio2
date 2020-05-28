@@ -17,18 +17,19 @@ import mutagen
 import xmltodict
 from flask import Response, jsonify
 from pony.orm import commit, count, db_session, max, select, sum
+from webargs import flaskparser
+from werkzeug.exceptions import HTTPException
+
 from radio import app
 from radio.common.schemas import RequestStatus
 from radio.models import Queue, Song, User
-from webargs import flaskparser
-from werkzeug.exceptions import HTTPException
 
 register_blueprint_prefixed = partial(
     app.register_blueprint, url_prefix=app.config["SERVER_API_PREFIX"]
 )
 
-
 parser = flaskparser.FlaskParser()
+
 
 # I did not want to put this here, but since it uses make_api_response
 # there can be some tricky circular dependencies

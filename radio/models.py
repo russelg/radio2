@@ -21,8 +21,7 @@ class User(db.Entity):
     username: str = Required(str, 256, unique=True)
     hash: str = Required(LongStr)  # bcrypt'd
     admin: bool = Required(bool, default=False)
-    steamid: int = Optional(int, size=64, unique=True)
-    favourites: _Set["Song"] = Set("Song")
+    favourites = Set("Song")
 
 
 class Song(db.Entity):
@@ -34,7 +33,7 @@ class Song(db.Entity):
     lastplayed: datetime = Optional(datetime)
     playcount: int = Required(int, default=0, unsigned=True)
     added: datetime = Required(datetime, default=datetime.utcnow)
-    favored_by: _Set["User"] = Set(User)
+    favored_by = Set(User)
     queue = Set("Queue", hidden=True)
 
 
@@ -45,7 +44,7 @@ class Queue(db.Entity):
     added: datetime = Required(datetime, default=datetime.utcnow)
 
 
-set_sql_debug(False)
+set_sql_debug(app.debug, True)
 db.bind(
     provider=app.config["DB_BINDING"],
     user=app.config["DB_USER"],

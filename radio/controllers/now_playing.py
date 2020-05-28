@@ -6,6 +6,7 @@ import arrow
 import flask_restful as rest
 from flask import Blueprint, Response, request
 from pony.orm import db_session, desc, select
+
 from radio import app
 from radio.common.utils import (
     get_folder_size,
@@ -50,21 +51,21 @@ def np() -> dict:
         )
         listeners_count += int(parse_status(url).get("Current Listeners", 0))
 
-    lastplayed_rows = (
+    lastplayed_songs = (
         Song.select(lambda c: c.lastplayed).sort_by(desc(Song.lastplayed)).limit(6)
     )
 
     times = SongTimes()
-    if lastplayed_rows:
+    if lastplayed_songs:
         # current playing song is the first lastplayed entry
-        top_row = lastplayed_rows[0]
+        current_song = lastplayed_songs[0]
         times.now = arrow.now()
-        times.start = arrow.get(top_row.lastplayed)
+        times.start = arrow.get(current_song.lastplayed)
         times.current = times.now - times.start
-        times.length = top_row.length
+        times.length = current_song.length
         times.end = times.start.shift(seconds=times.length)
     else:
-        top_row = DummySong()
+        current_song = DummySong()
 
     queue = []
     time_str = times.end
@@ -82,8 +83,8 @@ def np() -> dict:
         time_str = time_str.shift(seconds=entry.song.length)
 
     lastplayed = []
-    time_str = times.end.shift(seconds=-top_row.length)
-    for song in lastplayed_rows[1:]:
+    time_str = times.end.shift(seconds=-current_song.length)
+    for song in lastplayed_songs[1:]:
         lastplayed.append(
             {
                 "artist": song.artist,
@@ -101,9 +102,9 @@ def np() -> dict:
         "current": times.now.timestamp,
         "start_time": times.start.timestamp,
         "end_time": times.end.timestamp,
-        "artist": top_row.artist,
-        "title": top_row.title,
-        "id": top_row.id,
+        "artist": current_song.artist,
+        "title": current_song.title,
+        "id": current_song.id,
         "requested": False,
         "queue": queue,
         "lp": lastplayed,

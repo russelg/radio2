@@ -106,10 +106,10 @@ def register(username: str, password: str, admin: bool = False) -> bool:
     return new_user is not None
 
 
-def user_exists(username) -> bool:
+def user_exists(username: str) -> bool:
     """Check if username is taken
 
-    :param bool username: username to check
+    :param str username: username to check
     :return: True if username is taken, else False
     :rtype: bool
     """

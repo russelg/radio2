@@ -1,12 +1,10 @@
 import json
 import sys
 
-# do this to avoid reformatting the imports in wrong order
-if True:
-    # do this to bypass importing __init__.py
-    # this allows us to generate these config files in a very minimal py env
-    sys.path.append("radio/")
-    from config import Config
+# do this to bypass importing __init__.py
+# this allows us to generate these config files in a very minimal py env
+sys.path.append("radio/")
+from config import Config
 
 
 icecast_xml = f"""

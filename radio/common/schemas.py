@@ -39,7 +39,7 @@ class StrictSchema(Schema):
 
 class SongQuerySchema(StrictSchema):
     page = fields.Int(missing=1)
-    query = fields.Str(missing=None, validate=validate.Length(min=1))
+    query = fields.Str(missing=None, validate=validate.Length(min=2))
     limit = fields.Int(
         missing=app.config.get("SONGS_PER_PAGE", 50),
         validate=lambda a: 0 < a <= app.config.get("SONGS_PER_PAGE", 50),
