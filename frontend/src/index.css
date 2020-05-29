@@ -85,3 +85,8 @@ body {
 .Toastify__zoom-exit {
   animation-name: Toastify__zoomOut;
 }
+
+body {
+  visibility: visible;
+  opacity: 1;
+}

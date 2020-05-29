@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <style>
+      body {
+        visibility: hidden;
+        opacity: 0;
+        transition: all 0.25s;
+      }
+    </style>
     <meta charset="utf-8" />
     <meta
       name="viewport"
@@ -8,7 +15,7 @@
     />
     <meta name="theme-color" content="#333333" />
     <title>{{ TITLE || 'Radio' }}</title>
-    <link rel="stylesheet" id="change_stylesheet" />
+    <link rel="stylesheet" id="change_stylesheet" href="{{ CSS }}" />
     <script type="text/javascript">
       let customCSS = document.getElementById('change_stylesheet')
       if (customCSS) {
@@ -20,11 +27,7 @@
           } catch {
             // just take it at face value if not valid json
           }
-          customCSS.href = item || ''
-        } else {
-          customCSS.href =
-            process.env.REACT_APP_CSS ||
-            'https://bootswatch.com/4/pulse/bootstrap.min.css'
+          if (item) customCSS.href = item
         }
       }
     </script>
@@ -33,6 +36,10 @@
   <body>
     <noscript>
       <style>
+        body {
+          visibility: visible;
+          opacity: 1;
+        }
         #root {
           display: none;
         }

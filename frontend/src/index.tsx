@@ -9,7 +9,7 @@ import { ControlProvider } from '/contexts/control'
 import { RadioInfoProvider } from '/contexts/radio'
 import { RadioStatusProvider } from '/contexts/radioStatus'
 import { SiteSettingsProvider } from '/contexts/settings'
-import '/index.css'
+import './index.css'
 
 const root = document.getElementById('root')
 
