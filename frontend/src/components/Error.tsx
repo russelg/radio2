@@ -37,7 +37,7 @@ const Error: FunctionComponent<ErrorProps> = ({
   )
 
   return errorInfo ? (
-    <Container className="h-100 loader error">
+    <Container className="mt-5 h-100 loader error">
       <Row className="h-100">
         <Col sm="6" className="my-auto text-center mx-auto">
           <h3>Something went wrong while loading this page.</h3>
@@ -46,7 +46,11 @@ const Error: FunctionComponent<ErrorProps> = ({
             <ListGroupItem>
               {large && (
                 <>
-                  <h4>{error && error.toString()}</h4>
+                  {error === Object(error) ? (
+                    Object.values(error).map((err) => <h4 key={err}>{err}</h4>)
+                  ) : (
+                    <h4>{error && error.toString()}</h4>
+                  )}
                   {'componentStack' in errorInfo && inside}
                 </>
               )}

@@ -79,6 +79,10 @@ const SongUploadForm: FunctionComponent<SongUploadFormProps> = ({
         const json: { id: string } = JSON.parse(response)
         return json.id
       },
+      onerror: (response: string) => {
+        const json: ApiBaseResponse = JSON.parse(response)
+        toast(<NotificationToast error>{json.description}</NotificationToast>)
+      },
       headers: {
         Authorization: `Bearer ${accessToken}`
       }
@@ -98,11 +102,6 @@ const SongUploadForm: FunctionComponent<SongUploadFormProps> = ({
       // remove file after uploaded
       pond.current && pond.current.removeFile(file.id)
       setFiles((files) => files.filter((itm) => itm.file !== file.file))
-    } else {
-      let msg = 'Song upload failed'
-      // @ts-ignore
-      if (err.code === 413) msg += ' (file too large)'
-      toast(<NotificationToast error>{msg}</NotificationToast>)
     }
   }
 
