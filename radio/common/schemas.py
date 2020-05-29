@@ -4,7 +4,10 @@ from typing import Optional
 from uuid import UUID
 
 from marshmallow import Schema, fields, validate
+from pony.orm import db_session
+
 from radio import app
+from radio.models import User, Song
 
 
 @dataclass
@@ -47,15 +50,24 @@ class SongQuerySchema(StrictSchema):
 
 
 class FavouriteSchema(SongQuerySchema):
-    user = fields.Str(required=True)
+    user = fields.Str(
+        required=True,
+        validate=lambda arg: User.exists(username=arg),
+        error_messages={"validator_failed": "User does not exist."},
+    )
 
 
 class DownloadSchema(SongQuerySchema):
     token = fields.Str(required=True)
 
 
+@db_session
 class SongBasicSchema(StrictSchema):
-    id = fields.UUID(required=True)
+    id = fields.UUID(
+        required=True,
+        validate=lambda arg: Song.exists(id=arg),
+        error_messages={"validator_failed": "Song does not exist."},
+    )
 
 
 class UserSchema(StrictSchema):

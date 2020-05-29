@@ -6,6 +6,7 @@ import arrow
 import flask_restful as rest
 from flask import Blueprint, Response, request
 from pony.orm import db_session, desc, select
+from pony.orm.core import Query
 
 from radio import app
 from radio.common.utils import (
@@ -13,6 +14,7 @@ from radio.common.utils import (
     get_self_links,
     make_api_response,
     parse_status,
+    add_resource,
 )
 from radio.models import Queue, Song
 
@@ -23,10 +25,17 @@ api = rest.Api(blueprint)
 @dataclass
 class SongTimes:
     now: arrow.arrow.Arrow = arrow.now()
-    start: arrow.arrow.Arrow = now
+    start = now
+    end = now
     current = 0
     length = 0
-    end: arrow.arrow.Arrow = now
+
+    def set_from_song(self, song: Song):
+        self.now = arrow.now()
+        self.start = arrow.get(song.lastplayed)
+        self.current = self.now - self.start
+        self.length = song.length
+        self.end = self.start.shift(seconds=self.length)
 
 
 @dataclass
@@ -37,65 +46,63 @@ class DummySong:
     id = ""
 
 
-@db_session
-def np() -> dict:
+def get_listeners() -> int:
     listeners_count = 0
-
-    mounts = ["ogg"]
+    formats = ["ogg"]
     if app.config["ICECAST_TRANSCODE"]:
-        mounts.append("mp3")
-
-    for mount in mounts:
+        formats.append("mp3")
+    for ext in formats:
         url = "http://{ICECAST_HOST}:{ICECAST_PORT}{ICECAST_MOUNT}.{ext}.xspf".format(
-            **app.config, ext=mount
+            **app.config, ext=ext
         )
         listeners_count += int(parse_status(url).get("Current Listeners", 0))
+    return listeners_count
 
-    lastplayed_songs = (
+
+@db_session
+def np() -> dict:
+    lastplayed_songs: Query = (
         Song.select(lambda c: c.lastplayed).sort_by(desc(Song.lastplayed)).limit(6)
     )
 
+    # used to calculate song timestamps
     times = SongTimes()
     if lastplayed_songs:
         # current playing song is the first lastplayed entry
         current_song = lastplayed_songs[0]
-        times.now = arrow.now()
-        times.start = arrow.get(current_song.lastplayed)
-        times.current = times.now - times.start
-        times.length = current_song.length
-        times.end = times.start.shift(seconds=times.length)
+        times.set_from_song(current_song)
     else:
         current_song = DummySong()
 
+    time = times.end
     queue = []
-    time_str = times.end
     for entry in Queue.select().prefetch(Queue.song).limit(10):
         queue.append(
             {
                 "artist": entry.song.artist,
                 "title": entry.song.title,
-                "time": time_str.isoformat(),
-                "timestamp": time_str.timestamp,
+                "time": time.isoformat(),
+                "timestamp": time.timestamp,
                 "requested": entry.requested,
                 "id": entry.song.id,
             }
         )
-        time_str = time_str.shift(seconds=entry.song.length)
+        time = time.shift(seconds=entry.song.length)
 
+    time = times.end.shift(seconds=-current_song.length)
     lastplayed = []
-    time_str = times.end.shift(seconds=-current_song.length)
     for song in lastplayed_songs[1:]:
         lastplayed.append(
             {
                 "artist": song.artist,
                 "title": song.title,
-                "time": time_str.isoformat(),
-                "timestamp": time_str.timestamp,
+                "time": time.isoformat(),
+                "timestamp": time.timestamp,
                 "requested": False,
-                "index": song.id,
+                "id": song.id,
             }
         )
-        time_str = time_str.shift(seconds=-song.length)
+        time = time.shift(seconds=-song.length)
 
     return {
         "len": times.length,
@@ -108,7 +115,7 @@ def np() -> dict:
         "requested": False,
         "queue": queue,
         "lp": lastplayed,
-        "listeners": listeners_count,
+        "listeners": get_listeners(),
         "total_songs": Song.select().count(),
         "total_plays": select(song.playcount for song in Song).sum(),
         "total_size": get_folder_size(path=app.config["PATH_MUSIC"]),
@@ -133,6 +140,7 @@ def settings() -> dict:
     }
 
 
+@add_resource(api, "/np", "/nowplaying")
 class NowPlayingController(rest.Resource):
     def get(self) -> Response:
         return make_api_response(
@@ -140,12 +148,9 @@ class NowPlayingController(rest.Resource):
         )
 
 
+@add_resource(api, "/settings")
 class SettingsController(rest.Resource):
     def get(self) -> Response:
         return make_api_response(
             200, None, content=dict(_links=get_self_links(api, self), **settings())
         )
-
-
-api.add_resource(NowPlayingController, "/np", "/nowplaying")
-api.add_resource(SettingsController, "/settings")

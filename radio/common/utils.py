@@ -1,6 +1,5 @@
 import math
 import os
-import shutil
 import subprocess
 from datetime import datetime
 from enum import Enum
@@ -21,7 +20,7 @@ from webargs import flaskparser
 from werkzeug.exceptions import HTTPException
 
 from radio import app
-from radio.common.schemas import RequestStatus
+from radio.common.schemas import RequestStatus, SongData
 from radio.models import Queue, Song, User
 
 register_blueprint_prefixed = partial(
@@ -39,20 +38,10 @@ def webargs_error(error, req, schema, error_status_code, error_headers):
     raise HTTPException(description=resp.response, response=resp)
 
 
-class QueueType(Enum):
-    """
-    An enum representing the queue state of a song
-    """
-
-    NONE = 0
-    NORMAL = 1
-    USER = 2
-
-
 def make_api_response(
     status_code: int,
     error: Union[str, bool, None],
-    description: str = None,
+    description: any = None,
     content: Dict = None,
 ) -> Response:
     """
@@ -64,19 +53,14 @@ def make_api_response(
     :param content: any other content to include
     :return: a prepared response
     """
-    data = {"status_code": status_code, "error": error}
-
+    body = {"status_code": status_code, "error": error}
     if description:
-        data["description"] = description
-
+        body["description"] = description
     if content is None:
         content = {}
-
-    data.update(content)
-
-    response = jsonify(data)
+    body.update(content)
+    response = jsonify(body)
     response.status_code = status_code
-
     return response
 
 
@@ -114,11 +98,11 @@ def encode_file(filename: str) -> str:
     :return: full path to encoded file
     """
     encode_folder = app.config["PATH_ENCODE"]
-    is_full_path = os.path.isabs(filename)
-
-    base_filename = filename if not is_full_path else os.path.basename(filename)
-    name, _ = os.path.splitext(base_filename)
-    name_ogg = f"{name}.ogg"
+    base_filename = os.path.basename(filename)
+    name, ext = os.path.splitext(base_filename)
+    output_path = get_nonexistant_path(
+        os.path.join(app.config["PATH_MUSIC"], f"{name}.ogg")
+    )
 
     subprocess.call(
         [
@@ -132,22 +116,22 @@ def encode_file(filename: str) -> str:
             "-q:a",
             str(app.config["SONG_QUALITY_LVL"]),
             "-vn",
-            name_ogg,
+            output_path,
         ],
         cwd=encode_folder,
     )
 
-    full_path = os.path.join(encode_folder, name_ogg)
-    new_path = get_nonexistant_path(os.path.join(app.config["PATH_MUSIC"], name_ogg))
-    shutil.move(full_path, new_path)
-    print(f"{full_path} => {new_path}")
+    # full_path = os.path.join(encode_folder, name_ogg)
+    # new_path = get_nonexistant_path(os.path.join(app.config["PATH_MUSIC"], name_ogg))
+    # shutil.move(full_path, new_path)
+    # print(f"{full_path} => {new_path}")
 
     # remove the source file if it was in the encode directory
-    preencode_file = os.path.join(encode_folder, base_filename)
-    if os.path.isfile(preencode_file):
-        os.remove(preencode_file)
+    filepath = os.path.join(encode_folder, base_filename)
+    if os.path.isfile(filepath):
+        os.remove(filepath)
 
-    return new_path
+    return output_path
 
 
 @db_session
@@ -179,8 +163,9 @@ def get_metadata(filename: str) -> Optional[Dict[str, Any]]:
     :return: dict containing music file tags
     """
     metadata = mutagen.File(filename, easy=True)
-    if "title" not in metadata or "artist" not in metadata:
-        os.remove(filename)
+    if not metadata or "title" not in metadata or "artist" not in metadata:
+        if os.path.isfile(filename):
+            os.remove(filename)
         return None
 
     title = metadata["title"][0]
@@ -209,14 +194,15 @@ def insert_song(filename: str) -> Optional[Song]:
     :param str filename: music file to add
     """
     print("inserting song", filename)
-    full_path = os.path.join(app.config["PATH_MUSIC"], filename)
-    meta = get_metadata(full_path)
+    filepath = os.path.join(app.config["PATH_MUSIC"], filename)
+    meta = get_metadata(filepath)
     if meta:
         # check dupe
         song = Song.get(artist=meta["artist"], title=meta["title"])
         if song:
-            print(full_path, "is a dupe, removing...")
-            os.remove(full_path)
+            print(filepath, "is a dupe, removing...")
+            if os.path.isfile(filepath):
+                os.remove(filepath)
         else:
             song = Song(
                 filename=filename,
@@ -334,6 +320,16 @@ def next_song() -> str:
     return song.filename
 
 
+class QueueType(Enum):
+    """
+    An enum representing the queue state of a song
+    """
+
+    NONE = 0
+    NORMAL = 1
+    USER = 2
+
+
 class QueueStatus(NamedTuple):
     queued: bool
     type: QueueType
@@ -349,12 +345,10 @@ def queue_status(song: Song) -> QueueStatus:
     :return: queue details for given song
     """
     song_queue = Queue.select(lambda s: s.song.id == song.id)[:]
-
     if song_queue:
         song_queue = song_queue[-1]
         req_type = QueueType.USER if song_queue.requested else QueueType.NORMAL
         return QueueStatus(queued=True, type=req_type, time=song_queue.added)
-
     return QueueStatus(queued=False, type=QueueType.NONE, time=None)
 
 
@@ -375,7 +369,7 @@ def humanize_lastplayed(seconds: Union[arrow.arrow.Arrow, int]) -> str:
 
 
 @db_session
-def request_status(song: Song) -> RequestStatus:
+def request_status(song: Union[Song, SongData]) -> RequestStatus:
     """
     Gets the requestable status for a given song
 
@@ -393,15 +387,12 @@ def request_status(song: Song) -> RequestStatus:
     elif song.lastplayed:
         lastplayed = arrow.get(song.lastplayed)
         info.humanized_lastplayed = humanize_lastplayed(lastplayed)
-
         request_allowed = when_requestable(lastplayed.timestamp, song.length)
-
         if request_allowed > arrow.utcnow():
             info.reason = (
                 f"This song can be requested again {request_allowed.humanize()}"
             )
             info.requestable = False
-
     return info
 
 
@@ -519,3 +510,11 @@ def get_nonexistant_path(fname_path):
 def get_self_links(api, obj):
     """Generate `_links._self` for a request"""
     return {"_self": api.url_for(obj, _external=True)}
+
+
+def add_resource(rest_api, *args, **kwargs):
+    def decorator(klass):
+        rest_api.add_resource(klass, *args, **kwargs)
+        return klass
+
+    return decorator

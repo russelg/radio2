@@ -18,16 +18,21 @@ from radio.common.users import (
     refresh_token,
     register,
     sign_in,
-    valid_registration_response,
+    valid_username,
 )
-from radio.common.utils import get_song_or_abort, make_api_response, parser
-from radio.controllers.songs import validate_song
+from radio.common.utils import (
+    get_song_or_abort,
+    make_api_response,
+    parser,
+    add_resource,
+)
 from radio.models import User
 
 blueprint = Blueprint("auth", __name__)
 api = rest.Api(blueprint)
 
 
+@add_resource(api, "/login")
 class LoginController(rest.Resource):
     @parser.use_kwargs(UserSchema())
     def post(self, username: str, password: str) -> Response:
@@ -37,6 +42,7 @@ class LoginController(rest.Resource):
         return make_api_response(401, "Unauthorized", "Invalid credentials")
 
 
+@add_resource(api, "/refresh")
 class RefreshController(rest.Resource):
     @jwt_refresh_token_required
     def post(self) -> Response:
@@ -46,14 +52,10 @@ class RefreshController(rest.Resource):
         return make_api_response(500, "Server Error", "Issue loading user")
 
 
-# TODO: move this to songs.py
+@add_resource(api, "/download")
 class DownloadController(rest.Resource):
     @jwt_optional
-    @parser.use_args(
-        SongBasicSchema(),
-        locations=("view_args", "json", "querystring"),
-        validate=validate_song,
-    )
+    @parser.use_args(SongBasicSchema(), locations=("json",))
     def post(self, args: Dict[str, UUID]) -> Response:
         if not app.config["PUBLIC_DOWNLOADS"]:
             if not current_user or not current_user.admin:
@@ -68,12 +70,13 @@ class DownloadController(rest.Resource):
         )
 
 
+@add_resource(api, "/register")
 class RegisterController(rest.Resource):
     @parser.use_kwargs(UserSchema())
     def post(self, username: str, password: str) -> Response:
-        valid_resp = valid_registration_response(username)
-        if valid_resp is not None:
-            return valid_resp
+        validator = valid_username(username)
+        if not validator.valid:
+            return make_api_response(422, "Unprocessable Entity", validator.reason)
         # if no users registered, make first one admin
         make_admin = User.select().count() == 0
         new_user = register(username, password, admin=make_admin)
@@ -84,6 +87,7 @@ class RegisterController(rest.Resource):
         return make_api_response(500, "Server Error", "Issue registering user")
 
 
+@add_resource(api, "/user")
 class UserController(rest.Resource):
     @jwt_required
     def get(self) -> Response:
@@ -94,10 +98,3 @@ class UserController(rest.Resource):
             }
             return make_api_response(200, None, content=content)
         return make_api_response(500, "Server Error", "Issue loading user")
-
-
-api.add_resource(LoginController, "/login")
-api.add_resource(DownloadController, "/download")
-api.add_resource(RefreshController, "/refresh")
-api.add_resource(RegisterController, "/register")
-api.add_resource(UserController, "/user")

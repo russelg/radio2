@@ -1,6 +1,7 @@
 from typing import NamedTuple
 
 from flask import Response
+
 from radio import jwt
 from radio.common.utils import make_api_response
 

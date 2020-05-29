@@ -12,6 +12,7 @@ from flask_jwt_extended import (
 )
 from jwt.exceptions import ExpiredSignatureError
 from pony.orm import commit, db_session
+
 from radio import jwt
 from radio.common.errors import Validator
 from radio.common.utils import make_api_response
@@ -54,7 +55,6 @@ def sign_in(username: str, password: str) -> Optional[Dict]:
                 "username": user.username,
                 "admin": user.admin,
             }
-
     return None
 
 
@@ -67,21 +67,6 @@ def refresh_token(user) -> Optional[Dict]:
             "username": user.username,
             "admin": user.admin,
         }
-
-    return None
-
-
-def valid_registration(username: str) -> bool:
-    validator = valid_username(username)
-    if validator.valid:
-        return True
-    return False
-
-
-def valid_registration_response(username: str) -> Optional[Response]:
-    validator = valid_username(username)
-    if not validator.valid:
-        return make_api_response(422, "Unprocessable Entity", validator.reason)
     return None
 
 
@@ -92,12 +77,11 @@ def register(username: str, password: str, admin: bool = False) -> bool:
     :param str username: username to register
     :param str password: password to register
     :param bool admin: if the user should be an admin, defaults to False
-    :param bool validate: if sanity checking should be done, defaults to True
     :return: True if user was successfully registered, else False
     :rtype: bool
     """
-    valid = valid_registration(username)
-    if not valid:
+    validator = valid_username(username)
+    if not validator.valid:
         return False
     hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
     new_user = User(username=username, hash=hashed.decode("utf-8"), admin=admin)
@@ -106,6 +90,7 @@ def register(username: str, password: str, admin: bool = False) -> bool:
     return new_user is not None
 
 
+@db_session
 def user_exists(username: str) -> bool:
     """Check if username is taken
 
