@@ -30,10 +30,6 @@ lazy-object-proxy = ">=1.4.0,<1.5.0"
 six = ">=1.12,<2.0"
 wrapt = ">=1.11,<2.0"
 
-[package.dependencies.typed-ast]
-python = "<3.8"
-version = ">=1.4.0,<1.5"
-
 [[package]]
 category = "main"
 description = "Modern password hashing for your software and your servers"
@@ -409,7 +405,6 @@ version = "0.1.dev1"
 reference = ""
 type = "url"
 url = "https://github.com/edne/shouty/archive/master.zip"
-
 [[package]]
 category = "main"
 description = "Simple, fast, extensible JSON encoder/decoder for Python"
@@ -499,8 +494,8 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "0.12.0"
 
 [metadata]
-content-hash = "4de3c6d5728accc795033aabaa65a5d3ab370eda7dd96f9685c67887832a1f07"
-python-versions = ">=3.6, <4"
+content-hash = "e0d78fbbecd6416f0fe9c7e71c33bd745bc2aa32c5d1acf847946edc150460d4"
+python-versions = ">=3.8, <4"
 
 [metadata.files]
 aniso8601 = [

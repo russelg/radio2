@@ -1,7 +1,6 @@
 import base64
 import logging
 import multiprocessing
-import os
 import queue
 import subprocess
 import time
@@ -9,9 +8,11 @@ import urllib.parse
 import urllib.request
 import urllib.response
 from http.client import responses
+from pathlib import Path
 from typing import IO
 
 import shouty
+
 from radio import app, redis_client
 from radio.common.utils import get_metadata, next_song
 
@@ -26,7 +27,6 @@ def get_shout_params(config: dict, mp3: bool) -> dict:
     audio_info = {"channels": "2"}
     if mp3:
         audio_info["bitrate"] = f"{config['TRANSCODE_BITRATE'] * 1000}"
-
     return {
         "host": config["ICECAST_HOST"],
         "port": config["ICECAST_PORT"],
@@ -55,7 +55,7 @@ class Worker(multiprocessing.Process):
         self.pubsub = redis_client.pubsub(ignore_subscribe_messages=True)
         self.pubsub.subscribe("skip")
 
-    def set_metadata(self, song_path: str):
+    def set_metadata(self, song_path: Path):
         meta = get_metadata(song_path)
         if meta:
             data = urllib.parse.quote_plus(f"{meta['artist']} - {meta['title']}")
@@ -74,7 +74,7 @@ class Worker(multiprocessing.Process):
                 code = resp.getcode()
                 logger.debug(f"Set metadata [{code} {responses[code]}]")
 
-    def put_queue(self, song_path: str):
+    def put_queue(self, song_path: Path):
         self.queue.put(song_path)
 
     def join_queue(self):
@@ -91,19 +91,16 @@ class Worker(multiprocessing.Process):
                 return True
         return False
 
-    def stream(self, connection, song_path: str):
+    def stream(self, connection, song_path: Path):
         logger.info(f'{self.format}: Streaming "{song_path}"...')
         start_time = time.time()
-
         if self.is_mp3:
             # set title for mp3 streams
             # ogg is automatically set from file by icecast
             self.set_metadata(song_path)
-
-        with open(song_path, "rb") as song:
+        with song_path.open("rb") as song:
             ffmpeg = None
             src: IO = song
-
             if self.is_mp3:
                 ffmpeg = subprocess.Popen(
                     [
@@ -122,7 +119,6 @@ class Worker(multiprocessing.Process):
                 )
                 logger.debug(f"{self.format}: Started ffmpeg.")
                 src = ffmpeg.stdout
-
             chunk_size = 4096
             sent_bytes = 0
             if src:
@@ -130,21 +126,17 @@ class Worker(multiprocessing.Process):
                     # check if we need to skip
                     if self.should_skip():
                         break
-
                     chunk = src.read(chunk_size)
                     if not chunk:
                         logger.debug(f"{self.format}: Buffer is empty, breaking...")
                         break
-
                     connection.send(chunk)
                     connection.sync()
                     sent_bytes += len(chunk)
                 src.close()
-
             if ffmpeg:
                 ffmpeg.terminate()
                 logger.debug(f"{self.format}: Stopped ffmpeg.")
-
         finish_time = time.time()
         kbps = int(sent_bytes * 0.008 / (finish_time - start_time))
         duration = int(finish_time - start_time)
@@ -156,38 +148,30 @@ class Worker(multiprocessing.Process):
         while True:
             with shouty.connect(**self.params) as connection:
                 try:
-                    song_path = self.queue.get(block=True, timeout=1.0)
+                    song_path = self.queue.get(block=True, timeout=5.0)
                 except queue.Empty:
                     continue
                 self.stream(connection=connection, song_path=song_path)
                 self.queue.task_done()
 
 
-
 def run():
     workers = [Worker(args=(app.config, False))]
     if app.config["ICECAST_TRANSCODE"]:
         workers.append(Worker(args=(app.config, True)))
-
     for worker in workers:
         worker.start()
-
     while True:
         song = next_song()
         if song is None:
             time.sleep(5)
             logger.warning("No song to play, waiting...")
             continue
-
-        song_path = os.path.join(app.config["PATH_MUSIC"], song)
-        logger.info(f'Streaming file "{song_path}"')
-
+        logger.info(f'Streaming file "{song}"')
         for worker in workers:
-            worker.put_queue(song_path)
-
+            worker.put_queue(song)
         for worker in workers:
             worker.join_queue()
-
         redis_client.publish("skip", "False")
         logger.info("Reset skip flag.")
 

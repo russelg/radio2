@@ -46,7 +46,18 @@ interface SongRowUpdateProps extends SongRowButtonProps {
 const handleError = <T extends ApiBaseResponse>(result: T) => {
   if (result) {
     const msg = 'description' in result ? result.description : result.message
-    if (msg) toast(<NotificationToast error>{msg}</NotificationToast>)
+    if (msg)
+      toast(
+        <NotificationToast error>
+          <ul>
+            {msg === Object(msg) ? (
+              Object.values(msg).map((err) => <li key={err}>{err}</li>)
+            ) : (
+              <li>msg</li>
+            )}
+          </ul>
+        </NotificationToast>
+      )
   }
 }
 

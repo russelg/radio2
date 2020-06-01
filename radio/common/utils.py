@@ -1,9 +1,9 @@
 import math
-import os
 import subprocess
 from datetime import datetime
 from enum import Enum
 from functools import lru_cache, partial
+from pathlib import Path
 from random import choices
 from typing import Any, Dict, List, NamedTuple, Optional, Union
 from urllib.error import URLError
@@ -15,9 +15,10 @@ import marshmallow
 import mutagen
 import xmltodict
 from flask import Response, jsonify
-from pony.orm import commit, count, db_session, max, select, sum
+from pony.orm import commit, count, db_session, max, select, sum as db_sum
 from webargs import flaskparser
 from werkzeug.exceptions import HTTPException
+from werkzeug.utils import secure_filename
 
 from radio import app
 from radio.common.schemas import RequestStatus, SongData
@@ -35,7 +36,7 @@ parser = flaskparser.FlaskParser()
 @parser.error_handler
 def webargs_error(error, req, schema, error_status_code, error_headers):
     resp = make_api_response(422, "Unprocessable Entity", error.messages)
-    raise HTTPException(description=resp.response, response=resp)
+    raise HTTPException(description=resp.get_data(as_text=True), response=resp)
 
 
 def make_api_response(
@@ -65,7 +66,7 @@ def make_api_response(
 
 
 @lru_cache(maxsize=32)
-def get_folder_size(path: str = ".") -> int:
+def get_folder_size(path: Path = Path()) -> int:
     """
     Calculate the total size of all files in the given path.
     This is cached for performance concerns.
@@ -73,42 +74,39 @@ def get_folder_size(path: str = ".") -> int:
     :param path: path of folder to get size of
     :return: the total size of all files in the given path
     """
-    total = 0
-    for entry in os.scandir(path):
-        total += entry.stat().st_size
-    return total
+    return sum(file.stat().st_size for file in path.rglob("*.ogg"))
 
 
-def allowed_file(filename: str) -> bool:
+def allowed_file_extension(filename: Path) -> bool:
     """
     Check if the given filename is an allowed extension for upload
 
     :param str filename: Filename to validate
     :return: True if filename is valid
     """
-    _, file_extension = os.path.splitext(filename)
-    return file_extension[1:].lower() in app.config["ALLOWED_EXTENSIONS"]
+    # remove the dot
+    return filename.suffix[1:].lower() in app.config["ALLOWED_EXTENSIONS"]
 
 
-def encode_file(filename: str) -> str:
+def encode_file(input_filename: Path, remove_original: bool = False) -> Path:
     """
     Encodes a given file and moves it to the correct output directory
 
-    :param str filename: path of file to encode
-    :return: full path to encoded file
+    :param Path input_filename: path of file to encode
+    :param bool remove_original: remove original file after encoding
+    :return: Full path to encoded file
     """
-    encode_folder = app.config["PATH_ENCODE"]
-    base_filename = os.path.basename(filename)
-    name, ext = os.path.splitext(base_filename)
     output_path = get_nonexistant_path(
-        os.path.join(app.config["PATH_MUSIC"], f"{name}.ogg")
+        Path(
+            app.config["PATH_MUSIC"],
+            secure_filename(input_filename.with_suffix(".ogg").name),
+        )
     )
-
     subprocess.call(
         [
             app.config["PATH_FFMPEG_BINARY"],
             "-i",
-            filename,
+            input_filename,
             "-map_metadata",
             "0",
             "-acodec",
@@ -117,20 +115,10 @@ def encode_file(filename: str) -> str:
             str(app.config["SONG_QUALITY_LVL"]),
             "-vn",
             output_path,
-        ],
-        cwd=encode_folder,
+        ]
     )
-
-    # full_path = os.path.join(encode_folder, name_ogg)
-    # new_path = get_nonexistant_path(os.path.join(app.config["PATH_MUSIC"], name_ogg))
-    # shutil.move(full_path, new_path)
-    # print(f"{full_path} => {new_path}")
-
-    # remove the source file if it was in the encode directory
-    filepath = os.path.join(encode_folder, base_filename)
-    if os.path.isfile(filepath):
-        os.remove(filepath)
-
+    if remove_original:
+        input_filename.unlink(missing_ok=True)
     return output_path
 
 
@@ -146,28 +134,26 @@ def sample_songs_weighted(num: int = 6) -> List[Song]:
     songs = Song.select()[:]
     if len(songs) < num:
         return songs
-
     weights = []
     max_plays = max(s.playcount for s in Song) + 1
     for song in songs:
         weights.append(abs(max_plays - song.playcount))
-
     return choices(songs, weights=weights, k=num)
 
 
-def get_metadata(filename: str) -> Optional[Dict[str, Any]]:
+def get_metadata(filename: Path) -> Optional[Dict[str, Any]]:
     """
     Returns the associated tags for a given music file.
 
-    :param str filename: file to read tags from
+    :param Path filename: file to read tags from
     :return: dict containing music file tags
     """
     metadata = mutagen.File(filename, easy=True)
+    # remove files missing metadata
     if not metadata or "title" not in metadata or "artist" not in metadata:
-        if os.path.isfile(filename):
-            os.remove(filename)
+        app.logger.warning(f"Removing {filename} due to missing metadata")
+        filename.unlink(missing_ok=True)
         return None
-
     title = metadata["title"][0]
     artist = metadata["artist"][0]
     return {
@@ -179,6 +165,12 @@ def get_metadata(filename: str) -> Optional[Dict[str, Any]]:
 
 
 def get_song_or_abort(song_id: Optional[UUID]) -> Song:
+    """
+    Returns the requested song or raises HTTPException
+
+    :param UUID song_id: Song ID to find
+    :return: Requested song or None
+    """
     song = Song.get(id=song_id)
     if not song:
         resp = make_api_response(404, "Not Found", "Song does not exist")
@@ -187,25 +179,23 @@ def get_song_or_abort(song_id: Optional[UUID]) -> Song:
 
 
 @db_session
-def insert_song(filename: str) -> Optional[Song]:
+def insert_song(filepath: Path) -> Optional[Song]:
     """
     Adds a song to the database
 
-    :param str filename: music file to add
+    :param Path filepath: music file to add
     """
-    print("inserting song", filename)
-    filepath = os.path.join(app.config["PATH_MUSIC"], filename)
+    print("inserting song", filepath)
     meta = get_metadata(filepath)
     if meta:
         # check dupe
         song = Song.get(artist=meta["artist"], title=meta["title"])
         if song:
             print(filepath, "is a dupe, removing...")
-            if os.path.isfile(filepath):
-                os.remove(filepath)
+            filepath.unlink(missing_ok=True)
         else:
             song = Song(
-                filename=filename,
+                filename=filepath.name,
                 artist=meta["artist"],
                 title=meta["title"],
                 length=int(meta["length"]),
@@ -234,15 +224,12 @@ def generate_queue() -> None:
     """
     queue = Queue.select()[:]
     if queue:
-        randoms = sum(not entry.requested for entry in queue)
+        randoms = db_sum(not entry.requested for entry in queue)
         reqs = len(queue) - randoms
         threshold = math.ceil((10 - min(reqs, 10)) / 2)
-
         to_add = abs(threshold - randoms)
-
         if randoms >= threshold:
             return
-
         insert_queue(sample_songs_weighted(to_add))
     else:
         insert_queue(sample_songs_weighted())
@@ -255,13 +242,12 @@ def reload_songs() -> None:
     This is done by removing songs that exist in the database, but not on the filesystem.
     Also adds any songs found in the filesystem that are not present in the database.
     """
-    os_songs = [
-        f for f in os.listdir(app.config["PATH_MUSIC"]) if not f.startswith(".")
-    ]
+    os_songs = [f.name for f in app.config["PATH_MUSIC"].glob("*.ogg")]
+    # insert all files if no songs in database
     if count(s for s in Song) <= 0:
         for filename in os_songs:
-            insert_song(filename)
-
+            insert_song(Path(app.config["PATH_MUSIC"], filename))
+    # generate queue if it is empty
     if count(s for s in Queue) <= 0:
         generate_queue()
 
@@ -284,40 +270,34 @@ def reload_songs() -> None:
             queue_song = Queue.get(song=db_song)
             if queue_song:
                 queue_song.delete()
-
             for user in User.select():
                 user.favourites.remove(db_song)
-
             db_song.delete()
 
     print("songs to add", songs_to_add)
     print("songs to remove", songs_to_remove)
 
     for filename in songs_to_add:
-        insert_song(filename)
+        insert_song(Path(app.config["PATH_MUSIC"], filename))
 
 
 @db_session
-def next_song() -> str:
+def next_song() -> Optional[Path]:
     """
     Gets the song to play next from the queue
 
     :return: path to song
     """
     generate_queue()
-
     try:
         queue_entry = Queue.select().sort_by(Queue.id)[:1][0]
     except IndexError:
         return None
-
     song = Song[queue_entry.song.id]
     song.playcount += 1
     song.lastplayed = datetime.utcnow()
-
     queue_entry.delete()
-
-    return song.filename
+    return Path(app.config["PATH_MUSIC"], song.filename)
 
 
 class QueueType(Enum):
@@ -362,7 +342,6 @@ def humanize_lastplayed(seconds: Union[arrow.arrow.Arrow, int]) -> str:
     if isinstance(seconds, arrow.arrow.Arrow) or seconds > 0:
         if isinstance(seconds, arrow.arrow.Arrow):
             return seconds.humanize()
-
         return arrow.get(seconds).humanize()
     else:
         return "Never before"
@@ -378,7 +357,6 @@ def request_status(song: Union[Song, SongData]) -> RequestStatus:
     """
     status = queue_status(song)
     info = RequestStatus(requestable=not status.queued)
-
     if count(x for x in Queue) >= 10:
         info.reason = "Queue is full. Please wait until there are less than 10 entries"
         info.requestable = False
@@ -420,11 +398,9 @@ def parse_status(url: str) -> dict:
         xml = urlopen(url).read()
     except URLError:
         return result
-
     try:
         # CDATA required
         xml_dict = xmltodict.parse(xml, xml_attribs=False, cdata_separator="\n")
-
         try:
             xml_dict = (
                 xml_dict.get("playlist", {}).get("trackList", {}).get("track", None)
@@ -436,7 +412,6 @@ def parse_status(url: str) -> dict:
             if xml_dict is None:
                 # We got none returned from the get anyway
                 return result
-
         annotations = xml_dict.get("annotation", False)
         if not annotations:
             # edge case for having nothing...
@@ -446,7 +421,6 @@ def parse_status(url: str) -> dict:
             tmp = annotation.split(":", 1)
             if len(tmp) > 1:
                 result[tmp[0]] = tmp[1].strip()
-
         result["Online"] = True
         result["Current Song"] = xml_dict.get("title", "") or ""
     except UnicodeDecodeError:
@@ -455,7 +429,6 @@ def parse_status(url: str) -> dict:
         result["Online"] = True
         # Erase the bad stuff. However, keep in mind stream title can do this (anything user input...)
         result["Current Song"] = ""
-
     return result
 
 
@@ -469,7 +442,6 @@ def filter_default_webargs(args: dict, **kwargs: dict) -> dict:
     """
     if isinstance(args, marshmallow.Schema):
         args = args.fields
-
     res = {}
     for kwarg, val in kwargs.items():
         if kwarg in args:
@@ -478,14 +450,12 @@ def filter_default_webargs(args: dict, **kwargs: dict) -> dict:
                 webarg_def = webarg.missing
             else:
                 webarg_def = webarg.default
-
             if val != webarg_def:
                 res[kwarg] = val
-
     return res
 
 
-def get_nonexistant_path(fname_path):
+def get_nonexistant_path(fname: Path):
     """
     Get the path to a filename which does not exist by incrementing path.
 
@@ -496,15 +466,14 @@ def get_nonexistant_path(fname_path):
     >>> get_nonexistant_path('whatever/doesnt-exist-yet.py')
     'whatever/doesnt-exist-yet.py'
     """
-    if not os.path.exists(fname_path):
-        return fname_path
-    filename, file_extension = os.path.splitext(fname_path)
+    if not fname.exists():
+        return fname
     i = 1
-    new_fname = "{}-{}{}".format(filename, i, file_extension)
-    while os.path.exists(new_fname):
+    new_filename = fname.with_name(f"{fname.stem}-{i}{fname.suffix}")
+    while new_filename.exists():
         i += 1
-        new_fname = "{}-{}{}".format(filename, i, file_extension)
-    return new_fname
+        new_filename = new_filename.with_name(f"{fname.stem}-{i}{fname.suffix}")
+    return new_filename
 
 
 def get_self_links(api, obj):

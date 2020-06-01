@@ -15,8 +15,8 @@ services:
       - ./tools/Caddyfile.docker:/etc/Caddyfile
       - frontend_build:/srv
     ports:
-      - 80:80
-      - 443:443
+      - "80:80"
+      - "443:443"
 
   icecast:
     image: infiniteproject/icecast
@@ -28,7 +28,7 @@ services:
     expose:
       - 8067
     ports:
-      - 8067:8067
+      - "8067:8067"
 
   db:
     image: postgres:12-alpine
@@ -65,7 +65,7 @@ services:
     expose:
       - 80
     ports:
-      - 9555:80
+      - "9555:80"
     links:
       - db
       - redis

@@ -2,12 +2,14 @@ import concurrent.futures
 import dataclasses
 import os
 from functools import partial
+from pathlib import Path
 from typing import Dict, Optional
 from urllib.parse import quote
 from uuid import UUID
 
 import filetype
 import flask_restful as rest
+import mutagen
 from flask import Blueprint, Response, make_response, request, send_from_directory
 from flask_jwt_extended import current_user, decode_token, jwt_optional, jwt_required
 from marshmallow import ValidationError, fields, validate
@@ -27,7 +29,7 @@ from radio.common.schemas import (
 )
 from radio.common.users import admin_required, user_is_admin
 from radio.common.utils import (
-    allowed_file,
+    allowed_file_extension,
     encode_file,
     filter_default_webargs,
     get_song_or_abort,
@@ -73,9 +75,7 @@ def get_song_detailed(song: Song) -> SongData:
     """
     original_song = song
     song = SongData(**song.to_dict(exclude="filename", with_lazy=True))
-    song.size = os.path.getsize(
-        os.path.join(app.config["PATH_MUSIC"], original_song.filename)
-    )
+    song.size = Path(app.config["PATH_MUSIC"], original_song.filename).stat().st_size
     song.meta = SongMeta(**dataclasses.asdict(request_status(song)))
     if current_user:
         song.meta.favourited = original_song in current_user.favourites
@@ -84,7 +84,7 @@ def get_song_detailed(song: Song) -> SongData:
 
 @db_session
 def get_songs_response(
-    context,
+    context: rest.Resource,
     page: int,
     query: Optional[str],
     limit: int,
@@ -142,11 +142,9 @@ class RequestController(rest.Resource):
                 if not current_user
                 else song in current_user.favourites,
             )
-
             return make_api_response(
                 200, None, f'Requested "{song.title}" successfully', {"meta": meta}
             )
-
         return make_api_response(
             400,
             "Bad Request",
@@ -163,12 +161,10 @@ class AutocompleteController(rest.Resource):
         data = []
         artists = select(s.artist for s in Song if query.lower() in s.artist.lower())
         titles = select(s.title for s in Song if query.lower() in s.title.lower())
-
         for entry in artists.limit(5):
             data.append({"result": entry, "type": "Artist"})
         for entry in titles.limit(5):
             data.append({"result": entry, "type": "Title"})
-
         return make_api_response(
             200, None, content={"query": query, "suggestions": data}
         )
@@ -189,18 +185,21 @@ class SongController(rest.Resource):
     def put(self, args: Dict[str, UUID], id: any) -> Response:
         if not request.json:
             return make_api_response(400, "Bad Request", "No data provided")
-
         accepted_fields = ["artist", "title"]
         values = {
             field: val
             for field, val in request.json.items()
             if field in accepted_fields
         }
-
         song = get_song_or_abort(args["id"])
         song.set(**values)
         commit()
-
+        # update file metadata as well
+        metadata = mutagen.File(
+            Path(app.config["PATH_MUSIC"], song.filename), easy=True
+        )
+        metadata.update(values)
+        metadata.save()
         return make_api_response(
             200,
             None,
@@ -241,14 +240,13 @@ class DownloadController(rest.Resource):
         decoded = decode_token(args["token"])
         song_id = UUID(decoded["identity"]["id"])
         song = get_song_or_abort(song_id)
-
         serve_filename = quote(f"{song.artist} - {song.title}.ogg")
-        response = make_response(
+        response: Response = make_response(
             send_from_directory(app.config["PATH_MUSIC"], song.filename)
         )
-        response.headers[
-            "Content-Disposition"
-        ] = f"attachment;filename*=UTF-8''{serve_filename}"
+        response.headers.set(
+            "Content-Disposition", f"attachment;filename*=UTF-8''{serve_filename}"
+        )
         return response
 
 
@@ -259,48 +257,44 @@ class UploadController(rest.Resource):
         if not app.config["PUBLIC_UPLOADS"]:
             if not user_is_admin():
                 return make_api_response(403, "Forbidden", "Uploading is not enabled")
-
         if "song" not in request.files:
             app.logger.warning("No file part")
             return make_api_response(
                 422, "Unprocessable Entity", "No `song` file field in request"
             )
-
         song = request.files["song"]
         if song.filename == "":
             app.logger.warning("No selected file")
             return make_api_response(422, "Unprocessable Entity", "No file selected")
-
-        if allowed_file(song.filename):
+        if allowed_file_extension(Path(song.filename)):
             filename = secure_filename(song.filename)
-            filepath = os.path.join(app.config["PATH_ENCODE"], filename)
-            song.save(filepath)
-            kind = filetype.guess(filepath)
-            if kind and kind.mime.split("/")[0] == "audio":
-                meta = get_metadata(filepath)
-                if not meta:
-                    if os.path.exists(filepath):
-                        os.remove(filepath)
-                    return make_api_response(
-                        422, "Unprocessable Entity", "File missing metadata, discarded",
-                    )
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(encode_file, filename)
-                    final_path = future.result()
-                    name, _ = os.path.splitext(os.path.basename(final_path))
-                    ogg_path = f"{name}.ogg"
-                    song = insert_song(ogg_path)
-                    app.logger.info(f'File "{filename}" uploaded')
-                    if song:
-                        return make_api_response(
-                            200, None, f'File "{filename}" uploaded', {"id": song.id}
-                        )
-            else:
-                if os.path.exists(filepath):
-                    os.remove(filepath)
+            if not filename:
+                return make_api_response(
+                    422, "Unprocessable Entity", "Filename not valid",
+                )
+            filepath = Path(app.config["PATH_ENCODE"], filename)
+            song.save(str(filepath))
+            kind = filetype.guess(str(filepath))
+            if not kind or kind.mime.split("/")[0] != "audio":
+                filepath.unlink(missing_ok=True)
                 return make_api_response(
                     422, "Unprocessable Entity", "File is not audio, discarded",
                 )
+            meta = get_metadata(filepath)
+            if not meta:
+                filepath.unlink(missing_ok=True)
+                return make_api_response(
+                    422, "Unprocessable Entity", "File missing metadata, discarded",
+                )
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(encode_file, filepath, remove_original=True)
+                final_path = future.result()
+                song = insert_song(final_path)
+                if song:
+                    app.logger.info(f'File "{filename}" uploaded')
+                    return make_api_response(
+                        200, None, f'File "{filename}" uploaded', {"id": song.id}
+                    )
         return make_api_response(
             422, "Unprocessable Entity", "File could not be processed"
         )

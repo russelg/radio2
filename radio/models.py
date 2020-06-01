@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Set as _Set
 from uuid import UUID, uuid4
 
 from pony.orm import (
@@ -11,6 +10,7 @@ from pony.orm import (
     Set,
     set_sql_debug,
 )
+
 from radio import app
 
 db = Database()
@@ -19,7 +19,7 @@ db = Database()
 class User(db.Entity):
     id: UUID = PrimaryKey(UUID, default=uuid4, auto=True)
     username: str = Required(str, 256, unique=True)
-    hash: str = Required(LongStr)  # bcrypt'd
+    hash: str = Required(LongStr)
     admin: bool = Required(bool, default=False)
     favourites = Set("Song")
 

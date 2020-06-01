@@ -48,6 +48,7 @@ Also included is a config for development, which can be used as so:
 
 -   Install `icecast` (2.4.1 or above).
 -   Install PostgreSQL for the database.
+-   Install Redis to allow song skipping.
 -   Make sure you have working installation of Python **3.6** or higher, if not install it.
 -   Install `poetry` (`pip install poetry`)
 -   Install dependencies using: `poetry install`
@@ -58,7 +59,7 @@ A Caddy config is included to get started quickly.
 #### Stream
 
 ```sh
-python -m tools.generate_icecast_xml    # writes icecast.xml
+python -m tools.generate_environment    # writes env files
 icecast -b -c icecast.xml               # start icecast with generated xml
 poetry run python -m radio.stream       # run the stream
 ```

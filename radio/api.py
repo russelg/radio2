@@ -1,5 +1,6 @@
-from radio import app
 from pony.orm import db_session
+
+from radio import app
 from radio.common.utils import register_blueprint_prefixed
 from radio.controllers import auth, now_playing, songs
 

@@ -49,11 +49,12 @@ class SongQuerySchema(StrictSchema):
     )
 
 
+@db_session
 class FavouriteSchema(SongQuerySchema):
     user = fields.Str(
         required=True,
         validate=lambda arg: User.exists(username=arg),
-        error_messages={"validator_failed": "User does not exist."},
+        error_messages={"validator_failed": "User does not exist"},
     )
 
 
@@ -66,7 +67,7 @@ class SongBasicSchema(StrictSchema):
     id = fields.UUID(
         required=True,
         validate=lambda arg: Song.exists(id=arg),
-        error_messages={"validator_failed": "Song does not exist."},
+        error_messages={"validator_failed": "Song does not exist"},
     )
 
 
