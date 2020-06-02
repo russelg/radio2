@@ -1,6 +1,7 @@
 import argparse
 
 from pony.orm import commit, db_session
+
 from radio.common.users import register, user_exists, valid_username
 from radio.models import User
 

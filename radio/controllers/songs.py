@@ -37,7 +37,6 @@ from radio.common.utils import (
     make_api_response,
     parser,
     request_status,
-    add_resource,
     get_metadata,
 )
 from radio.models import Queue, Song, User
@@ -119,7 +118,7 @@ def get_songs_response(
     )
 
 
-@add_resource(api, "/songs")
+@api.resource("/songs")
 class SongsController(rest.Resource):
     @jwt_optional
     def get(self) -> Response:
@@ -127,7 +126,7 @@ class SongsController(rest.Resource):
         return get_songs_response(self, args["page"], args["query"], args["limit"])
 
 
-@add_resource(api, "/request")
+@api.resource("/request")
 class RequestController(rest.Resource):
     @jwt_optional
     @parser.use_args(SongBasicSchema())
@@ -152,7 +151,7 @@ class RequestController(rest.Resource):
         )
 
 
-@add_resource(api, "/autocomplete")
+@api.resource("/autocomplete")
 class AutocompleteController(rest.Resource):
     @parser.use_kwargs(
         {"query": fields.Str(required=True, validate=validate.Length(min=2))}
@@ -170,7 +169,7 @@ class AutocompleteController(rest.Resource):
         )
 
 
-@add_resource(api, "/song/<id>")
+@api.resource("/song/<id>")
 class SongController(rest.Resource):
     @jwt_optional
     @parser.use_args(SongBasicSchema(), locations=("view_args",))
@@ -232,7 +231,7 @@ def validate_download_token(args: Dict[str, UUID]) -> bool:
     raise ValidationError("Token is invalid")
 
 
-@add_resource(api, "/download")
+@api.resource("/download")
 class DownloadController(rest.Resource):
     @jwt_optional
     @parser.use_args(DownloadSchema(), validate=validate_download_token)
@@ -250,7 +249,7 @@ class DownloadController(rest.Resource):
         return response
 
 
-@add_resource(api, "/upload")
+@api.resource("/upload")
 class UploadController(rest.Resource):
     @jwt_optional
     def post(self) -> Response:
@@ -300,7 +299,7 @@ class UploadController(rest.Resource):
         )
 
 
-@add_resource(api, "/favourites")
+@api.resource("/favourites")
 class FavouriteController(rest.Resource):
     @jwt_optional
     @parser.use_kwargs(FavouriteSchema())
@@ -339,7 +338,7 @@ class FavouriteController(rest.Resource):
         )
 
 
-@add_resource(api, "/skip")
+@api.resource("/skip")
 class SkipController(rest.Resource):
     @admin_required
     def post(self) -> Response:

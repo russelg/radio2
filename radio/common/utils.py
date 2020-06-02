@@ -479,11 +479,3 @@ def get_nonexistant_path(fname: Path):
 def get_self_links(api, obj):
     """Generate `_links._self` for a request"""
     return {"_self": api.url_for(obj, _external=True)}
-
-
-def add_resource(rest_api, *args, **kwargs):
-    def decorator(klass):
-        rest_api.add_resource(klass, *args, **kwargs)
-        return klass
-
-    return decorator

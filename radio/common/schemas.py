@@ -58,7 +58,7 @@ class FavouriteSchema(SongQuerySchema):
     )
 
 
-class DownloadSchema(SongQuerySchema):
+class DownloadSchema(StrictSchema):
     token = fields.Str(required=True)
 
 

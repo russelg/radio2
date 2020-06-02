@@ -24,7 +24,6 @@ from radio.common.utils import (
     get_song_or_abort,
     make_api_response,
     parser,
-    add_resource,
 )
 from radio.models import User
 
@@ -32,7 +31,7 @@ blueprint = Blueprint("auth", __name__)
 api = rest.Api(blueprint)
 
 
-@add_resource(api, "/login")
+@api.resource("/login")
 class LoginController(rest.Resource):
     @parser.use_kwargs(UserSchema())
     def post(self, username: str, password: str) -> Response:
@@ -42,7 +41,7 @@ class LoginController(rest.Resource):
         return make_api_response(401, "Unauthorized", "Invalid credentials")
 
 
-@add_resource(api, "/refresh")
+@api.resource("/refresh")
 class RefreshController(rest.Resource):
     @jwt_refresh_token_required
     def post(self) -> Response:
@@ -52,7 +51,7 @@ class RefreshController(rest.Resource):
         return make_api_response(500, "Server Error", "Issue loading user")
 
 
-@add_resource(api, "/download")
+@api.resource("/download")
 class DownloadController(rest.Resource):
     @jwt_optional
     @parser.use_args(SongBasicSchema(), locations=("json",))
@@ -70,7 +69,7 @@ class DownloadController(rest.Resource):
         )
 
 
-@add_resource(api, "/register")
+@api.resource("/register")
 class RegisterController(rest.Resource):
     @parser.use_kwargs(UserSchema())
     def post(self, username: str, password: str) -> Response:
@@ -87,7 +86,7 @@ class RegisterController(rest.Resource):
         return make_api_response(500, "Server Error", "Issue registering user")
 
 
-@add_resource(api, "/user")
+@api.resource("/user")
 class UserController(rest.Resource):
     @jwt_required
     def get(self) -> Response:

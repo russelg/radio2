@@ -14,7 +14,6 @@ from radio.common.utils import (
     get_self_links,
     make_api_response,
     parse_status,
-    add_resource,
 )
 from radio.models import Queue, Song
 
@@ -140,7 +139,7 @@ def settings() -> dict:
     }
 
 
-@add_resource(api, "/np", "/nowplaying")
+@api.resource("/np", "/nowplaying")
 class NowPlayingController(rest.Resource):
     def get(self) -> Response:
         return make_api_response(
@@ -148,7 +147,7 @@ class NowPlayingController(rest.Resource):
         )
 
 
-@add_resource(api, "/settings")
+@api.resource("/settings")
 class SettingsController(rest.Resource):
     def get(self) -> Response:
         return make_api_response(

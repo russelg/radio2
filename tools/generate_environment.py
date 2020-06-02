@@ -6,7 +6,6 @@ import sys
 sys.path.append("radio/")
 from config import Config
 
-
 icecast_xml = f"""
 <icecast>
     <location>{Config.ICECAST_LOCATION}</location>
