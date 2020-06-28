@@ -38,8 +38,9 @@ from radio.common.utils import (
     parser,
     request_status,
     get_metadata,
+    EncodeError,
 )
-from radio.models import Queue, Song, User
+from radio.database import Queue, Song, User
 
 blueprint = Blueprint("songs", __name__)
 api = rest.Api(blueprint)
@@ -277,22 +278,32 @@ class UploadController(rest.Resource):
             if not kind or kind.mime.split("/")[0] != "audio":
                 filepath.unlink(missing_ok=True)
                 return make_api_response(
-                    422, "Unprocessable Entity", "File is not audio, discarded",
+                    422, "Unprocessable Entity", "File is not audio",
                 )
             meta = get_metadata(filepath)
             if not meta:
                 filepath.unlink(missing_ok=True)
                 return make_api_response(
-                    422, "Unprocessable Entity", "File missing metadata, discarded",
+                    422, "Unprocessable Entity", "File missing metadata",
                 )
             with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(encode_file, filepath, remove_original=True)
-                final_path = future.result()
-                song = insert_song(final_path)
-                if song:
-                    app.logger.info(f'File "{filename}" uploaded')
+                try:
+                    future = executor.submit(
+                        encode_file, filepath, remove_original=True
+                    )
+                    final_path = future.result()
+                    song = insert_song(final_path)
+                    if song:
+                        app.logger.info(f'File "{filename}" uploaded')
+                        return make_api_response(
+                            200, None, f'File "{filename}" uploaded', {"id": song.id}
+                        )
+                except EncodeError:
+                    # delete the original
+                    app.logger.exception(f"Encode error for {filepath}")
+                    filepath.unlink(missing_ok=True)
                     return make_api_response(
-                        200, None, f'File "{filename}" uploaded', {"id": song.id}
+                        422, "Unprocessable Entity", "File could not be encoded",
                     )
         return make_api_response(
             422, "Unprocessable Entity", "File could not be processed"

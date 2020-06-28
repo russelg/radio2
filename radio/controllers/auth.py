@@ -25,7 +25,7 @@ from radio.common.utils import (
     make_api_response,
     parser,
 )
-from radio.models import User
+from radio.database import User
 
 blueprint = Blueprint("auth", __name__)
 api = rest.Api(blueprint)

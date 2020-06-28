@@ -13,43 +13,38 @@ from pony.orm import (
 
 from radio import app
 
-db = Database()
+
+def define_entities(db):
+    class User(db.Entity):
+        id: UUID = PrimaryKey(UUID, default=uuid4, auto=True)
+        username: str = Required(str, 256, unique=True)
+        hash: str = Required(LongStr)
+        admin: bool = Required(bool, default=False)
+        favourites = Set("Song")
+
+    class Song(db.Entity):
+        id: UUID = PrimaryKey(UUID, default=uuid4, auto=True)
+        filename: str = Required(str, 256, unique=True)
+        artist: str = Required(LongStr, lazy=False)
+        title: str = Required(LongStr, lazy=False)
+        length: int = Required(int, unsigned=True)
+        lastplayed: datetime = Optional(datetime)
+        playcount: int = Required(int, default=0, unsigned=True)
+        added: datetime = Required(datetime, default=datetime.utcnow)
+        favored_by = Set(User)
+        queue = Set("Queue", hidden=True, cascade_delete=True)
+
+    class Queue(db.Entity):
+        id: UUID = PrimaryKey(int, auto=True)
+        song: Song = Required(Song)
+        requested: bool = Required(bool, default=False)
+        added: datetime = Required(datetime, default=datetime.utcnow)
 
 
-class User(db.Entity):
-    id: UUID = PrimaryKey(UUID, default=uuid4, auto=True)
-    username: str = Required(str, 256, unique=True)
-    hash: str = Required(LongStr)
-    admin: bool = Required(bool, default=False)
-    favourites = Set("Song")
-
-
-class Song(db.Entity):
-    id: UUID = PrimaryKey(UUID, default=uuid4, auto=True)
-    filename: str = Required(str, 256, unique=True)
-    artist: str = Required(LongStr, lazy=False)
-    title: str = Required(LongStr, lazy=False)
-    length: int = Required(int, unsigned=True)
-    lastplayed: datetime = Optional(datetime)
-    playcount: int = Required(int, default=0, unsigned=True)
-    added: datetime = Required(datetime, default=datetime.utcnow)
-    favored_by = Set(User)
-    queue = Set("Queue", hidden=True)
-
-
-class Queue(db.Entity):
-    id: UUID = PrimaryKey(int, auto=True)
-    song: "Song" = Required(Song)
-    requested: bool = Required(bool, default=False)
-    added: datetime = Required(datetime, default=datetime.utcnow)
-
-
-set_sql_debug(app.debug, True)
-db.bind(
-    provider=app.config["DB_BINDING"],
-    user=app.config["DB_USER"],
-    password=app.config["DB_PASSWORD"],
-    host=app.config["DB_HOST"],
-    database=app.config["DB_DATABASE"],
-)
-db.generate_mapping(create_tables=True)
+def define_db(*args, **kwargs):
+    set_sql_debug(app.debug, True)
+    db = Database()
+    db.bind(*args, **kwargs)
+    define_entities(db)
+    db.generate_mapping(create_tables=True)
+    return db

@@ -16,7 +16,7 @@ from pony.orm import commit, db_session
 from radio import jwt
 from radio.common.errors import Validator
 from radio.common.utils import make_api_response
-from radio.models import User
+from radio.database import User
 
 
 @jwt.user_loader_callback_loader

@@ -2,7 +2,7 @@ import argparse
 import concurrent.futures
 from pathlib import Path
 
-from radio.common.utils import encode_file, next_song, reload_songs
+from radio.common.utils import encode_file, next_song, reload_songs, EncodeError
 
 parser = argparse.ArgumentParser()
 parser.add_argument("paths", nargs="*")
@@ -13,8 +13,11 @@ args = parser.parse_args()
 
 
 def encode(arg: Path) -> Path:
-    encode_file(arg, remove_original=args.remove_original)
-    print(str(arg) + " completed.")
+    try:
+        encode_file(arg, remove_original=args.remove_original)
+        print(str(arg) + " completed.")
+    except EncodeError:
+        print(f"Error encoding file {arg}")
     return arg
 
 

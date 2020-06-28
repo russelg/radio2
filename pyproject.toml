@@ -31,6 +31,9 @@ mypy = "^0.761"
 pylint = "^2.4.4"
 pympler = "^0.8"
 memory_profiler = "^0.57.0"
+pytest = "^5.4.3"
+coverage = "^5.1"
+pytest-subprocess = "^0.1.4"
 
 [build-system]
 build-backend = "poetry.masonry.api"

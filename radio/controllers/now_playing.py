@@ -15,7 +15,7 @@ from radio.common.utils import (
     make_api_response,
     parse_status,
 )
-from radio.models import Queue, Song
+from radio.database import Queue, Song
 
 blueprint = Blueprint("np", __name__)
 api = rest.Api(blueprint)

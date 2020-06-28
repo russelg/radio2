@@ -70,7 +70,6 @@ services:
       - db
       - redis
     depends_on:
-      - frontend
       - db
       - icecast
       - redis

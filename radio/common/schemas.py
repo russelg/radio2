@@ -7,7 +7,7 @@ from marshmallow import Schema, fields, validate
 from pony.orm import db_session
 
 from radio import app
-from radio.models import User, Song
+from radio.database import User, Song
 
 
 @dataclass
