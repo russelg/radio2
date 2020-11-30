@@ -1,3 +1,16 @@
+import Editable from '/../lib/react-bootstrap-editable/src/Editable'
+import { API_BASE, handleError, handleResponse, useFetch } from '/api'
+import {
+  ApiBaseResponse,
+  ApiResponse,
+  SongDownloadJson,
+  SongItem
+} from '/api/Schemas'
+import LoaderButton from '/components/LoaderButton'
+import LoaderSkeleton from '/components/LoaderSkeleton'
+import { useAuthState } from '/contexts/auth'
+import { useSiteSettingsState } from '/contexts/settings'
+import { readableFilesize, readableSeconds } from '/utils'
 import { faBan } from '@fortawesome/free-solid-svg-icons/faBan'
 import { faDownload } from '@fortawesome/free-solid-svg-icons/faDownload'
 import { faExclamationTriangle } from '@fortawesome/free-solid-svg-icons/faExclamationTriangle'
@@ -7,22 +20,7 @@ import { faTrash } from '@fortawesome/free-solid-svg-icons/faTrash'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { css, cx } from 'emotion'
 import React, { FormEvent, FunctionComponent, useRef, useState } from 'react'
-import { toast } from 'react-toastify'
 import { Button, Form, UncontrolledTooltip } from 'reactstrap'
-import Editable from '/../lib/react-bootstrap-editable/src/Editable'
-import { API_BASE, handleResponse, useFetch } from '/api'
-import {
-  ApiBaseResponse,
-  ApiResponse,
-  SongDownloadJson,
-  SongItem
-} from '/api/Schemas'
-import LoaderButton from '/components/LoaderButton'
-import LoaderSkeleton from '/components/LoaderSkeleton'
-import NotificationToast from '/components/NotificationToast'
-import { useAuthState } from '/contexts/auth'
-import { useSiteSettingsState } from '/contexts/settings'
-import { readableFilesize, readableSeconds } from '/utils'
 
 const disabledButtonStyle = css`
   display: inline-block;
@@ -41,24 +39,6 @@ type UpdateSong = (id: string, song: SongItem | null) => void
 
 interface SongRowUpdateProps extends SongRowButtonProps {
   updateSong: UpdateSong
-}
-
-const handleError = <T extends ApiBaseResponse>(result: T) => {
-  if (result) {
-    const msg = 'description' in result ? result.description : result.message
-    if (msg)
-      toast(
-        <NotificationToast error>
-          <ul>
-            {msg === Object(msg) ? (
-              Object.values(msg).map((err) => <li key={err}>{err}</li>)
-            ) : (
-              <li>msg</li>
-            )}
-          </ul>
-        </NotificationToast>
-      )
-  }
 }
 
 const RequestButton: FunctionComponent<SongRowUpdateProps> = ({
@@ -110,9 +90,8 @@ type FavouriteButtonProps = {
   useIcon?: boolean
 }
 
-export const FavouriteButton: FunctionComponent<
-  SongRowUpdateProps & FavouriteButtonProps
-> = ({ song, updateSong, useIcon = true }) => {
+export const FavouriteButton: FunctionComponent<SongRowUpdateProps &
+  FavouriteButtonProps> = ({ song, updateSong, useIcon = true }) => {
   const { data, loading, errors, run } = useFetch(`${API_BASE}/favourites`)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const favouriteSong = (event: FormEvent<HTMLButtonElement>) => {
@@ -169,7 +148,7 @@ export const FavouriteButton: FunctionComponent<
 }
 
 const DownloadButton: FunctionComponent<SongRowButtonProps> = ({ song }) => {
-  const { data, loading, errors, run } = useFetch(`${API_BASE}/auth/download`)
+  const { data, loading, errors, run } = useFetch(`${API_BASE}/download`)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const downloadSong = (event: FormEvent<HTMLButtonElement>) => {
     event.preventDefault()
@@ -228,7 +207,7 @@ const DeleteButton: FunctionComponent<SongRowUpdateProps> = ({
           updateSong(song.id, null)
           setConfirming(false)
         })
-        .catch((reason) => {
+        .catch(reason => {
           handleError(reason)
           setConfirming(false)
         })

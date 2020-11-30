@@ -1,3 +1,10 @@
+import LoaderSkeleton from '/components/LoaderSkeleton'
+import LoggedInDropdown from '/components/LoggedInDropdown'
+import LoginDropdown from '/components/LoginDropdown'
+import ThemeChooser from '/components/ThemeChooser'
+import { useAuthState } from '/contexts/auth'
+import { useSiteSettingsState } from '/contexts/settings'
+import { containerWidthStyle } from '/utils'
 import { css, cx } from 'emotion'
 import React, { FunctionComponent, useState } from 'react'
 import { NavLink as RRNavLink } from 'react-router-dom'
@@ -10,15 +17,8 @@ import {
   NavbarBrand,
   NavbarToggler,
   NavItem,
-  NavLink
+  NavLink,
 } from 'reactstrap'
-import LoaderSkeleton from '/components/LoaderSkeleton'
-import LoggedInDropdown from '/components/LoggedInDropdown'
-import LoginDropdown from '/components/LoginDropdown'
-import ThemeChooser from '/components/ThemeChooser'
-import { useAuthState } from '/contexts/auth'
-import { useSiteSettingsState } from '/contexts/settings'
-import { containerWidthStyle } from '/utils'
 
 const flexGrow = (val: number) => css`
   flex-grow: ${val};
@@ -71,7 +71,7 @@ const Navbar: FunctionComponent = ({ children }) => {
           className={cx(
             flexGrow(0),
             'justify-content-start',
-            'order-5 order-lg-2'
+            'order-5 order-lg-2',
           )}>
           <Nav navbar>{songsButton}</Nav>
         </Collapse>

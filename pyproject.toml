@@ -25,6 +25,7 @@ shouty = {url = "https://github.com/edne/shouty/archive/master.zip"}
 webargs = "^5.5.2"
 werkzeug = "^0.16.0"
 xmltodict = "^0.12.0"
+Authlib = "^0.15.2"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.761"

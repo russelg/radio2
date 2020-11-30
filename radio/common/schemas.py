@@ -3,11 +3,14 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from marshmallow import Schema, fields, validate
+from marshmallow import Schema
+from marshmallow import fields
+from marshmallow import validate
 from pony.orm import db_session
 
 from radio import app
-from radio.database import User, Song
+from radio.database import Song
+from radio.database import User
 
 
 @dataclass
@@ -58,7 +61,7 @@ class FavouriteSchema(SongQuerySchema):
     )
 
 
-class DownloadSchema(StrictSchema):
+class TokenSchema(StrictSchema):
     token = fields.Str(required=True)
 
 
@@ -74,3 +77,9 @@ class SongBasicSchema(StrictSchema):
 class UserSchema(StrictSchema):
     username = fields.Str(required=True)
     password = fields.Str(required=True)
+
+
+class CallbackSchema(StrictSchema):
+    code = fields.Str(required=True)
+    scope = fields.Str(required=True)
+    state = fields.Str(required=True)

@@ -1,12 +1,7 @@
+import LoginForm from '/components/LoginForm'
 import React, { FunctionComponent } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  DropdownItem,
-  DropdownMenu,
-  DropdownToggle,
-  UncontrolledDropdown
-} from 'reactstrap'
-import LoginForm from '/components/LoginForm'
+import { DropdownItem, DropdownMenu, DropdownToggle, UncontrolledDropdown } from 'reactstrap'
 
 const LoginDropdown: FunctionComponent = () => (
   <UncontrolledDropdown nav inNavbar>

@@ -1,9 +1,9 @@
-import { css, cx } from 'emotion'
-import React, { FunctionComponent } from 'react'
-import { Progress } from 'reactstrap'
 import { useRadioInfoState } from '/contexts/radio'
 import { useRadioStatusState } from '/contexts/radioStatus'
 import { readableSeconds } from '/utils'
+import { css, cx } from 'emotion'
+import React, { FunctionComponent } from 'react'
+import { Progress } from 'reactstrap'
 
 const breakpoints = css`
   @media (max-width: 576px) {

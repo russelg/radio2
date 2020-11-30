@@ -4,6 +4,9 @@ services:
   caddy:
     volumes:
       - ./tools/Caddyfile.docker.dev:/etc/Caddyfile
+    ports:
+      - "8880:80"
+      - "8843:443"
 
   db:
     ports:
@@ -21,7 +24,7 @@ services:
       - 1234
       - 9222
     ports:
-      - "9222:9222"
+      - "9223:9222"
 
   server:
     command: poetry run flask run

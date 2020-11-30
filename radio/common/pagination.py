@@ -1,5 +1,8 @@
 import math
-from typing import Any, Dict, Iterator, Optional
+from typing import Any
+from typing import Dict
+from typing import Iterator
+from typing import Optional
 
 
 class Pagination:

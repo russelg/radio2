@@ -1,21 +1,25 @@
+import { API_BASE, handleResponse } from '/api'
+import {
+  ApiBaseResponse,
+  ApiResponse,
+  AutocompleteItemJson,
+  AutocompleteJson,
+  Description,
+  SongItem,
+} from '/api/Schemas'
+import Error from '/components/Error'
+import NotificationToast from '/components/NotificationToast'
+import SongsTable from '/components/SongsTable'
+import { useAuthState } from '/contexts/auth'
+import { useSiteSettingsState } from '/contexts/settings'
+import { containerWidthStyle, navbarMarginStyle, useDelayedLoader, useLocalStorage } from '/utils'
 import { cx } from 'emotion'
 // @ts-ignore
 import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type'
 import 'filepond/dist/filepond.min.css'
 import { stringify } from 'query-string'
-import React, {
-  FormEvent,
-  FunctionComponent,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from 'react'
-import {
-  AsyncTypeahead,
-  Highlighter,
-  TypeaheadMenuProps
-} from 'react-bootstrap-typeahead'
+import React, { FormEvent, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react'
+import { AsyncTypeahead, Highlighter, TypeaheadMenuProps } from 'react-bootstrap-typeahead'
 import 'react-bootstrap-typeahead/css/Typeahead.css'
 import { File as FilePondFile, FilePond, registerPlugin } from 'react-filepond'
 import Pagination from 'react-js-pagination'
@@ -33,29 +37,9 @@ import {
   InputGroup,
   InputGroupAddon,
   Label,
-  Row
+  Row,
 } from 'reactstrap'
 import { NumberParam, StringParam, useQueryParams } from 'use-query-params'
-import { API_BASE, handleResponse } from '/api'
-import {
-  ApiBaseResponse,
-  ApiResponse,
-  AutocompleteItemJson,
-  AutocompleteJson,
-  Description,
-  SongItem
-} from '/api/Schemas'
-import Error from '/components/Error'
-import NotificationToast from '/components/NotificationToast'
-import SongsTable from '/components/SongsTable'
-import { useAuthState } from '/contexts/auth'
-import { useSiteSettingsState } from '/contexts/settings'
-import {
-  containerWidthStyle,
-  navbarMarginStyle,
-  useDelayedLoader,
-  useLocalStorage
-} from '/utils'
 // @ts-ignore
 
 registerPlugin(FilePondPluginFileValidateType)
@@ -65,8 +49,8 @@ interface SongUploadFormProps {
 }
 
 const SongUploadForm: FunctionComponent<SongUploadFormProps> = ({
-  refreshSong
-}) => {
+                                                                  refreshSong,
+                                                                }) => {
   const { accessToken } = useAuthState()
 
   const pond = useRef<FilePond>(null)
@@ -84,9 +68,9 @@ const SongUploadForm: FunctionComponent<SongUploadFormProps> = ({
         toast(<NotificationToast error>{json.description}</NotificationToast>)
       },
       headers: {
-        Authorization: `Bearer ${accessToken}`
-      }
-    }
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
   }
 
   const onUpdateFiles = (fileItems: FilePondFile[]) => {
@@ -146,9 +130,9 @@ interface SearchFieldProps {
 }
 
 const SearchField: FunctionComponent<SearchFieldProps> = ({
-  query = '',
-  setQuery
-}) => {
+                                                            query = '',
+                                                            setQuery,
+                                                          }) => {
   const [input, setInput] = useState<string>(query)
   const [loading, setLoading] = useState<boolean>(false)
   const [options, setOptions] = useState<AutocompleteItemJson[]>([])
@@ -162,7 +146,7 @@ const SearchField: FunctionComponent<SearchFieldProps> = ({
 
   const onChange = (selected: AutocompleteItemJson[]) => {
     const res: AutocompleteItemJson = selected[0] || {
-      result: ''
+      result: '',
     }
     setInput(res.result)
   }
@@ -186,7 +170,7 @@ const SearchField: FunctionComponent<SearchFieldProps> = ({
 
   const renderMenuItemChildren = (
     result: AutocompleteItemJson,
-    props: TypeaheadMenuProps<AutocompleteItemJson>
+    props: TypeaheadMenuProps<AutocompleteItemJson>,
   ) => (
     <span>
       <b>{result.type}</b>:&nbsp;
@@ -234,9 +218,9 @@ type ShowAdminToggleProps = {
 }
 
 const ShowAdminToggle: FunctionComponent<ShowAdminToggleProps> = ({
-  showAdmin,
-  setShowAdmin
-}) => {
+                                                                    showAdmin,
+                                                                    setShowAdmin,
+                                                                  }) => {
   return (
     <Row>
       <Col>
@@ -263,8 +247,8 @@ interface LoadFavesFieldProps {
 }
 
 const LoadFavesField: FunctionComponent<LoadFavesFieldProps> = ({
-  queryParam
-}) => {
+                                                                  queryParam,
+                                                                }) => {
   const history = useHistory()
   const { username } = useAuthState()
   const [userInput, setUserInput] = useState<string>(queryParam.user || '')
@@ -273,7 +257,7 @@ const LoadFavesField: FunctionComponent<LoadFavesFieldProps> = ({
     event.preventDefault()
     const url = getApiUrl(
       { ...queryParam, user: userInput || username || undefined },
-      true
+      true,
     )
     history.push(url)
   }
@@ -312,7 +296,7 @@ const placeholders = [...Array(25).fill(null)]
 const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
   const [showAdmin, setShowAdmin] = useLocalStorage<boolean>(
     'show_admin',
-    false
+    false,
   )
   const { canUpload } = useSiteSettingsState()
   const { admin } = useAuthState()
@@ -322,7 +306,7 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
     per_page: 25,
     page: 1,
     pages: 1,
-    total_count: 0
+    total_count: 0,
   })
   const [songs, setSongs] = useState<SongItem[]>(placeholders)
   const [loading, setLoading] = useDelayedLoader(false)
@@ -332,7 +316,7 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
   const [queryParam, setQueryParam] = useQueryParams({
     query: StringParam,
     page: NumberParam,
-    user: StringParam
+    user: StringParam,
   })
   const { query = undefined, page = 1, user = undefined } = queryParam
 
@@ -340,17 +324,18 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
     () => (
       <SongsTable
         songs={placeholders}
-        updateSong={() => {}}
+        updateSong={() => {
+        }}
         showAdmin={showAdmin}
       />
     ),
-    [showAdmin]
+    [showAdmin],
   )
 
   const updateSong = (id: string, song: SongItem | null): boolean => {
     let songsCopy = [...songs]
     const stateSong: number = songsCopy.findIndex(
-      (element) => element.id === id
+      (element) => element.id === id,
     )
     if (stateSong > -1) {
       if (song !== null) {
@@ -397,7 +382,7 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
   const loadSongs = () => {
     setLoading(true)
     fetch(API_BASE + getApiUrl({ page, user, query }, favourites), {
-      method: 'GET'
+      method: 'GET',
     })
       .then((resp) => {
         setLoading(false)
@@ -425,7 +410,7 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
   }, [page, user, query, favourites])
 
   const fadeProps = useSpring({
-    opacity: loading ? 0.75 : 1
+    opacity: loading ? 0.75 : 1,
   })
 
   if (error && error !== '') {
@@ -469,7 +454,7 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
       <Row>
         <Col
           style={{
-            minHeight: '16rem'
+            minHeight: '16rem',
           }}>
           <animated.div className="d-flex h-100" style={fadeProps}>
             {!loading && songs.length === 0 && (
@@ -478,15 +463,15 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
               </h2>
             )}
             {songs.length !== 0 &&
-              (loading ? (
-                PlaceholderTable
-              ) : (
-                <SongsTable
-                  songs={songs}
-                  updateSong={updateSong}
-                  showAdmin={showAdmin}
-                />
-              ))}
+            (loading ? (
+              PlaceholderTable
+            ) : (
+              <SongsTable
+                songs={songs}
+                updateSong={updateSong}
+                showAdmin={showAdmin}
+              />
+            ))}
           </animated.div>
         </Col>
       </Row>

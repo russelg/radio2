@@ -3,10 +3,16 @@ import subprocess
 import urllib.request
 from datetime import datetime
 from enum import Enum
-from functools import lru_cache, partial
+from functools import lru_cache
+from functools import partial
 from pathlib import Path
 from random import choices
-from typing import Any, Dict, List, NamedTuple, Optional, Union
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import NamedTuple
+from typing import Optional
+from typing import Union
 from urllib.error import URLError
 from uuid import UUID
 
@@ -14,16 +20,24 @@ import arrow
 import marshmallow
 import mutagen
 import xmltodict
-from flask import Response, jsonify
+from flask import Response
+from flask import jsonify
 from marshmallow import ValidationError
-from pony.orm import commit, count, db_session, max, select, sum as db_sum
+from pony.orm import commit
+from pony.orm import count
+from pony.orm import db_session
+from pony.orm import max
+from pony.orm import select
+from pony.orm import sum as db_sum
 from webargs import flaskparser
 from werkzeug.exceptions import HTTPException
 from werkzeug.utils import secure_filename
 
 from radio import app
-from radio.common.schemas import RequestStatus, SongData
-from radio.database import Queue, Song
+from radio.common.schemas import RequestStatus
+from radio.common.schemas import SongData
+from radio.database import Queue
+from radio.database import Song
 
 register_blueprint_prefixed = partial(
     app.register_blueprint, url_prefix=app.config["SERVER_API_PREFIX"]

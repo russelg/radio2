@@ -1,8 +1,8 @@
+import { useDelayedLoader } from '/utils'
 import { css, cx } from 'emotion'
 import React, { FunctionComponent, useEffect } from 'react'
 import { animated, useSpring } from 'react-spring'
 import { Button, ButtonProps, Spinner } from 'reactstrap'
-import { useDelayedLoader } from '/utils'
 
 interface LoaderButtonProps extends ButtonProps {
   loading: boolean
@@ -18,12 +18,12 @@ const spanStyle = css`
 `
 
 const LoaderButton: FunctionComponent<LoaderButtonProps> = ({
-  children,
-  loading,
-  block,
-  useDelay = true,
-  ...rest
-}) => {
+                                                              children,
+                                                              loading,
+                                                              block,
+                                                              useDelay = true,
+                                                              ...rest
+                                                            }) => {
   const [showLoader, setShowLoader] = useDelayedLoader(loading)
 
   const fadeOutProps = useSpring({ opacity: showLoader ? 1 : 0 })
@@ -41,7 +41,7 @@ const LoaderButton: FunctionComponent<LoaderButtonProps> = ({
             className={cx('position-relative', {
               visible: showLoader,
               invisible: !showLoader,
-              [buttonStyle]: !block
+              [buttonStyle]: !block,
             })}
             size="sm"
             // type="grow"
@@ -53,7 +53,7 @@ const LoaderButton: FunctionComponent<LoaderButtonProps> = ({
           className={cx({
             invisible: showLoader,
             visible: !showLoader,
-            [spanStyle]: !block
+            [spanStyle]: !block,
           })}
           style={fadeInProps}>
           {children}

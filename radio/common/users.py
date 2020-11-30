@@ -1,17 +1,17 @@
 import re
 from functools import wraps
-from typing import Dict, Optional
+from typing import Dict
+from typing import Optional
 
 import bcrypt
 from flask import Response
-from flask_jwt_extended import (
-    create_access_token,
-    create_refresh_token,
-    get_jwt_claims,
-    verify_jwt_in_request,
-)
+from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_refresh_token
+from flask_jwt_extended import get_jwt_claims
+from flask_jwt_extended import verify_jwt_in_request
 from jwt.exceptions import ExpiredSignatureError
-from pony.orm import commit, db_session
+from pony.orm import commit
+from pony.orm import db_session
 
 from radio import jwt
 from radio.common.errors import Validator
@@ -49,12 +49,19 @@ def sign_in(username: str, password: str) -> Optional[Dict]:
     user: User = User.get(username=username)
     if user:
         if bcrypt.checkpw(password.encode("utf-8"), user.hash.encode("utf8")):
-            return {
-                "access_token": create_access_token(identity=str(user.id), fresh=True),
-                "refresh_token": create_refresh_token(identity=str(user.id)),
-                "username": user.username,
-                "admin": user.admin,
-            }
+            return get_sign_in_body(user)
+    return None
+
+
+@db_session
+def get_sign_in_body(user) -> Optional[Dict]:
+    if user:
+        return {
+            "access_token": create_access_token(identity=str(user.id), fresh=True),
+            "refresh_token": create_refresh_token(identity=str(user.id)),
+            "username": user.username,
+            "admin": user.admin,
+        }
     return None
 
 

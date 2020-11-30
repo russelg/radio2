@@ -1,21 +1,4 @@
 // @ts-ignore
-import MediaSession from '@mebtte/react-media-session'
-import { css } from 'emotion'
-import React, {
-  CSSProperties,
-  FunctionComponent,
-  lazy,
-  Suspense,
-  useRef,
-  useState
-} from 'react'
-import { Helmet } from 'react-helmet'
-import { BrowserRouter as Router, Route } from 'react-router-dom'
-// @ts-ignore
-import { AnimatedSwitch, spring } from 'react-router-transition'
-import { toast, Zoom } from 'react-toastify'
-import { Collapse } from 'reactstrap'
-import { QueryParamProvider } from 'use-query-params'
 import ErrorBoundary from '/components/ErrorBoundary'
 import LoaderSpinner from '/components/LoaderSpinner'
 import MiniPlayer from '/components/MiniPlayer'
@@ -27,9 +10,29 @@ import {
 } from '/contexts/control'
 import { useRadioInfoState } from '/contexts/radio'
 import { useSiteSettingsState } from '/contexts/settings'
+import OpenIdCallback from '/pages/OpenIdCallback'
+import OpenIdLink from '/pages/OpenIdLink'
+import OpenIdLogin from '/pages/OpenIdLogin'
 import SignIn from '/pages/SignIn'
 import SignUp from '/pages/SignUp'
+import MediaSession from '@mebtte/react-media-session'
+import { css } from 'emotion'
+import React, {
+  CSSProperties,
+  FunctionComponent,
+  lazy,
+  Suspense,
+  useRef,
+  useState
+} from 'react'
+import { Helmet } from 'react-helmet'
 import ReactPlayer from 'react-player'
+import { BrowserRouter as Router, Route } from 'react-router-dom'
+// @ts-ignore
+import { AnimatedSwitch, spring } from 'react-router-transition'
+import { toast, Zoom } from 'react-toastify'
+import { Collapse } from 'reactstrap'
+import { QueryParamProvider } from 'use-query-params'
 
 toast.configure({
   autoClose: 2000,
@@ -83,6 +86,7 @@ const MediaSessionSetter: FunctionComponent<MediaSessionSetterProps> = ({
       artist={songInfo.artist}
       onPlay={togglePlaying}
       onPause={togglePlaying}
+      artwork={[]}
     />
   )
 }
@@ -207,6 +211,15 @@ const App: FunctionComponent = () => {
               </Route>
               <Route path="/sign-in" exact>
                 <SignIn />
+              </Route>
+              <Route path="/openid/login" exact>
+                <OpenIdLogin />
+              </Route>
+              <Route path="/openid/callback" exact>
+                <OpenIdCallback />
+              </Route>
+              <Route path="/openid/link" exact>
+                <OpenIdLink />
               </Route>
             </AnimatedSwitch>
           </div>

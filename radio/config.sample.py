@@ -57,6 +57,13 @@ class Config:
     # Used to enable song skipping, among other things
     REDIS_URL = "redis://redis:6379/0"
 
+    # OpenID auth configuration
+    # Allows use of OpenID login (as well as traditional)
+    AUTH_OPENID_ENABLED = True
+    AUTH_CLIENT_ID = "client-id"
+    AUTH_CLIENT_SECRET = "client-secret"
+    AUTH_SERVER_METADATA_URL = "https://example.com/.well-known/openid-configuration"
+
     # General app configuration
     # Largest allowed size for music uploads, in bytes (if PUBLIC_UPLOADS is True)
     FILE_SIZE_LIMIT = 524288000

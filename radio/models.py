@@ -18,7 +18,8 @@ def define_entities(db):
     class User(db.Entity):
         id: UUID = PrimaryKey(UUID, default=uuid4, auto=True)
         username: str = Required(str, 256, unique=True)
-        hash: str = Required(LongStr)
+        # optional hash due to openid logins
+        hash: str = Optional(LongStr)
         admin: bool = Required(bool, default=False)
         favourites = Set("Song")
 

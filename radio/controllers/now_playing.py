@@ -4,18 +4,21 @@ from urllib.parse import unquote
 
 import arrow
 import flask_restful as rest
-from flask import Blueprint, Response, request
-from pony.orm import db_session, desc, select
+from flask import Blueprint
+from flask import Response
+from flask import request
+from pony.orm import db_session
+from pony.orm import desc
+from pony.orm import select
 from pony.orm.core import Query
 
 from radio import app
-from radio.common.utils import (
-    get_folder_size,
-    get_self_links,
-    make_api_response,
-    parse_status,
-)
-from radio.database import Queue, Song
+from radio.common.utils import get_folder_size
+from radio.common.utils import get_self_links
+from radio.common.utils import make_api_response
+from radio.common.utils import parse_status
+from radio.database import Queue
+from radio.database import Song
 
 blueprint = Blueprint("np", __name__)
 api = rest.Api(blueprint)

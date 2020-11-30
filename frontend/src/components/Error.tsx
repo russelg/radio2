@@ -1,14 +1,7 @@
 import { css } from 'emotion'
 import React, { FunctionComponent } from 'react'
 import { useHistory } from 'react-router-dom'
-import {
-  Button,
-  Col,
-  Container,
-  ListGroup,
-  ListGroupItem,
-  Row
-} from 'reactstrap'
+import { Button, Col, Container, ListGroup, ListGroupItem, Row } from 'reactstrap'
 
 interface ErrorProps {
   error: any
@@ -47,7 +40,9 @@ const Error: FunctionComponent<ErrorProps> = ({
               {large && (
                 <>
                   {error === Object(error) ? (
-                    Object.values(error).map((err) => <h4 key={err}>{err}</h4>)
+                    Object.values(error).map((err, idx) => (
+                      <h4 key={idx}>{err as string}</h4>
+                    ))
                   ) : (
                     <h4>{error && error.toString()}</h4>
                   )}

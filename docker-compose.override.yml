@@ -1,0 +1,13 @@
+services:
+  caddy:
+    ports:
+      - "80:80"
+      - "443:443"
+
+  icecast:
+    ports:
+      - "8067:8067"
+
+  server:
+    ports:
+      - "9555:80"

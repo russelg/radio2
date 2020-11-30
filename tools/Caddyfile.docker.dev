@@ -1,9 +1,12 @@
-http://radio.local {
+http://radio.test {
 	# frontend
     proxy / 			frontend:1234 	{ websocket }
 
 	# api
-	proxy /api			server:80	 	{ transparent }
+	proxy /api			server:80	 	{
+	    transparent
+	    header_upstream X-Forwarded-Proto https
+    }
 
 	# icecast
 	proxy /radio.ogg	icecast:8067 	{ transparent }

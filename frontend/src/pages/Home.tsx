@@ -1,3 +1,19 @@
+import { SongItem, SongListItem } from '/api/Schemas'
+import LoaderSkeleton from '/components/LoaderSkeleton'
+import { FavouriteButton } from '/components/SongRow'
+import { useAuthState } from '/contexts/auth'
+import { setVolume, useControlContext, useControlState } from '/contexts/control'
+import { setFavourited, useRadioInfoContext, useRadioInfoState } from '/contexts/radio'
+import { useRadioStatusState } from '/contexts/radioStatus'
+import { useSiteSettingsState } from '/contexts/settings'
+import {
+  containerWidthStyle,
+  fuzzyTime,
+  navbarMarginStyle,
+  readableFilesize,
+  readableSeconds,
+  setLocalStorage,
+} from '/utils'
 import { css } from 'emotion'
 import React, { FunctionComponent, useEffect, useState } from 'react'
 import {
@@ -20,32 +36,8 @@ import {
   ModalFooter,
   ModalHeader,
   Progress,
-  Row
+  Row,
 } from 'reactstrap'
-import { SongItem, SongListItem } from '/api/Schemas'
-import LoaderSkeleton from '/components/LoaderSkeleton'
-import { FavouriteButton } from '/components/SongRow'
-import { useAuthState } from '/contexts/auth'
-import {
-  setVolume,
-  useControlContext,
-  useControlState
-} from '/contexts/control'
-import {
-  setFavourited,
-  useRadioInfoContext,
-  useRadioInfoState
-} from '/contexts/radio'
-import { useRadioStatusState } from '/contexts/radioStatus'
-import { useSiteSettingsState } from '/contexts/settings'
-import {
-  containerWidthStyle,
-  fuzzyTime,
-  navbarMarginStyle,
-  readableFilesize,
-  readableSeconds,
-  setLocalStorage
-} from '/utils'
 
 interface HomeProps {
   togglePlaying: () => void
@@ -114,7 +106,7 @@ const UsageModal: FunctionComponent<UsageModalProps> = React.memo(
         </ModalFooter>
       </Modal>
     )
-  }
+  },
 )
 
 interface SongListProps {
@@ -124,10 +116,10 @@ interface SongListProps {
 }
 
 const SongList: FunctionComponent<SongListProps> = ({
-  songs,
-  title,
-  alignment
-}) => {
+                                                      songs,
+                                                      title,
+                                                      alignment,
+                                                    }) => {
   const flipped = alignment === 'left' ? 'right' : 'left'
 
   return (
@@ -163,7 +155,7 @@ const SongList: FunctionComponent<SongListProps> = ({
                   </Col>
                 </ListGroupItem>
               )
-            }
+            },
           )
         }
       </ListGroup>
@@ -229,7 +221,7 @@ const FavouriteSongButton: FunctionComponent = () => {
       song={{
         id: songInfo.id,
         // @ts-ignore
-        meta: { favourited }
+        meta: { favourited },
       }}
     />
   )
@@ -339,7 +331,7 @@ const Controls: FunctionComponent<HomeProps> = React.memo(
         </Collapse>
       </>
     )
-  }
+  },
 )
 
 const VolumeControl: FunctionComponent = React.memo(() => {
@@ -379,7 +371,7 @@ const homeStyle = css`
 
 const SongLists: FunctionComponent = () => {
   const {
-    serverInfo: { queue, lastPlayed, totalPlays, totalSongs }
+    serverInfo: { queue, lastPlayed, totalPlays, totalSongs },
   } = useRadioInfoState()
 
   return (

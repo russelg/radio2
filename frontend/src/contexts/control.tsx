@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useReducer } from 'react'
 import { getLocalStorage } from '/utils'
+import React, { createContext, useContext, useReducer } from 'react'
 
 type Action =
   | { type: 'SET_VOLUME'; payload: number }
@@ -24,7 +24,7 @@ function controlReducer(state: State, action: Action) {
       return {
         ...state,
         playing,
-        shouldFetchNowPlaying: playing
+        shouldFetchNowPlaying: playing,
       }
     }
     default: {
@@ -38,7 +38,7 @@ function ControlProvider({ children }: ProviderProps) {
 
   const [state, dispatch] = useReducer(controlReducer, {
     playing: false,
-    volume: localVolume
+    volume: localVolume,
   })
 
   return (
@@ -85,5 +85,5 @@ export {
   useControlState,
   useControlDispatch,
   setVolume,
-  togglePlaying
+  togglePlaying,
 }

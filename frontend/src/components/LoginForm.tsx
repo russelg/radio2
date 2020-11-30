@@ -1,3 +1,7 @@
+import { Description } from '/api/Schemas'
+import LoaderButton from '/components/LoaderButton'
+import LoginOpenId from '/components/LoginOpenId'
+import { login, useAuthDispatch } from '/contexts/auth'
 import { css, cx } from 'emotion'
 import React, {
   ChangeEvent,
@@ -6,9 +10,6 @@ import React, {
   useState
 } from 'react'
 import { Form, FormFeedback, FormGroup, Input } from 'reactstrap'
-import { Description } from '/api/Schemas'
-import LoaderButton from '/components/LoaderButton'
-import { login, useAuthDispatch } from '/contexts/auth'
 
 const formControlStyle = css`
   .form-control {
@@ -28,8 +29,8 @@ const LoginForm: FunctionComponent = () => {
   const dispatch = useAuthDispatch()
 
   const [values, setValues] = useState({
-    username: '' as string,
-    password: '' as string
+    username: '',
+    password: ''
   })
   const [error, setError] = useState(null as Description | null)
   const [submitting, setSubmitting] = useState(false)
@@ -41,10 +42,14 @@ const LoginForm: FunctionComponent = () => {
   const handleLogin = (event: FormEvent) => {
     event.preventDefault()
     setSubmitting(true)
-    login(dispatch, values.username, values.password).then(resp => {
-      setSubmitting(false)
-      if (resp.error !== null) setError(resp.description!)
-    })
+    login(dispatch, values.username, values.password)
+      .then(resp => {
+        setSubmitting(false)
+      })
+      .catch(resp => {
+        setSubmitting(false)
+        setError(resp.description!)
+      })
   }
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -97,6 +102,8 @@ const LoginForm: FunctionComponent = () => {
         loading={submitting}>
         Login
       </LoaderButton>
+      <hr />
+      <LoginOpenId />
     </Form>
   )
 }

@@ -1,46 +1,61 @@
 import concurrent.futures
 import dataclasses
 import os
+from datetime import timedelta
 from functools import partial
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict
+from typing import Optional
 from urllib.parse import quote
 from uuid import UUID
 
 import filetype
 import flask_restful as rest
 import mutagen
-from flask import Blueprint, Response, make_response, request, send_from_directory
-from flask_jwt_extended import current_user, decode_token, jwt_optional, jwt_required
-from marshmallow import ValidationError, fields, validate
-from pony.orm import commit, db_session, desc, select
+from flask import Blueprint
+from flask import Response
+from flask import make_response
+from flask import request
+from flask import send_from_directory
+from flask_jwt_extended import create_access_token
+from flask_jwt_extended import current_user
+from flask_jwt_extended import decode_token
+from flask_jwt_extended import jwt_optional
+from flask_jwt_extended import jwt_required
+from marshmallow import ValidationError
+from marshmallow import fields
+from marshmallow import validate
+from pony.orm import commit
+from pony.orm import db_session
+from pony.orm import desc
+from pony.orm import select
 from pony.orm.core import Query
 from werkzeug.utils import secure_filename
 
-from radio import app, redis_client
+from radio import app
+from radio import redis_client
 from radio.common.pagination import Pagination
-from radio.common.schemas import (
-    DownloadSchema,
-    FavouriteSchema,
-    SongBasicSchema,
-    SongData,
-    SongMeta,
-    SongQuerySchema,
-)
-from radio.common.users import admin_required, user_is_admin
-from radio.common.utils import (
-    allowed_file_extension,
-    encode_file,
-    filter_default_webargs,
-    get_song_or_abort,
-    insert_song,
-    make_api_response,
-    parser,
-    request_status,
-    get_metadata,
-    EncodeError,
-)
-from radio.database import Queue, Song, User
+from radio.common.schemas import TokenSchema
+from radio.common.schemas import FavouriteSchema
+from radio.common.schemas import SongBasicSchema
+from radio.common.schemas import SongData
+from radio.common.schemas import SongMeta
+from radio.common.schemas import SongQuerySchema
+from radio.common.users import admin_required
+from radio.common.users import user_is_admin
+from radio.common.utils import EncodeError
+from radio.common.utils import allowed_file_extension
+from radio.common.utils import encode_file
+from radio.common.utils import filter_default_webargs
+from radio.common.utils import get_metadata
+from radio.common.utils import get_song_or_abort
+from radio.common.utils import insert_song
+from radio.common.utils import make_api_response
+from radio.common.utils import parser
+from radio.common.utils import request_status
+from radio.database import Queue
+from radio.database import Song
+from radio.database import User
 
 blueprint = Blueprint("songs", __name__)
 api = rest.Api(blueprint)
@@ -235,7 +250,7 @@ def validate_download_token(args: Dict[str, UUID]) -> bool:
 @api.resource("/download")
 class DownloadController(rest.Resource):
     @jwt_optional
-    @parser.use_args(DownloadSchema(), validate=validate_download_token)
+    @parser.use_args(TokenSchema(), validate=validate_download_token)
     def get(self, args: Dict[str, str]) -> Response:
         decoded = decode_token(args["token"])
         song_id = UUID(decoded["identity"]["id"])
@@ -248,6 +263,21 @@ class DownloadController(rest.Resource):
             "Content-Disposition", f"attachment;filename*=UTF-8''{serve_filename}"
         )
         return response
+
+    @jwt_optional
+    @parser.use_args(SongBasicSchema(), locations=("json",))
+    def post(self, args: Dict[str, UUID]) -> Response:
+        if not app.config["PUBLIC_DOWNLOADS"]:
+            if not current_user or not current_user.admin:
+                return make_api_response(403, "Forbidden", "Downloading is not enabled")
+        song_id = args.get("id")
+        get_song_or_abort(song_id)
+        new_token = create_access_token(
+            {"id": str(song_id)}, expires_delta=timedelta(seconds=10)
+        )
+        return make_api_response(
+            200, None, content={"download_token": new_token, "id": song_id}
+        )
 
 
 @api.resource("/upload")

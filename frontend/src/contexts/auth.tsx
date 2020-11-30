@@ -1,6 +1,3 @@
-// @ts-ignore
-import { authorize, clear, configure } from '@shoutem/fetch-token-intercept'
-import React, { createContext, useContext, useEffect, useReducer } from 'react'
 import { API_BASE } from '/api'
 import { ApiResponse, LoginJson } from '/api/Schemas'
 import {
@@ -9,10 +6,19 @@ import {
   parseJwt,
   setLocalStorage
 } from '/utils'
+// @ts-ignore
+import { authorize, clear, configure } from '@shoutem/fetch-token-intercept'
+import React, { createContext, useContext, useEffect, useReducer } from 'react'
 
 // exclude login because multiple requests are made on incorrect details
 // settings/np do not need auth headers, so skip those.
-const ignoredUrls = ['/auth/login', '/settings', '/np']
+const ignoredUrls = [
+  '/auth/login',
+  '/settings',
+  '/np',
+  '/openid/link',
+  '/openid/login'
+]
 
 type UserClaims = {
   roles: 'admin'[]
@@ -83,11 +89,7 @@ function authReducer(state: State, action: Action) {
   }
 }
 
-function autoLogin(
-  dispatch: Dispatch,
-  state: State,
-  createAccessTokenRequest: (refreshToken: string) => Request
-) {
+function autoLogin(dispatch: Dispatch, state: State) {
   // login automatically based on tokens if available
   if (state.accessToken) {
     authorize(state.refreshToken, state.accessToken)
@@ -98,10 +100,11 @@ function autoLogin(
         dispatch({ type: 'LOGIN_FROM_JWT', payload: jwt })
       }
     }
-  } else if (state.refreshToken) {
-    // access token was not available, but refresh is...
-    // ... so get a new access token using that :)
-    fetch(createAccessTokenRequest(state.refreshToken))
+  }
+  // refresh token regardless.
+  if (state.refreshToken) {
+    clear()
+    fetch(tokenInterceptConfig.createAccessTokenRequest(state.refreshToken))
       .then(resp => resp.clone().json())
       .then((resp: ApiResponse<LoginJson>) => {
         if (resp.status_code === 401) {
@@ -110,10 +113,41 @@ function autoLogin(
           throw new Error(msg.toString())
         }
         dispatch({ type: 'LOGIN', payload: resp })
+        authorize(state.refreshToken, state.accessToken)
       })
       .catch(() => logout(dispatch))
   }
 }
+
+const tokenInterceptConfig = {
+  parseAccessToken: async (response: Response) => {
+    const json: ApiResponse<LoginJson> = await response.clone().json()
+    return json.access_token
+  },
+  shouldIntercept: (request: Request) => {
+    return !ignoredUrls.some(url => request.url.includes(url))
+  },
+  shouldInvalidateAccessToken: (response: Response) => false,
+  shouldWaitForTokenRenewal: true,
+  authorizeRequest: (request: Request, inAccessToken: string) => {
+    request.headers.set('Authorization', `Bearer ${inAccessToken}`)
+    return request
+  },
+  createAccessTokenRequest: (inRefreshToken: string) => {
+    return new Request(`${API_BASE}/auth/refresh`, {
+      headers: { Authorization: `Bearer ${inRefreshToken}` },
+      method: 'POST'
+    })
+  },
+  fetchRetryCount: 3,
+  onAccessTokenChange: (inAccessToken: string) => {
+    const dispatch = useAuthDispatch()
+    setLocalStorage('access_token', inAccessToken)
+    dispatch({ type: 'SET_ACCESS_TOKEN', payload: inAccessToken })
+  }
+}
+
+configure(tokenInterceptConfig)
 
 function AuthProvider({ children }: ProviderProps) {
   const accessToken = getLocalStorage<string | null>('access_token', null)
@@ -127,37 +161,9 @@ function AuthProvider({ children }: ProviderProps) {
     admin: false
   })
 
-  const tokenInterceptConfig = {
-    parseAccessToken: async (response: Response) => {
-      const json: ApiResponse<LoginJson> = await response.clone().json()
-      return json.access_token
-    },
-    shouldIntercept: (request: Request) => {
-      return !ignoredUrls.some(url => request.url.includes(url))
-    },
-    shouldInvalidateAccessToken: (response: Response) => false,
-    shouldWaitForTokenRenewal: true,
-    authorizeRequest: (request: Request, inAccessToken: string) => {
-      request.headers.set('Authorization', `Bearer ${inAccessToken}`)
-      return request
-    },
-    createAccessTokenRequest: (inRefreshToken: string) => {
-      return new Request(`${API_BASE}/auth/refresh`, {
-        headers: { Authorization: `Bearer ${inRefreshToken}` },
-        method: 'POST'
-      })
-    },
-    fetchRetryCount: 3,
-    onAccessTokenChange: (inAccessToken: string) => {
-      setLocalStorage('access_token', inAccessToken)
-      dispatch({ type: 'SET_ACCESS_TOKEN', payload: inAccessToken })
-    }
-  }
-
   // login to site using existing tokens
   useEffect(() => {
-    configure(tokenInterceptConfig)
-    autoLogin(dispatch, state, tokenInterceptConfig.createAccessTokenRequest)
+    autoLogin(dispatch, state)
   }, [])
 
   return (
@@ -197,6 +203,26 @@ function logout(dispatch: Dispatch) {
   dispatch({ type: 'LOGOUT' })
 }
 
+function handleLoginResponse(
+  dispatch: Dispatch
+): (resp: ApiResponse<LoginJson>) => ApiResponse<LoginJson> {
+  return (resp: ApiResponse<LoginJson>) => {
+    if ('access_token' in resp && 'refresh_token' in resp) {
+      if (resp.error === null) {
+        dispatch({ type: 'LOGIN', payload: resp })
+        setLocalStorage('access_token', resp.access_token)
+        setLocalStorage('refresh_token', resp.refresh_token)
+        authorize(resp.refresh_token, resp.access_token)
+        return resp
+      } else {
+        logout(dispatch)
+        throw resp
+      }
+    }
+    throw resp
+  }
+}
+
 async function login(
   dispatch: Dispatch,
   username: string,
@@ -208,19 +234,7 @@ async function login(
     headers: { 'Content-Type': 'application/json' }
   })
     .then(resp => resp.clone().json())
-    .then((resp: ApiResponse<LoginJson>) => {
-      if ('access_token' in resp && 'refresh_token' in resp) {
-        if (resp.error === null) {
-          dispatch({ type: 'LOGIN', payload: resp })
-          setLocalStorage('access_token', resp.access_token)
-          setLocalStorage('refresh_token', resp.refresh_token)
-          authorize(resp.refresh_token, resp.access_token)
-        } else {
-          logout(dispatch)
-        }
-      }
-      return resp
-    })
+    .then(handleLoginResponse(dispatch))
 }
 
 async function register(username: string, password: string): Promise<string> {
@@ -244,5 +258,6 @@ export {
   login,
   logout,
   register,
-  autoLogin
+  autoLogin,
+  handleLoginResponse
 }

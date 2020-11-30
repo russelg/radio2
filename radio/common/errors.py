@@ -29,4 +29,4 @@ def unauthorized_loader(error: str) -> Response:
 
 @jwt.user_loader_error_loader
 def user_loader(identity: str):
-    return make_api_response(404, "Not Found", f"User {identity} not found")
+    return make_api_response(401, "Unauthorized", f"User {identity} not found")

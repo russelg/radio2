@@ -1,7 +1,7 @@
+import { containerWidthStyle, navbarMarginStyle } from '/utils'
 import { cx } from 'emotion'
 import React, { FunctionComponent } from 'react'
 import { Card, CardBody, CardTitle, Col, Container, Row } from 'reactstrap'
-import { containerWidthStyle, navbarMarginStyle } from '/utils'
 
 export interface DialogProps {
   title: string

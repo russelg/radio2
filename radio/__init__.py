@@ -3,14 +3,20 @@ import datetime
 from pathlib import Path
 
 import arrow
+from authlib.integrations.flask_client import OAuth
 from flask import Flask
 from flask.json import JSONEncoder
 from flask_jwt_extended import JWTManager
 from flask_redis import FlaskRedis
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .config import Config
 
 app = Flask(__name__)
+
+# enable https urls etc.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_for=1)
+
 app.config.from_object(Config())
 # Make all paths into Path objects for convenience
 app.config.update(
@@ -20,6 +26,16 @@ app.config.update(
 )
 jwt = JWTManager(app)
 redis_client = FlaskRedis(app)
+oauth = OAuth(app)
+
+if app.config.get("AUTH_OPENID_ENABLED", False):
+    oauth.register(
+        name="auth",
+        client_id=app.config["AUTH_CLIENT_ID"],
+        client_secret=app.config["AUTH_CLIENT_SECRET"],
+        server_metadata_url=app.config["AUTH_SERVER_METADATA_URL"],
+        client_kwargs={"scope": "openid profile"},
+    )
 
 
 class CustomJSONEncoder(JSONEncoder):

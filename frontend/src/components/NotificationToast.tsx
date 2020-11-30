@@ -7,16 +7,17 @@ interface NotificationToastProps {
 }
 
 const NotificationToast: FunctionComponent<NotificationToastProps> = ({
-  closeToast,
-  children,
-  error = false
-}) => {
+                                                                        closeToast,
+                                                                        children,
+                                                                        error = false,
+                                                                      }) => {
   useEffect(() => {
     if (closeToast) {
       const id = setTimeout(closeToast, 3000)
       return () => clearTimeout(id)
     }
-    return () => {}
+    return () => {
+    }
   }, [closeToast])
 
   return (

@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { toast } from 'react-toastify'
 import { ApiBaseResponse } from '/api/Schemas'
 import NotificationToast from '/components/NotificationToast'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { toast } from 'react-toastify'
 
 export const API_BASE: string = '/api/v1'
 
@@ -103,4 +103,22 @@ export const handleResponse = <T extends ApiBaseResponse>(
     toast(<NotificationToast>{msg}</NotificationToast>)
   }
   return error ? Promise.reject(result) : Promise.resolve(result)
+}
+
+export const handleError = <T extends ApiBaseResponse>(result: T) => {
+  if (result) {
+    const msg = 'description' in result ? result.description : result.message
+    if (msg)
+      toast(
+        <NotificationToast error>
+          <ul>
+            {msg === Object(msg) ? (
+              Object.values(msg).map(err => <li key={err}>{err}</li>)
+            ) : (
+              <li>msg</li>
+            )}
+          </ul>
+        </NotificationToast>
+      )
+  }
 }

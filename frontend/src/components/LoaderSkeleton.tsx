@@ -30,8 +30,8 @@ const LoaderSkeleton: FunctionComponent<SkeletonProps &
       {!loading && (
         <animated.span style={fadeInProps}>
           {children &&
-            !loading &&
-            (children instanceof Function ? children() : children)}
+          !loading &&
+          (children instanceof Function ? children() : children)}
         </animated.span>
       )}
     </>
