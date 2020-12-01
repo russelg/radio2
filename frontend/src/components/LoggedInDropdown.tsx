@@ -3,7 +3,13 @@ import { faUser } from '@fortawesome/free-solid-svg-icons/faUser'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import React, { FunctionComponent } from 'react'
 import { Link } from 'react-router-dom'
-import { Badge, DropdownItem, DropdownMenu, DropdownToggle, UncontrolledDropdown } from 'reactstrap'
+import {
+  Badge,
+  DropdownItem,
+  DropdownMenu,
+  DropdownToggle,
+  UncontrolledDropdown
+} from 'reactstrap'
 
 const LoggedInDropdown: FunctionComponent = () => {
   const { username, admin } = useAuthState()

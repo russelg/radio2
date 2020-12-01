@@ -1,14 +1,25 @@
 import Dialog from '/components/Dialog'
 import LoaderButton from '/components/LoaderButton'
 import { register, useAuthState } from '/contexts/auth'
-import { IconLookup, IconName, IconPrefix } from '@fortawesome/fontawesome-common-types'
+import {
+  IconLookup,
+  IconName,
+  IconPrefix
+} from '@fortawesome/fontawesome-common-types'
 import { faLock } from '@fortawesome/free-solid-svg-icons/faLock'
 import { faUser } from '@fortawesome/free-solid-svg-icons/faUser'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { Formik } from 'formik'
 import React, { FunctionComponent, useState } from 'react'
 import { Link, Redirect } from 'react-router-dom'
-import { Form, FormFeedback, FormGroup, Input, InputGroup, InputGroupAddon } from 'reactstrap'
+import {
+  Form,
+  FormFeedback,
+  FormGroup,
+  Input,
+  InputGroup,
+  InputGroupAddon
+} from 'reactstrap'
 import { InputType } from 'reactstrap/lib/Input'
 import * as yup from 'yup'
 
@@ -59,12 +70,12 @@ const schema = yup.object({
     .max(32, 'Username must be shorter than 32 characters')
     .matches(/^\w(?:\w*(?:[.-]\w+)?)*$/, {
       excludeEmptyString: true,
-      message: 'Username may only contain the following: A-z, 0-9, -_.',
+      message: 'Username may only contain the following: A-z, 0-9, -_.'
     }),
   password: yup.string().required('Password required'),
   confirmPassword: yup
     .string()
-    .oneOf([yup.ref('password')], 'Passwords do not match'),
+    .oneOf([yup.ref('password')], 'Passwords do not match')
 })
 
 const schemaErrors = (values: any): { [k: string]: string } => {
@@ -96,7 +107,7 @@ const SignUp: FunctionComponent = () => {
 
   const onSubmit = (
     values: SignUpFormInputs,
-    { setSubmitting, setErrors }: onSubmitProps,
+    { setSubmitting, setErrors }: onSubmitProps
   ) => {
     register(values.username, values.password)
       .then(resp => setRegistered(resp))
@@ -115,20 +126,20 @@ const SignUp: FunctionComponent = () => {
               {
                 username: '',
                 password: '',
-                confirmPassword: '',
+                confirmPassword: ''
               } as SignUpFormInputs
             }
             validate={schemaErrors}
             onSubmit={onSubmit}
             render={({
-                       values,
-                       errors,
-                       touched,
-                       handleChange,
-                       handleBlur,
-                       handleSubmit,
-                       isSubmitting,
-                     }) => (
+              values,
+              errors,
+              touched,
+              handleChange,
+              handleBlur,
+              handleSubmit,
+              isSubmitting
+            }) => (
               <Form
                 onSubmit={handleSubmit}
                 className="text-center px-4 py-3"

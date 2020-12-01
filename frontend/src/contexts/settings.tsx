@@ -30,7 +30,7 @@ function siteSettingsReducer(state: State, action: Action) {
         title: payload.title,
         canDownload: payload.downloads_enabled,
         canUpload: payload.uploads_enabled,
-        streamUrl: payload.icecast.url + payload.icecast.mount,
+        streamUrl: payload.icecast.url + payload.icecast.mount
       }
     }
     case 'SET_STYLESHEET': {
@@ -47,7 +47,7 @@ function SiteSettingsProvider({ children }: ProviderProps) {
 
   const [state, dispatch] = useReducer(
     siteSettingsReducer,
-    getEnvSettings(localStylesheet),
+    getEnvSettings(localStylesheet)
   )
 
   // set document title
@@ -58,7 +58,7 @@ function SiteSettingsProvider({ children }: ProviderProps) {
   // set stylesheet
   useEffect(() => {
     const link = document.getElementById(
-      'change_stylesheet',
+      'change_stylesheet'
     ) as HTMLLinkElement | null
     if (link) link.href = state.stylesheet
   }, [state.stylesheet])
@@ -76,7 +76,7 @@ function useSiteSettingsState(): State {
   const context = useContext(StateContext)
   if (context === undefined) {
     throw new Error(
-      'useSiteSettingsState must be used within a SiteSettingsProvider',
+      'useSiteSettingsState must be used within a SiteSettingsProvider'
     )
   }
   return context
@@ -86,7 +86,7 @@ function useSiteSettingsDispatch(): Dispatch {
   const context = useContext(DispatchContext)
   if (context === undefined) {
     throw new Error(
-      'useSiteSettingsDispatch must be used within a SiteSettingsProvider',
+      'useSiteSettingsDispatch must be used within a SiteSettingsProvider'
     )
   }
   return context
@@ -107,7 +107,7 @@ function getEnvSettings(localStylesheet: string) {
       streamUrl: icecast.url + icecast.mount,
       title: process.env.REACT_APP_TITLE!,
       canDownload: JSON.parse(process.env.REACT_APP_DOWNLOADS_ENABLED!),
-      canUpload: JSON.parse(process.env.REACT_APP_UPLOADS_ENABLED!),
+      canUpload: JSON.parse(process.env.REACT_APP_UPLOADS_ENABLED!)
     }
   }
   return {
@@ -116,7 +116,7 @@ function getEnvSettings(localStylesheet: string) {
     title: '',
     canDownload: false,
     canUpload: false,
-    streamUrl: '',
+    streamUrl: ''
   }
 }
 
@@ -131,5 +131,5 @@ export {
   SiteSettingsProvider,
   useSiteSettingsState,
   useSiteSettingsDispatch,
-  setStylesheet,
+  setStylesheet
 }

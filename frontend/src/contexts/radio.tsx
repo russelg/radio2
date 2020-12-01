@@ -1,5 +1,10 @@
 import { API_BASE } from '/api'
-import { ApiResponse, NowPlayingJson, NowPlayingSong, SongItem } from '/api/Schemas'
+import {
+  ApiResponse,
+  NowPlayingJson,
+  NowPlayingSong,
+  SongItem
+} from '/api/Schemas'
 import { useAuthState } from '/contexts/auth'
 import React, { createContext, useContext, useEffect, useReducer } from 'react'
 
@@ -26,7 +31,7 @@ type ServerInfo = {
 }
 
 function transformNowPlaying(
-  resp: ApiResponse<NowPlayingJson>,
+  resp: ApiResponse<NowPlayingJson>
 ): {
   songInfo: SongInfo
   serverInfo: ServerInfo
@@ -40,7 +45,7 @@ function transformNowPlaying(
       artist: resp.artist,
       title: resp.title,
       id: resp.id,
-      requested: resp.requested,
+      requested: resp.requested
     },
     serverInfo: {
       listeners: resp.listeners,
@@ -48,8 +53,8 @@ function transformNowPlaying(
       totalPlays: resp.total_plays,
       totalSize: resp.total_size,
       queue: resp.queue,
-      lastPlayed: resp.lp,
-    },
+      lastPlayed: resp.lp
+    }
   }
 }
 
@@ -91,7 +96,7 @@ function RadioInfoProvider({ children }: ProviderProps) {
       artist: '',
       title: '',
       id: '',
-      requested: false,
+      requested: false
     },
     serverInfo: {
       listeners: 0,
@@ -99,9 +104,9 @@ function RadioInfoProvider({ children }: ProviderProps) {
       totalPlays: 0,
       totalSize: 0,
       queue: [],
-      lastPlayed: [],
+      lastPlayed: []
     },
-    favourited: false,
+    favourited: false
   })
 
   const { loggedIn } = useAuthState()
@@ -113,7 +118,7 @@ function RadioInfoProvider({ children }: ProviderProps) {
       fetch(`${API_BASE}/song/${state.songInfo.id}`)
         .then(resp => resp.clone().json())
         .then((resp: ApiResponse<SongItem>) =>
-          setFavourited(dispatch, resp.meta.favourited || false),
+          setFavourited(dispatch, resp.meta.favourited || false)
         )
     }
   }, [state.songInfo.id, loggedIn])
@@ -139,7 +144,7 @@ function useRadioInfoDispatch(): Dispatch {
   const context = useContext(DispatchContext)
   if (context === undefined) {
     throw new Error(
-      'useRadioInfoDispatch must be used within a RadioInfoProvider',
+      'useRadioInfoDispatch must be used within a RadioInfoProvider'
     )
   }
   return context
@@ -169,5 +174,5 @@ export {
   useRadioInfoState,
   useRadioInfoDispatch,
   fetchInfo,
-  setFavourited,
+  setFavourited
 }

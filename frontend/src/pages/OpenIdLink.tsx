@@ -31,7 +31,9 @@ function handleLinkStatus(resp: ApiResponse<LinkingStatusJson>) {
   throw resp
 }
 
-async function openIdLinkStatus(token: string): Promise<ApiResponse<LinkingStatusJson>> {
+async function openIdLinkStatus(
+  token: string
+): Promise<ApiResponse<LinkingStatusJson>> {
   return fetch(`${API_BASE}/openid/link?token=${token}`, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' }

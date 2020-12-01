@@ -50,7 +50,7 @@ function radioStatusReducer(state: State, action: Action) {
           position,
           progress,
           progressIncrement,
-          counter: 0,
+          counter: 0
         }
       }
       return { ...state, progress: 0, counter: 0 }
@@ -84,7 +84,7 @@ function RadioStatusProvider({ children }: ProviderProps) {
     progress: 0.0,
     progressIncrement: 0.0,
     position: 0,
-    duration: 0,
+    duration: 0
   })
 
   const radioInfoDispatch = useRadioInfoDispatch()
@@ -117,8 +117,8 @@ function RadioStatusProvider({ children }: ProviderProps) {
                   ? songInfo.endTime + SYNC_OFFSET
                   : 0,
               serverTime: songInfo.serverTime,
-              clientTime: Math.round(new Date().getTime() / 1000.0),
-            },
+              clientTime: Math.round(new Date().getTime() / 1000.0)
+            }
           })
         })
       }
@@ -128,7 +128,7 @@ function RadioStatusProvider({ children }: ProviderProps) {
       }
     },
     500,
-    false,
+    false
   ) // update progress every 500ms (counter +0.5 per run)
 
   return (
@@ -144,7 +144,7 @@ function useRadioStatusState(): State {
   const context = useContext(StateContext)
   if (context === undefined) {
     throw new Error(
-      'useRadioStatusState must be used within a RadioStatusProvider',
+      'useRadioStatusState must be used within a RadioStatusProvider'
     )
   }
   return context
@@ -154,7 +154,7 @@ function useRadioStatusDispatch(): Dispatch {
   const context = useContext(DispatchContext)
   if (context === undefined) {
     throw new Error(
-      'useRadioStatusDispatch must be used within a RadioStatusProvider',
+      'useRadioStatusDispatch must be used within a RadioStatusProvider'
     )
   }
   return context
@@ -168,5 +168,5 @@ export {
   RadioStatusProvider,
   useRadioStatusContext,
   useRadioStatusState,
-  useRadioStatusDispatch,
+  useRadioStatusDispatch
 }

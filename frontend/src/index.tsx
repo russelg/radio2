@@ -27,7 +27,7 @@ render(
       </ControlProvider>
     </SiteSettingsProvider>
   </BrowserRouter>,
-  root,
+  root
 )
 
 if (module.hot) {

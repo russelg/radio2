@@ -9,11 +9,11 @@ const ThemeChooser: FunctionComponent<ThemeChooserProps> = ({ className }) => {
   const [{ styles, stylesheet }, dispatch] = useSiteSettingsContext()
 
   const stylesheetLink = document.getElementById(
-    'change_stylesheet',
+    'change_stylesheet'
   ) as HTMLLinkElement | null
 
   const [selected, setSelected] = useState(
-    stylesheet || (stylesheetLink && (stylesheetLink.href as string)) || '',
+    stylesheet || (stylesheetLink && (stylesheetLink.href as string)) || ''
   )
 
   const onChange = (event: FormEvent<HTMLSelectElement>) => {
@@ -25,11 +25,11 @@ const ThemeChooser: FunctionComponent<ThemeChooserProps> = ({ className }) => {
   return (
     <select className={className || ''} value={selected} onChange={onChange}>
       {styles &&
-      Object.entries(styles).map(style => (
-        <option key={style[0]} value={style[1]}>
-          {style[0]}
-        </option>
-      ))}
+        Object.entries(styles).map(style => (
+          <option key={style[0]} value={style[1]}>
+            {style[0]}
+          </option>
+        ))}
     </select>
   )
 }

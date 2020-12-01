@@ -2,8 +2,16 @@ import { SongItem, SongListItem } from '/api/Schemas'
 import LoaderSkeleton from '/components/LoaderSkeleton'
 import { FavouriteButton } from '/components/SongRow'
 import { useAuthState } from '/contexts/auth'
-import { setVolume, useControlContext, useControlState } from '/contexts/control'
-import { setFavourited, useRadioInfoContext, useRadioInfoState } from '/contexts/radio'
+import {
+  setVolume,
+  useControlContext,
+  useControlState
+} from '/contexts/control'
+import {
+  setFavourited,
+  useRadioInfoContext,
+  useRadioInfoState
+} from '/contexts/radio'
 import { useRadioStatusState } from '/contexts/radioStatus'
 import { useSiteSettingsState } from '/contexts/settings'
 import {
@@ -12,7 +20,7 @@ import {
   navbarMarginStyle,
   readableFilesize,
   readableSeconds,
-  setLocalStorage,
+  setLocalStorage
 } from '/utils'
 import { css } from 'emotion'
 import React, { FunctionComponent, useEffect, useState } from 'react'
@@ -36,7 +44,7 @@ import {
   ModalFooter,
   ModalHeader,
   Progress,
-  Row,
+  Row
 } from 'reactstrap'
 
 interface HomeProps {
@@ -106,7 +114,7 @@ const UsageModal: FunctionComponent<UsageModalProps> = React.memo(
         </ModalFooter>
       </Modal>
     )
-  },
+  }
 )
 
 interface SongListProps {
@@ -116,48 +124,44 @@ interface SongListProps {
 }
 
 const SongList: FunctionComponent<SongListProps> = ({
-                                                      songs,
-                                                      title,
-                                                      alignment,
-                                                    }) => {
+  songs,
+  title,
+  alignment
+}) => {
   const flipped = alignment === 'left' ? 'right' : 'left'
 
   return (
     <>
       <h4 className="text-center mb-4">{title}</h4>
       <ListGroup>
-        {
-          // show placeholders if songs has not loaded
-          (songs.length > 0 ? songs : Array(4).fill(null)).map(
-            (item: SongListItem | null, idx: number) => {
-              return (
-                <ListGroupItem
-                  key={idx}
-                  className="clearfix py-3 px-1 py-lg-4 px-md-3"
-                  active={item ? item.requested : undefined}>
-                  <Col
-                    xs="8"
-                    className={`float-${alignment} text-${alignment}`}>
-                    <LoaderSkeleton loading={item === null} count={2}>
-                      {() => `${item!.artist} - ${item!.title}`}
-                    </LoaderSkeleton>
-                  </Col>
-                  <Col xs="4" className={`float-${flipped} text-${flipped}`}>
-                    <LoaderSkeleton loading={item === null}>
-                      {() => (
-                        <small
-                          className="text-muted font-italic"
-                          title={item!.time}>
-                          {fuzzyTime(item!.time)}
-                        </small>
-                      )}
-                    </LoaderSkeleton>
-                  </Col>
-                </ListGroupItem>
-              )
-            },
-          )
-        }
+        {// show placeholders if songs has not loaded
+        (songs.length > 0 ? songs : Array(4).fill(null)).map(
+          (item: SongListItem | null, idx: number) => {
+            return (
+              <ListGroupItem
+                key={idx}
+                className="clearfix py-3 px-1 py-lg-4 px-md-3"
+                active={item ? item.requested : undefined}>
+                <Col xs="8" className={`float-${alignment} text-${alignment}`}>
+                  <LoaderSkeleton loading={item === null} count={2}>
+                    {() => `${item!.artist} - ${item!.title}`}
+                  </LoaderSkeleton>
+                </Col>
+                <Col xs="4" className={`float-${flipped} text-${flipped}`}>
+                  <LoaderSkeleton loading={item === null}>
+                    {() => (
+                      <small
+                        className="text-muted font-italic"
+                        title={item!.time}>
+                        {fuzzyTime(item!.time)}
+                      </small>
+                    )}
+                  </LoaderSkeleton>
+                </Col>
+              </ListGroupItem>
+            )
+          }
+        )}
       </ListGroup>
     </>
   )
@@ -221,7 +225,7 @@ const FavouriteSongButton: FunctionComponent = () => {
       song={{
         id: songInfo.id,
         // @ts-ignore
-        meta: { favourited },
+        meta: { favourited }
       }}
     />
   )
@@ -291,8 +295,8 @@ const Controls: FunctionComponent<HomeProps> = React.memo(
     const [showModal, setShowModal] = useState<boolean>(false)
     const [showDropdown, setShowDropdown] = useState<boolean>(false)
 
-    const toggleModal = () => setShowModal((show) => !show)
-    const toggleDropdown = () => setShowDropdown((show) => !show)
+    const toggleModal = () => setShowModal(show => !show)
+    const toggleDropdown = () => setShowDropdown(show => !show)
 
     return (
       <>
@@ -331,7 +335,7 @@ const Controls: FunctionComponent<HomeProps> = React.memo(
         </Collapse>
       </>
     )
-  },
+  }
 )
 
 const VolumeControl: FunctionComponent = React.memo(() => {
@@ -371,7 +375,7 @@ const homeStyle = css`
 
 const SongLists: FunctionComponent = () => {
   const {
-    serverInfo: { queue, lastPlayed, totalPlays, totalSongs },
+    serverInfo: { queue, lastPlayed, totalPlays, totalSongs }
   } = useRadioInfoState()
 
   return (

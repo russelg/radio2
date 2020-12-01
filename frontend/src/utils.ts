@@ -65,7 +65,7 @@ export function parseJwt<T>(token: string): JWTWithClaims<T> {
     atob(base64)
       .split('')
       .map(c => `%${`00${c.charCodeAt(0).toString(16)}`.slice(-2)}`)
-      .join(''),
+      .join('')
   )
 
   try {
@@ -78,7 +78,7 @@ export function parseJwt<T>(token: string): JWTWithClaims<T> {
 
 export const useDelayedLoader = (
   loading: boolean,
-  delay: number = 400,
+  delay: number = 400
 ): [boolean, (value: boolean) => void] => {
   const [localLoading, setLoading] = useState(loading)
   const [showLoader, setShowLoader] = useState(loading)
@@ -96,8 +96,7 @@ export const useDelayedLoader = (
       }, delay)
       return () => clearTimeout(timeout)
     }
-    return () => {
-    }
+    return () => {}
   }, [localLoading, showLoader, delay])
 
   return [showLoader, setLoading]
@@ -117,7 +116,7 @@ export const useIsMounted = () => {
 // https://usehooks.com/useLocalStorage/
 export function useLocalStorage<T>(
   key: string,
-  initialValue: T,
+  initialValue: T
 ): [T, (value: any | ((value: any) => any)) => void] {
   // State to store our value
   // Pass initial state function to useState so logic is only executed once
@@ -164,7 +163,7 @@ type IntervalFunction = () => unknown | void
 export function useInterval(
   callback: IntervalFunction,
   delay: number,
-  initial: boolean = false,
+  initial: boolean = false
 ) {
   const savedCallback = useRef<IntervalFunction>(callback)
 
@@ -231,7 +230,7 @@ function useWhyDidYouUpdate(name: string, props: PropsObject) {
           // Add to changesObj
           changesObj[key] = {
             from: previousProps.current![key],
-            to: props[key],
+            to: props[key]
           }
         }
       })

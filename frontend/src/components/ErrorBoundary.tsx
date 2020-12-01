@@ -1,16 +1,17 @@
 import Error from '/components/Error'
 import React from 'react'
 
-interface ErrorBoundaryProps {
-}
+interface ErrorBoundaryProps {}
 
 interface ErrorBoundaryState {
   error: any
   errorInfo: any
 }
 
-class ErrorBoundary extends React.Component<ErrorBoundaryProps,
-  ErrorBoundaryState> {
+class ErrorBoundary extends React.Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props)
     this.state = { error: null, errorInfo: null }

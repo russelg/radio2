@@ -17,7 +17,7 @@ import {
   NavbarBrand,
   NavbarToggler,
   NavItem,
-  NavLink,
+  NavLink
 } from 'reactstrap'
 
 const flexGrow = (val: number) => css`
@@ -71,7 +71,7 @@ const Navbar: FunctionComponent = ({ children }) => {
           className={cx(
             flexGrow(0),
             'justify-content-start',
-            'order-5 order-lg-2',
+            'order-5 order-lg-2'
           )}>
           <Nav navbar>{songsButton}</Nav>
         </Collapse>
