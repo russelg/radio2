@@ -11,7 +11,6 @@ import {
 import { useRadioInfoState } from '/contexts/radio'
 import { useSiteSettingsState } from '/contexts/settings'
 import OpenIdCallback from '/pages/OpenIdCallback'
-import OpenIdLink from '/pages/OpenIdLink'
 import OpenIdLogin from '/pages/OpenIdLogin'
 import SignIn from '/pages/SignIn'
 import SignUp from '/pages/SignUp'
@@ -217,9 +216,6 @@ const App: FunctionComponent = () => {
               </Route>
               <Route path="/openid/callback" exact>
                 <OpenIdCallback />
-              </Route>
-              <Route path="/openid/link" exact>
-                <OpenIdLink />
               </Route>
             </AnimatedSwitch>
           </div>

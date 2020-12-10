@@ -1,18 +1,20 @@
 import { API_BASE } from '/api'
-import { ApiResponse, LoginJson } from '/api/Schemas'
+import {
+  ApiResponse,
+  Description,
+  LinkingJson,
+  LinkingStatusJson,
+  LoginJson
+} from '/api/Schemas'
 import Dialog from '/components/Dialog'
 import LoaderSpinner from '/components/LoaderSpinner'
 import { handleLoginResponse, useAuthContext } from '/contexts/auth'
-import { setLocalStorage } from '/utils'
+import OpenIdLink from '/pages/OpenIdLink'
+import { parseJwt } from '/utils'
 import { stringify } from 'query-string'
 import React, { FunctionComponent, useEffect, useState } from 'react'
 import { Redirect } from 'react-router-dom'
 import { StringParam, useQueryParams } from 'use-query-params'
-
-export interface LinkingJson {
-  link: boolean
-  token: string
-}
 
 async function openIdCallback(
   dispatch: any,
@@ -40,36 +42,46 @@ const OpenIdCallback: FunctionComponent = () => {
     state: StringParam
   })
 
-  const [error, setError] = useState({ state: false, message: '' })
+  const [error, setError] = useState({
+    state: false,
+    message: '' as Description
+  })
 
-  const [linking, setLinking] = useState(false)
+  const [linking, setLinking] = useState(
+    null as ApiResponse<LinkingStatusJson> | null
+  )
 
   const hasParams = () =>
     queryParam.code && queryParam.scope && queryParam.state
 
   useEffect(() => {
     if (hasParams()) {
-      openIdCallback(dispatch, queryParam)
-        .then(resp => {
-          window.location.href = '/'
-        })
-        .catch(resp => {
-          if (resp.link && resp.token) {
-            setLinking(true)
-            setLocalStorage('linking_token', resp.token)
+      openIdCallback(dispatch, queryParam).catch(
+        (resp: ApiResponse<LinkingJson>) => {
+          if (resp.token) {
+            const jwt = parseJwt<{ identity: LinkingStatusJson }>(resp.token)
+            if (jwt) {
+              const expired = jwt.exp > Date.now()
+              if (!expired) {
+                setLinking({ ...resp, ...jwt.identity })
+              } else {
+                setError({ state: true, message: 'Token has expired' })
+              }
+            }
           }
           const msg = 'description' in resp ? resp.description : resp.message
           if (msg) {
             setError({ state: true, message: msg })
           }
-        })
+        }
+      )
     }
   }, [queryParam])
 
   return (
     <Dialog title="OpenID Login">
       {linking ? (
-        <Redirect to="/openid/link" />
+        <OpenIdLink status={linking} />
       ) : error.state ? (
         <div>
           <h2 className="p-2 text-center text-danger">Error</h2>

@@ -1,10 +1,12 @@
 import { API_BASE } from '/api'
-import { ApiResponse, Description, LoginJson } from '/api/Schemas'
-import Dialog from '/components/Dialog'
+import {
+  ApiResponse,
+  Description,
+  LinkingStatusJson,
+  LoginJson
+} from '/api/Schemas'
 import LoaderButton from '/components/LoaderButton'
-import LoaderSpinner from '/components/LoaderSpinner'
 import { handleLoginResponse, useAuthContext } from '/contexts/auth'
-import { getLocalStorage } from '/utils'
 import { css } from 'emotion'
 import React, {
   ChangeEvent,
@@ -15,32 +17,6 @@ import React, {
 } from 'react'
 import { Redirect } from 'react-router-dom'
 import { Form, FormFeedback, FormGroup, Input } from 'reactstrap'
-
-export interface LinkingStatusJson {
-  username: string
-  link: boolean
-  reason: string
-  id: string
-}
-
-function handleLinkStatus(resp: ApiResponse<LinkingStatusJson>) {
-  if (resp.error !== null) throw resp
-  if ('link' in resp) {
-    return resp
-  }
-  throw resp
-}
-
-async function openIdLinkStatus(
-  token: string
-): Promise<ApiResponse<LinkingStatusJson>> {
-  return fetch(`${API_BASE}/openid/link?token=${token}`, {
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json' }
-  })
-    .then(resp => resp.clone().json())
-    .then(handleLinkStatus)
-}
 
 async function openIdLink(
   dispatch: any,
@@ -56,7 +32,11 @@ async function openIdLink(
     .then(handleLoginResponse(dispatch))
 }
 
-const OpenIdLink: FunctionComponent = () => {
+interface LinkingProps {
+  status: ApiResponse<LinkingStatusJson>
+}
+
+const OpenIdLink: FunctionComponent<LinkingProps> = ({ status }) => {
   const [{ loggedIn }, dispatch] = useAuthContext()
   if (loggedIn) {
     localStorage.removeItem('linking_token')
@@ -65,65 +45,42 @@ const OpenIdLink: FunctionComponent = () => {
 
   const [values, setValues] = useState({
     username: '',
-    reason: '' as Description
-  })
-
-  const validateForm = () => {
-    return values.username.length > 0
-  }
-
-  const [loading, setLoading] = useState(true)
+    reason: ''
+  } as { [k: string]: any })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null as Description | null)
 
-  const token = getLocalStorage('linking_token', '')
+  const token = status.token
+
+  const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.currentTarget
+    if (values[name] !== value) {
+      setError(null)
+    }
+    setValues({ ...values, [name]: value })
+  }
 
   const handleAuthLink = (e: FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
     openIdLink(dispatch, token, values.username)
-      .then(() => {
-        setSubmitting(false)
-        localStorage.removeItem('linking_token')
-      })
-      .catch(resp => {
-        setSubmitting(false)
-        setError(resp.reason || resp.description!)
-      })
-  }
-
-  const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = event.currentTarget
-    // reset errors upon changing form values
-    setError(null)
-    setValues({ ...values, [name]: value })
+      .then(() => localStorage.removeItem('linking_token'))
+      .catch(resp => setError(resp.reason || resp.description!))
+      .finally(() => setSubmitting(false))
   }
 
   useEffect(() => {
     if (!token) {
       setError('No token was provided.')
-    } else {
-      openIdLinkStatus(token)
-        .then(resp => {
-          setLoading(false)
-          setValues({ ...values, ...resp })
-        })
-        .catch(resp => {
-          setLoading(false)
-          setError(resp.reason || resp.description!)
-        })
     }
-  }, [token])
-
-  if (loading)
-    return (
-      <Dialog title="OpenID Login">
-        {error ? <Redirect to="/" /> : <LoaderSpinner />}
-      </Dialog>
-    )
+    setValues({ ...values, ...status })
+    if (status.error) {
+      setError(status.reason || status.description!)
+    }
+  }, [token, status])
 
   return (
-    <Dialog title="OpenID Login">
+    <>
       {values.reason && <p className="text-center">{values.reason}</p>}
       <Form onSubmit={handleAuthLink}>
         <FormGroup>
@@ -141,19 +98,17 @@ const OpenIdLink: FunctionComponent = () => {
               border-bottom-right-radius: 0 !important;
             `}
           />
-          <FormFeedback>
-            {error !== null ? (error! as Description).toString() : ''}
-          </FormFeedback>
+          <FormFeedback>{error ? error.toString() : ''}</FormFeedback>
         </FormGroup>
         <LoaderButton
           color="success"
           block
-          disabled={error !== null || !validateForm()}
+          disabled={error !== null || !values.username.length}
           loading={submitting}>
           Set username
         </LoaderButton>
       </Form>
-    </Dialog>
+    </>
   )
 }
 

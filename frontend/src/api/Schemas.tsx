@@ -117,3 +117,20 @@ export interface LoginJson extends UserJson {
   access_token: string
   refresh_token: string
 }
+
+export interface OpenIdLoginJson {
+  nonce: string
+  url: string
+  state: string
+}
+
+export interface LinkingJson {
+  token: string
+}
+
+export interface LinkingStatusJson extends LinkingJson {
+  username: string
+  link: boolean
+  reason: string
+  id: string
+}

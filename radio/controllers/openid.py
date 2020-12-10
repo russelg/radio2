@@ -34,10 +34,13 @@ api = rest.Api(blueprint)
 @api.resource("/login")
 class LoginController(rest.Resource):
     def get(self) -> Response:
-        redirect_uri = urljoin(request.url_root, "openid/callback")
-        url = oauth.auth.create_authorization_url(redirect_uri)
-        oauth.auth.save_authorize_data(request, redirect_uri=redirect_uri, **url)
-        return make_api_response(200, None, content=url)
+        try:
+            redirect_uri = urljoin(request.url_root, "openid/callback")
+            url = oauth.auth.create_authorization_url(redirect_uri)
+            oauth.auth.save_authorize_data(request, redirect_uri=redirect_uri, **url)
+            return make_api_response(200, None, content=url)
+        except:
+            return make_api_response(400, "Bad Request", "Unable to login using OpenID")
 
 
 def make_linking_token(subject, preferred_username, reason):
@@ -94,9 +97,9 @@ class CallbackController(rest.Resource):
         if not user and preferred_username:
             valid = get_long_validation(preferred_username)
             if not valid.valid:
-                linking_token = create_access_token(make_linking_token(subject, preferred_username, valid.reason))
+                token_body = make_linking_token(subject, preferred_username, valid.reason)
+                linking_token = create_access_token(token_body)
                 return make_api_response(422, "Unprocessable Entity", valid.reason, content={
-                    "link": True,
                     "token": linking_token
                 })
             user = create_user(subject, preferred_username)

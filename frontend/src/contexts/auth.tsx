@@ -2,7 +2,8 @@ import { API_BASE } from '/api'
 import { ApiResponse, LoginJson } from '/api/Schemas'
 import {
   getLocalStorage,
-  JWTWithClaims,
+  JWT,
+  JWTClaims,
   parseJwt,
   setLocalStorage
 } from '/utils'
@@ -27,7 +28,7 @@ type UserClaims = {
 
 type Action =
   | { type: 'LOGIN'; payload: ApiResponse<LoginJson> }
-  | { type: 'LOGIN_FROM_JWT'; payload: JWTWithClaims<UserClaims> }
+  | { type: 'LOGIN_FROM_JWT'; payload: JWT<JWTClaims<UserClaims>> }
   | { type: 'LOGOUT' }
   | { type: 'SET_ACCESS_TOKEN'; payload: string }
 type Dispatch = (action: Action) => void
@@ -93,7 +94,7 @@ function autoLogin(dispatch: Dispatch, state: State) {
   // login automatically based on tokens if available
   if (state.accessToken) {
     authorize(state.refreshToken, state.accessToken)
-    const jwt = parseJwt<UserClaims>(state.accessToken)
+    const jwt = parseJwt<JWTClaims<UserClaims>>(state.accessToken)
     if (jwt) {
       const expired = jwt.exp > Date.now()
       if (!expired) {
