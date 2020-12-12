@@ -24,8 +24,8 @@ class LoginController(rest.Resource):
     def post(self, username: str, password: str) -> Response:
         tokens = sign_in(username, password)
         if tokens:
-            return make_api_response(200, None, content=tokens)
-        return make_api_response(401, "Unauthorized", "Invalid credentials")
+            return make_api_response(200, content=tokens)
+        return make_api_response(401, "Invalid credentials")
 
 
 @api.resource("/refresh")
@@ -34,8 +34,8 @@ class RefreshController(rest.Resource):
     def post(self) -> Response:
         tokens = refresh_token(current_user)
         if tokens:
-            return make_api_response(200, None, content=tokens)
-        return make_api_response(500, "Server Error", "Issue loading user")
+            return make_api_response(200, content=tokens)
+        return make_api_response(500, "Failed to refresh token")
 
 
 @api.resource("/register")
@@ -44,15 +44,13 @@ class RegisterController(rest.Resource):
     def post(self, username: str, password: str) -> Response:
         validator = valid_username(username)
         if not validator.valid:
-            return make_api_response(422, "Unprocessable Entity", validator.reason)
+            return make_api_response(400, validator.reason)
         # if no users registered, make first one admin
         make_admin = User.select().count() == 0
         new_user = register(username, password, admin=make_admin)
         if new_user:
-            return make_api_response(
-                200, None, f'User "{username}" successfully registered'
-            )
-        return make_api_response(500, "Server Error", "Issue registering user")
+            return make_api_response(200, f'User "{username}" successfully registered')
+        return make_api_response(500, "Failed to register user")
 
 
 @api.resource("/user")
@@ -64,5 +62,5 @@ class UserController(rest.Resource):
                 "username": current_user.username,
                 "admin": current_user.admin,
             }
-            return make_api_response(200, None, content=content)
-        return make_api_response(500, "Server Error", "Issue loading user")
+            return make_api_response(200, content=content)
+        return make_api_response(500, "Failed to get user")

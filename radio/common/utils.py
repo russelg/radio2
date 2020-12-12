@@ -31,6 +31,7 @@ from pony.orm import select
 from pony.orm import sum as db_sum
 from webargs import flaskparser
 from werkzeug.exceptions import HTTPException
+from werkzeug.http import HTTP_STATUS_CODES
 from werkzeug.utils import secure_filename
 
 from radio import app
@@ -52,30 +53,22 @@ parser = flaskparser.FlaskParser()
 def webargs_error(
     error: ValidationError, req, schema, error_status_code, error_headers
 ):
-    code, msg = (
-        getattr(error, "status_code", 400),
-        getattr(error, "message", "Invalid Request"),
-    )
-    resp = make_api_response(code, msg, error.messages)
+    code = getattr(error, "status_code", 400)
+    resp = make_api_response(code, error.messages)
     raise HTTPException(description=resp.get_data(as_text=True), response=resp)
 
 
-def make_api_response(
-    status_code: int,
-    error: Union[str, bool, None] = None,
-    description: any = None,
-    content: Dict = None,
-) -> Response:
+def make_api_response(status_code: int, description: any = None, content: Dict = None) -> Response:
     """
     Generates a standard response format to use for API responses
 
     :param status_code: HTTP status code for error
-    :param error: short name for error
     :param description: full description of error
     :param content: any other content to include
     :return: a prepared response
     """
-    body = {"status_code": status_code, "error": error}
+    error = HTTP_STATUS_CODES.get(status_code, HTTP_STATUS_CODES[500])
+    body = {"status_code": status_code, "error": None if status_code == 200 else error}
     if description:
         body["description"] = description
     if content is None:
@@ -206,7 +199,7 @@ def get_song_or_abort(song_id: Optional[UUID]) -> Song:
     """
     song = Song.get(id=song_id)
     if not song:
-        resp = make_api_response(404, "Not Found", "Song does not exist")
+        resp = make_api_response(404, "Song does not exist")
         raise HTTPException(description=resp.get_data(as_text=True), response=resp)
     return song
 

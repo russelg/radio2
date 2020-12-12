@@ -43,12 +43,8 @@ from radio.common import utils
 
 def test_make_api_response(client):
     def validate_response(status_code, error=None, body=None):
-        resp = utils.make_api_response(
-            status_code,
-            error,
-            description=body.get("description", None) if body else None,
-            content=body,
-        )
+        resp = utils.make_api_response(status_code, description=body.get("description", None) if body else None,
+                                       content=body)
         if not body:
             body = {}
         json = {"status_code": status_code, "error": error, **body}

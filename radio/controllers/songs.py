@@ -35,12 +35,12 @@ from werkzeug.utils import secure_filename
 from radio import app
 from radio import redis_client
 from radio.common.pagination import Pagination
-from radio.common.schemas import TokenSchema
 from radio.common.schemas import FavouriteSchema
 from radio.common.schemas import SongBasicSchema
 from radio.common.schemas import SongData
 from radio.common.schemas import SongMeta
 from radio.common.schemas import SongQuerySchema
+from radio.common.schemas import TokenSchema
 from radio.common.users import admin_required
 from radio.common.users import user_is_admin
 from radio.common.utils import EncodeError
@@ -109,29 +109,25 @@ def get_songs_response(
     pagination = Pagination(page=page, per_page=limit, total_count=results.count())
     # report error if page does not exist
     if page <= 0 or page > pagination.pages:
-        return make_api_response(422, "Unprocessable Entity", ["Page does not exist"])
+        return make_api_response(404, "Page does not exist")
     processed_songs = list(map(get_song_detailed, results.page(page, limit)))
     args = partial(
         filter_default_webargs, args=SongQuerySchema(), query=query, limit=limit
     )
-    return make_api_response(
-        200,
-        None,
-        content={
-            "_links": {
-                "_self": api.url_for(context, **args(page=page), _external=True),
-                "_next": api.url_for(context, **args(page=page + 1), _external=True)
-                if pagination.has_next
-                else None,
-                "_prev": api.url_for(context, **args(page=page - 1), _external=True)
-                if pagination.has_prev
-                else None,
-            },
-            "query": query,
-            "pagination": pagination.to_json(),
-            "songs": processed_songs,
+    return make_api_response(200, content={
+        "_links": {
+            "_self": api.url_for(context, **args(page=page), _external=True),
+            "_next": api.url_for(context, **args(page=page + 1), _external=True)
+            if pagination.has_next
+            else None,
+            "_prev": api.url_for(context, **args(page=page - 1), _external=True)
+            if pagination.has_prev
+            else None,
         },
-    )
+        "query": query,
+        "pagination": pagination.to_json(),
+        "songs": processed_songs,
+    })
 
 
 @api.resource("/songs")
@@ -157,14 +153,8 @@ class RequestController(rest.Resource):
                 if not current_user
                 else song in current_user.favourites,
             )
-            return make_api_response(
-                200, None, f'Requested "{song.title}" successfully', {"meta": meta}
-            )
-        return make_api_response(
-            400,
-            "Bad Request",
-            f'"{song.title}" is not requestable at this moment. {status.reason}',
-        )
+            return make_api_response(200, f'Requested "{song.title}" successfully', {"meta": meta})
+        return make_api_response(400, f'"{song.title}" is not requestable at this moment. {status.reason}')
 
 
 @api.resource("/autocomplete")
@@ -180,9 +170,7 @@ class AutocompleteController(rest.Resource):
             data.append({"result": entry, "type": "Artist"})
         for entry in titles.limit(5):
             data.append({"result": entry, "type": "Title"})
-        return make_api_response(
-            200, None, content={"query": query, "suggestions": data}
-        )
+        return make_api_response(200, content={"query": query, "suggestions": data})
 
 
 @api.resource("/song/<id>")
@@ -191,15 +179,13 @@ class SongController(rest.Resource):
     @parser.use_args(SongBasicSchema(), locations=("view_args",))
     def get(self, args: Dict[str, UUID], id: any) -> Response:
         song = get_song_or_abort(args["id"])
-        return make_api_response(
-            200, None, content=dataclasses.asdict(get_song_detailed(song))
-        )
+        return make_api_response(200, content=dataclasses.asdict(get_song_detailed(song)))
 
     @admin_required
     @parser.use_args(SongBasicSchema(), locations=("view_args",))
     def put(self, args: Dict[str, UUID], id: any) -> Response:
         if not request.json:
-            return make_api_response(400, "Bad Request", "No data provided")
+            return make_api_response(400, "No data provided")
         accepted_fields = ["artist", "title"]
         values = {
             field: val
@@ -215,12 +201,8 @@ class SongController(rest.Resource):
         )
         metadata.update(values)
         metadata.save()
-        return make_api_response(
-            200,
-            None,
-            "Successfully updated song metadata",
-            content=dataclasses.asdict(get_song_detailed(song)),
-        )
+        return make_api_response(200, "Successfully updated song metadata",
+                                 content=dataclasses.asdict(get_song_detailed(song)))
 
     @admin_required
     @parser.use_args(SongBasicSchema(), locations=("view_args",))
@@ -231,9 +213,7 @@ class SongController(rest.Resource):
             os.remove(filepath)
         song.delete()
         app.logger.info(f'Deleted song "{song.filename}"')
-        return make_api_response(
-            200, None, f'Successfully deleted song "{song.filename}"'
-        )
+        return make_api_response(200, f'Successfully deleted song "{song.filename}"')
 
 
 @db_session
@@ -269,15 +249,12 @@ class DownloadController(rest.Resource):
     def post(self, args: Dict[str, UUID]) -> Response:
         if not app.config["PUBLIC_DOWNLOADS"]:
             if not current_user or not current_user.admin:
-                return make_api_response(403, "Forbidden", "Downloading is not enabled")
-        song_id = args.get("id")
-        get_song_or_abort(song_id)
+                return make_api_response(403, "Downloading is not enabled")
+        song_id = args["id"]
         new_token = create_access_token(
             {"id": str(song_id)}, expires_delta=timedelta(seconds=10)
         )
-        return make_api_response(
-            200, None, content={"download_token": new_token, "id": song_id}
-        )
+        return make_api_response(200, content={"download_token": new_token, "id": song_id})
 
 
 @api.resource("/upload")
@@ -286,36 +263,35 @@ class UploadController(rest.Resource):
     def post(self) -> Response:
         if not app.config["PUBLIC_UPLOADS"]:
             if not user_is_admin():
-                return make_api_response(403, "Forbidden", "Uploading is not enabled")
+                return make_api_response(403, "Uploading is not enabled")
+
         if "song" not in request.files:
             app.logger.warning("No file part")
-            return make_api_response(
-                422, "Unprocessable Entity", "No `song` file field in request"
-            )
+            return make_api_response(400, "No `song` file field in request")
+
         song = request.files["song"]
         if song.filename == "":
             app.logger.warning("No selected file")
-            return make_api_response(422, "Unprocessable Entity", "No file selected")
+            return make_api_response(400, "No file selected")
+
         if allowed_file_extension(Path(song.filename)):
             filename = secure_filename(song.filename)
             if not filename:
-                return make_api_response(
-                    422, "Unprocessable Entity", "Filename not valid",
-                )
+                return make_api_response(400, "Filename not valid")
+
             filepath = Path(app.config["PATH_ENCODE"], filename)
             song.save(str(filepath))
+
             kind = filetype.guess(str(filepath))
             if not kind or kind.mime.split("/")[0] != "audio":
                 filepath.unlink(missing_ok=True)
-                return make_api_response(
-                    422, "Unprocessable Entity", "File is not audio",
-                )
+                return make_api_response(400, "File is not audio")
+
             meta = get_metadata(filepath)
             if not meta:
                 filepath.unlink(missing_ok=True)
-                return make_api_response(
-                    422, "Unprocessable Entity", "File missing metadata",
-                )
+                return make_api_response(400, "File missing metadata")
+
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 try:
                     future = executor.submit(
@@ -325,19 +301,13 @@ class UploadController(rest.Resource):
                     song = insert_song(final_path)
                     if song:
                         app.logger.info(f'File "{filename}" uploaded')
-                        return make_api_response(
-                            200, None, f'File "{filename}" uploaded', {"id": song.id}
-                        )
+                        return make_api_response(200, f'File "{filename}" uploaded', content={"id": song.id})
                 except EncodeError:
                     # delete the original
                     app.logger.exception(f"Encode error for {filepath}")
                     filepath.unlink(missing_ok=True)
-                    return make_api_response(
-                        422, "Unprocessable Entity", "File could not be encoded",
-                    )
-        return make_api_response(
-            422, "Unprocessable Entity", "File could not be processed"
-        )
+                    return make_api_response(400, "File could not be encoded")
+        return make_api_response(400, "File could not be processed")
 
 
 @api.resource("/favourites")
@@ -345,7 +315,6 @@ class FavouriteController(rest.Resource):
     @jwt_optional
     @parser.use_kwargs(FavouriteSchema())
     def get(self, page: int, query: str, limit: int, user: Optional[str]) -> Response:
-        user: User
         if user:
             user = User.get(username=user)
         elif current_user:
@@ -355,28 +324,20 @@ class FavouriteController(rest.Resource):
     @jwt_required
     @parser.use_args(SongBasicSchema())
     def put(self, args: Dict[str, UUID]) -> Response:
-        song: Song = Song[args["id"]]
+        song = Song[args["id"]]
         if song not in current_user.favourites:
             current_user.favourites.add(song)
-            return make_api_response(
-                200, None, f'Added "{song.title}" to your favourites'
-            )
-        return make_api_response(
-            400, "Bad Request", f'"{song.title}" is already in your favourites'
-        )
+            return make_api_response(200, f'Added "{song.title}" to your favourites')
+        return make_api_response(400, f'"{song.title}" is already in your favourites')
 
     @jwt_required
     @parser.use_args(SongBasicSchema())
     def delete(self, args: Dict[str, UUID]) -> Response:
-        song: Song = Song[args["id"]]
+        song = Song[args["id"]]
         if song in current_user.favourites:
             current_user.favourites.remove(song)
-            return make_api_response(
-                200, None, f'Removed "{song.title}" from your favourites'
-            )
-        return make_api_response(
-            400, "Bad Request", f'"{song.title}" is not in your favourites'
-        )
+            return make_api_response(200, f'Removed "{song.title}" from your favourites')
+        return make_api_response(400, f'"{song.title}" is not in your favourites')
 
 
 @api.resource("/skip")
@@ -384,4 +345,4 @@ class SkipController(rest.Resource):
     @admin_required
     def post(self) -> Response:
         redis_client.publish("skip", "True")
-        return make_api_response(200, None, "Successfully skipped current playing song")
+        return make_api_response(200, "Successfully skipped current playing song")

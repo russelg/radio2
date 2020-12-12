@@ -128,9 +128,7 @@ def admin_required(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs) -> Response:
         if not user_is_admin():
-            return make_api_response(
-                403, "Forbidden", "This endpoint can only be accessed by admins"
-            )
+            return make_api_response(403, "This endpoint can only be accessed by admins")
         return fn(*args, **kwargs)
 
     return wrapper

@@ -124,11 +124,9 @@ def np() -> dict:
     }
 
 
-css = collections.OrderedDict(sorted(app.config["CSS"].items()))
-default_css = app.config["CSS"][app.config["DEFAULT_CSS"]]
-
-
 def settings() -> dict:
+    css = collections.OrderedDict(sorted(app.config["CSS"].items()))
+    default_css = app.config["CSS"][app.config["DEFAULT_CSS"]]
     return {
         "css": unquote(request.cookies.get("stylesheet") or default_css),
         "styles": css,
@@ -145,14 +143,10 @@ def settings() -> dict:
 @api.resource("/np", "/nowplaying")
 class NowPlayingController(rest.Resource):
     def get(self) -> Response:
-        return make_api_response(
-            200, None, content=dict(_links=get_self_links(api, self), **np())
-        )
+        return make_api_response(200, content=dict(_links=get_self_links(api, self), **np()))
 
 
 @api.resource("/settings")
 class SettingsController(rest.Resource):
     def get(self) -> Response:
-        return make_api_response(
-            200, None, content=dict(_links=get_self_links(api, self), **settings())
-        )
+        return make_api_response(200, content=dict(_links=get_self_links(api, self), **settings()))

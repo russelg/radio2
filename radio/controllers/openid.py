@@ -38,9 +38,9 @@ class LoginController(rest.Resource):
             redirect_uri = urljoin(request.url_root, "openid/callback")
             url = oauth.auth.create_authorization_url(redirect_uri)
             oauth.auth.save_authorize_data(request, redirect_uri=redirect_uri, **url)
-            return make_api_response(200, None, content=url)
+            return make_api_response(200, content=url)
         except:
-            return make_api_response(400, "Bad Request", "Unable to login using OpenID")
+            return make_api_response(400, "Unable to login using OpenID")
 
 
 def make_linking_token(subject, preferred_username, reason):
@@ -89,7 +89,7 @@ class CallbackController(rest.Resource):
             if not subject:
                 raise OAuthError(description="No user details provided")
         except OAuthError as e:
-            return make_api_response(400, "Bad Request", e.description)
+            return make_api_response(400, e.description)
 
         user: User = User.get(id=subject)
 
@@ -99,16 +99,16 @@ class CallbackController(rest.Resource):
             if not valid.valid:
                 token_body = make_linking_token(subject, preferred_username, valid.reason)
                 linking_token = create_access_token(token_body)
-                return make_api_response(422, "Unprocessable Entity", valid.reason, content={
+                return make_api_response(400, valid.reason, content={
                     "token": linking_token
                 })
             user = create_user(subject, preferred_username)
 
         if user:
             tokens = get_sign_in_body(user)
-            return make_api_response(200, None, content=tokens)
+            return make_api_response(200, content=tokens)
 
-        return make_api_response(400, "Bad Request", "Unable to login using OpenID")
+        return make_api_response(400, "Unable to login using OpenID")
 
 
 @api.resource("/link")
@@ -116,7 +116,7 @@ class LinkController(rest.Resource):
     @parser.use_kwargs(TokenSchema(), validate=validate_linking_token)
     def get(self, token: str):
         decoded = decode_token(token)["identity"]
-        return make_api_response(200, None, decoded["reason"], content=decoded)
+        return make_api_response(200, decoded["reason"], content=decoded)
 
     @parser.use_kwargs({'username': fields.Str(required=True), 'token': fields.Str(required=True)},
                        validate=validate_linking_token)
@@ -126,8 +126,8 @@ class LinkController(rest.Resource):
         valid = get_long_validation(username)
         if not valid.valid:
             decoded = make_linking_token(decoded["id"], username, valid.reason)
-            return make_api_response(422, "Unprocessable Entity", valid.reason, content=decoded)
+            return make_api_response(400, valid.reason, content=decoded)
 
         user = create_user(decoded["id"], username)
         tokens = get_sign_in_body(user)
-        return make_api_response(200, None, content=tokens)
+        return make_api_response(200, content=tokens)
