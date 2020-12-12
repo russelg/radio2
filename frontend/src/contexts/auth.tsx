@@ -131,7 +131,8 @@ const tokenInterceptConfig = {
   shouldInvalidateAccessToken: (response: Response) => false,
   shouldWaitForTokenRenewal: true,
   authorizeRequest: (request: Request, inAccessToken: string) => {
-    request.headers.set('Authorization', `Bearer ${inAccessToken}`)
+    if (inAccessToken)
+      request.headers.set('Authorization', `Bearer ${inAccessToken}`)
     return request
   },
   createAccessTokenRequest: (inRefreshToken: string) => {

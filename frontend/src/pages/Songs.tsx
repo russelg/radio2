@@ -85,7 +85,8 @@ const SongUploadForm: FunctionComponent<SongUploadFormProps> = ({
         toast(<NotificationToast error>{json.description}</NotificationToast>)
       },
       headers: {
-        Authorization: `Bearer ${accessToken}`
+        Authorization:
+          accessToken !== null ? `Bearer ${accessToken}` : undefined
       }
     }
   }
@@ -219,6 +220,7 @@ const SearchField: FunctionComponent<SearchFieldProps> = ({
           minLength={2}
           maxResults={10}
           caseSensitive={false}
+          // @ts-ignore
           ref={ref}
         />
         <InputGroupAddon addonType="append">
