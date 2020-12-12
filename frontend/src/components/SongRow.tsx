@@ -53,10 +53,11 @@ const RequestButton: FunctionComponent<SongRowUpdateProps> = ({
       method: 'PUT',
       body: JSON.stringify({ id: song.id })
     })
-      .then(handleResponse)
       .then((resp: ApiResponse<SongItem>) => {
         updateSong(song.id, { ...song, meta: resp.meta })
+        return resp
       })
+      .then(handleResponse)
       .catch(handleError)
   }
 
