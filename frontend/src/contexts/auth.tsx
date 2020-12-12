@@ -244,11 +244,10 @@ async function register(username: string, password: string): Promise<string> {
     body: JSON.stringify({ username, password }),
     headers: { 'Content-Type': 'application/json' }
   }).then(resp => resp.clone().json())
-  const msg = resp.description || resp.message || ''
   if (resp.status_code === 200 && resp.error === null) {
-    return msg.toString()
+    return resp.description
   }
-  throw new Error(msg.toString())
+  throw resp.description
 }
 
 export {

@@ -94,7 +94,7 @@ export const handleResponse = <T extends ApiBaseResponse>(
 ): Promise<T> => {
   if (result === undefined) {
     return Promise.reject({
-      description: 'Error occured while loading response'
+      description: 'Error occurred while loading response'
     })
   }
   const error = result.error !== null

@@ -8,8 +8,6 @@ import {
 import { useAuthState } from '/contexts/auth'
 import React, { createContext, useContext, useEffect, useReducer } from 'react'
 
-export const SYNC_OFFSET = 4
-
 type SongInfo = {
   length: number
   serverTime: number

@@ -5,7 +5,8 @@ import {
   AutocompleteItemJson,
   AutocompleteJson,
   Description,
-  SongItem
+  SongItem,
+  SongsJson
 } from '/api/Schemas'
 import Error from '/components/Error'
 import NotificationToast from '/components/NotificationToast'
@@ -402,7 +403,7 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
         return resp.clone().json()
       })
       .then(resp => handleResponse(resp, false))
-      .then(resp => {
+      .then((resp: ApiResponse<SongsJson>) => {
         setSongs(resp.songs)
         setPaginationState(resp.pagination)
       })

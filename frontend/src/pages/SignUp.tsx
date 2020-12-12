@@ -72,7 +72,10 @@ const schema = yup.object({
       excludeEmptyString: true,
       message: 'Username may only contain the following: A-z, 0-9, -_.'
     }),
-  password: yup.string().required('Password required'),
+  password: yup
+    .string()
+    .required('Password required')
+    .min(3, 'Password must be at least 3 characters'),
   confirmPassword: yup
     .string()
     .oneOf([yup.ref('password')], 'Passwords do not match')
@@ -111,8 +114,14 @@ const SignUp: FunctionComponent = () => {
   ) => {
     register(values.username, values.password)
       .then(resp => setRegistered(resp))
-      .catch(error => setErrors({ username: error.message }))
-    setSubmitting(false)
+      .catch(error => {
+        // assign the error to the username field if only a string returned
+        if (Object.prototype.toString.call(error) === '[object String]') {
+          error = { username: error }
+        }
+        setErrors(error)
+      })
+      .finally(() => setSubmitting(false))
   }
 
   if (loggedIn) return <Redirect to="/" />
@@ -130,8 +139,8 @@ const SignUp: FunctionComponent = () => {
               } as SignUpFormInputs
             }
             validate={schemaErrors}
-            onSubmit={onSubmit}
-            render={({
+            onSubmit={onSubmit}>
+            {({
               values,
               errors,
               touched,
@@ -188,7 +197,7 @@ const SignUp: FunctionComponent = () => {
                 </LoaderButton>
               </Form>
             )}
-          />
+          </Formik>
         )}
         {registered !== false && (
           <h2>
