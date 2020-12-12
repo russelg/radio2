@@ -143,22 +143,26 @@ class RequestController(rest.Resource):
     @jwt_optional
     @parser.use_args(SongBasicSchema())
     def put(self, args: Dict[str, UUID]) -> Response:
-        song = Song[args.get("id")]
-        status = request_status(song)
-        if status.requestable:
-            Queue(song=song, requested=True)
-            meta = SongMeta(
+        def get_meta():
+            return SongMeta(
                 **dataclasses.asdict(request_status(song)),
                 favourited=False
                 if not current_user
                 else song in current_user.favourites,
             )
-            return make_api_response(200, f'Requested "{song.title}" successfully', {"meta": meta})
-        return make_api_response(400, f'"{song.title}" is not requestable at this moment. {status.reason}')
+
+        song = Song[args.get("id")]
+        status = request_status(song)
+        if status.requestable:
+            Queue(song=song, requested=True)
+            return make_api_response(200, f'Requested "{song.title}" successfully', content={"meta": get_meta()})
+        return make_api_response(400, f'"{song.title}" is not requestable at this moment. {status.reason}',
+                                 content={"meta": get_meta()})
 
 
 @api.resource("/autocomplete")
 class AutocompleteController(rest.Resource):
+    @jwt_optional
     @parser.use_kwargs(
         {"query": fields.Str(required=True, validate=validate.Length(min=2))}
     )
@@ -177,13 +181,13 @@ class AutocompleteController(rest.Resource):
 class SongController(rest.Resource):
     @jwt_optional
     @parser.use_args(SongBasicSchema(), locations=("view_args",))
-    def get(self, args: Dict[str, UUID], id: any) -> Response:
+    def get(self, args: Dict[str, UUID], **kwargs) -> Response:
         song = get_song_or_abort(args["id"])
         return make_api_response(200, content=dataclasses.asdict(get_song_detailed(song)))
 
     @admin_required
     @parser.use_args(SongBasicSchema(), locations=("view_args",))
-    def put(self, args: Dict[str, UUID], id: any) -> Response:
+    def put(self, args: Dict[str, UUID], **kwargs) -> Response:
         if not request.json:
             return make_api_response(400, "No data provided")
         accepted_fields = ["artist", "title"]
@@ -206,7 +210,7 @@ class SongController(rest.Resource):
 
     @admin_required
     @parser.use_args(SongBasicSchema(), locations=("view_args",))
-    def delete(self, args: Dict[str, UUID], id: any) -> Response:
+    def delete(self, args: Dict[str, UUID], **kwargs) -> Response:
         song = get_song_or_abort(args["id"])
         filepath = os.path.join(app.config["PATH_MUSIC"], song.filename)
         if os.path.isfile(filepath):
