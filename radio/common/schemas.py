@@ -76,6 +76,10 @@ class SongBasicSchema(StrictSchema):
 
 class UserSchema(StrictSchema):
     username = fields.Str(required=True)
+    password = fields.Str(required=True)
+
+
+class UserRegisterSchema(UserSchema):
     password = fields.Str(required=True, validate=validate.Length(min=3))
 
 

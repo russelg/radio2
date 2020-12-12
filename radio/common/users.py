@@ -47,7 +47,8 @@ def sign_in(username: str, password: str) -> Optional[Dict]:
     :rtype: dict
     """
     user: User = User.get(username=username)
-    if user:
+    # openid users do not have a hash
+    if user and user.hash:
         if bcrypt.checkpw(password.encode("utf-8"), user.hash.encode("utf8")):
             return get_sign_in_body(user)
     return None

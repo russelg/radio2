@@ -5,6 +5,7 @@ from flask_jwt_extended import current_user
 from flask_jwt_extended import jwt_refresh_token_required
 from flask_jwt_extended import jwt_required
 
+from radio.common.schemas import UserRegisterSchema
 from radio.common.schemas import UserSchema
 from radio.common.users import refresh_token
 from radio.common.users import register
@@ -40,7 +41,7 @@ class RefreshController(rest.Resource):
 
 @api.resource("/register")
 class RegisterController(rest.Resource):
-    @parser.use_kwargs(UserSchema())
+    @parser.use_kwargs(UserRegisterSchema())
     def post(self, username: str, password: str) -> Response:
         validator = valid_username(username)
         if not validator.valid:
