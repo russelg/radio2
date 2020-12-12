@@ -110,7 +110,7 @@ function autoLogin(dispatch: Dispatch, state: State) {
       .then((resp: ApiResponse<LoginJson>) => {
         if (resp.status_code === 401) {
           // refresh token request failed, let's give up and logout.
-          const msg = resp.description || resp.message || ''
+          const msg = resp.description || ''
           throw new Error(msg.toString())
         }
         dispatch({ type: 'LOGIN', payload: resp })

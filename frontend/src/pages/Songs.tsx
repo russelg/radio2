@@ -409,7 +409,7 @@ const Songs: FunctionComponent<SongsProps> = ({ favourites }) => {
       })
       .catch((resp: ApiBaseResponse) => {
         if (resp) {
-          const msg = resp.description || resp.message || ''
+          const msg = resp.description || ''
           if (msg) setError(msg)
         }
       })

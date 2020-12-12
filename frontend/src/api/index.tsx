@@ -107,7 +107,7 @@ export const handleResponse = <T extends ApiBaseResponse>(
 
 export const handleError = <T extends ApiBaseResponse>(result: T) => {
   if (result) {
-    const msg = 'description' in result ? result.description : result.message
+    const msg = result.description
     if (msg)
       toast(
         <NotificationToast error>
@@ -115,7 +115,7 @@ export const handleError = <T extends ApiBaseResponse>(result: T) => {
             {msg === Object(msg) ? (
               Object.values(msg).map(err => <li key={err}>{err}</li>)
             ) : (
-              <li>msg</li>
+              <li>{msg}</li>
             )}
           </ul>
         </NotificationToast>

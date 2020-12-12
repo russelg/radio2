@@ -43,13 +43,8 @@ const LoginForm: FunctionComponent = () => {
     event.preventDefault()
     setSubmitting(true)
     login(dispatch, values.username, values.password)
-      .then(resp => {
-        setSubmitting(false)
-      })
-      .catch(resp => {
-        setSubmitting(false)
-        setError(resp.description!)
-      })
+      .catch(resp => setError(resp.description))
+      .finally(() => setSubmitting(false))
   }
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -91,9 +86,7 @@ const LoginForm: FunctionComponent = () => {
             border-top-right-radius: 0 !important;
           `}
         />
-        <FormFeedback>
-          {error !== null ? (error! as Description).toString() : ''}
-        </FormFeedback>
+        <FormFeedback>{error !== null ? error : ''}</FormFeedback>
       </FormGroup>
       <LoaderButton
         color="success"

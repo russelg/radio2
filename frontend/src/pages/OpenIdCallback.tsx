@@ -69,9 +69,8 @@ const OpenIdCallback: FunctionComponent = () => {
               }
             }
           }
-          const msg = 'description' in resp ? resp.description : resp.message
-          if (msg) {
-            setError({ state: true, message: msg })
+          if (resp.description) {
+            setError({ state: true, message: resp.description })
           }
         }
       )
