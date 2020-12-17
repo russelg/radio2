@@ -16,6 +16,7 @@ from marshmallow import fields
 from pony.orm import commit
 from pony.orm import db_session
 
+from radio import app
 from radio import oauth
 from radio.common.errors import Validator
 from radio.common.schemas import CallbackSchema
@@ -39,7 +40,8 @@ class LoginController(rest.Resource):
             url = oauth.auth.create_authorization_url(redirect_uri)
             oauth.auth.save_authorize_data(request, redirect_uri=redirect_uri, **url)
             return make_api_response(200, content=url)
-        except:
+        except Exception as e:
+            app.logger.exception("Unable to login using OpenID")
             return make_api_response(400, "Unable to login using OpenID")
 
 
@@ -48,12 +50,12 @@ def make_linking_token(subject, preferred_username, reason):
         "link": True,
         "id": subject,
         "username": preferred_username,
-        "reason": reason
+        "reason": reason,
     }
 
 
-def create_user(subject, preferred_username) -> User:
-    make_admin = User.select().count() == 0
+def create_user(subject, preferred_username, admin=False) -> User:
+    make_admin = admin or User.select().count() == 0
     user = User(id=subject, username=preferred_username, admin=make_admin)
     commit()
     return user
@@ -74,7 +76,10 @@ def validate_linking_token(args: Dict[str, UUID]) -> bool:
 
 def get_long_validation(preferred_username):
     if user_exists(preferred_username):
-        return Validator(False, "Your username is not available. Please provide a different username to use.")
+        return Validator(
+            False,
+            "Your username is not available. Please provide a different username to use.",
+        )
     return valid_username(preferred_username)
 
 
@@ -97,12 +102,17 @@ class CallbackController(rest.Resource):
         if not user and preferred_username:
             valid = get_long_validation(preferred_username)
             if not valid.valid:
-                token_body = make_linking_token(subject, preferred_username, valid.reason)
+                token_body = make_linking_token(
+                    subject, preferred_username, valid.reason
+                )
                 linking_token = create_access_token(token_body)
-                return make_api_response(400, valid.reason, content={
-                    "token": linking_token
-                })
-            user = create_user(subject, preferred_username)
+                return make_api_response(
+                    400, valid.reason, content={"token": linking_token}
+                )
+            # make the user an admin if they are claimed to be an admin
+            user = create_user(
+                subject, preferred_username, admin=id_token.get("admin", False)
+            )
 
         if user:
             tokens = get_sign_in_body(user)
@@ -118,8 +128,10 @@ class LinkController(rest.Resource):
         decoded = decode_token(token)["identity"]
         return make_api_response(200, decoded["reason"], content=decoded)
 
-    @parser.use_kwargs({'username': fields.Str(required=True), 'token': fields.Str(required=True)},
-                       validate=validate_linking_token)
+    @parser.use_kwargs(
+        {"username": fields.Str(required=True), "token": fields.Str(required=True)},
+        validate=validate_linking_token,
+    )
     def post(self, username: str, token: str):
         decoded = decode_token(token)["identity"]
 
