@@ -137,23 +137,22 @@ const App: FunctionComponent = () => {
   const getUrls = () => {
     return [
       {
-        src: `${streamUrl}.ogg?nocache=${new Date().getTime()}`,
-        type: 'audio/ogg'
+        src: `${streamUrl}.mp3?nocache=${new Date().getTime()}`,
+        type: 'audio/mp3'
       },
       {
-        src: `${streamUrl}.mp3?nocache=${new Date().getTime()}`,
-        type: 'audio/mpeg'
+        src: `${streamUrl}.ogg?nocache=${new Date().getTime()}`,
+        type: 'audio/ogg'
       }
     ]
   }
 
   const [streamUrls, setStreamUrls] = useState(
-    [] as { src: string; type: string }[]
+    getUrls() as { src: string; type: string }[]
   )
 
   const togglePlayingState = () => {
-    const instance =
-      player.current && (player.current.getInternalPlayer() as HTMLVideoElement)
+    const instance = player.current && player.current.getInternalPlayer()
     if (instance) {
       if (!playing) {
         setStreamUrls(getUrls())

@@ -114,20 +114,23 @@ def get_songs_response(
     args = partial(
         filter_default_webargs, args=SongQuerySchema(), query=query, limit=limit
     )
-    return make_api_response(200, content={
-        "_links": {
-            "_self": api.url_for(context, **args(page=page), _external=True),
-            "_next": api.url_for(context, **args(page=page + 1), _external=True)
-            if pagination.has_next
-            else None,
-            "_prev": api.url_for(context, **args(page=page - 1), _external=True)
-            if pagination.has_prev
-            else None,
+    return make_api_response(
+        200,
+        content={
+            "_links": {
+                "_self": api.url_for(context, **args(page=page), _external=True),
+                "_next": api.url_for(context, **args(page=page + 1), _external=True)
+                if pagination.has_next
+                else None,
+                "_prev": api.url_for(context, **args(page=page - 1), _external=True)
+                if pagination.has_prev
+                else None,
+            },
+            "query": query,
+            "pagination": pagination.to_json(),
+            "songs": processed_songs,
         },
-        "query": query,
-        "pagination": pagination.to_json(),
-        "songs": processed_songs,
-    })
+    )
 
 
 @api.resource("/songs")
@@ -155,9 +158,16 @@ class RequestController(rest.Resource):
         status = request_status(song)
         if status.requestable:
             Queue(song=song, requested=True)
-            return make_api_response(200, f'Requested "{song.title}" successfully', content={"meta": get_meta()})
-        return make_api_response(400, f'"{song.title}" is not requestable at this moment. {status.reason}',
-                                 content={"meta": get_meta()})
+            return make_api_response(
+                200,
+                f'Requested "{song.title}" successfully',
+                content={"meta": get_meta()},
+            )
+        return make_api_response(
+            400,
+            f'"{song.title}" is not requestable at this moment. {status.reason}',
+            content={"meta": get_meta()},
+        )
 
 
 @api.resource("/autocomplete")
@@ -183,7 +193,9 @@ class SongController(rest.Resource):
     @parser.use_args(SongBasicSchema(), locations=("view_args",))
     def get(self, args: Dict[str, UUID], **kwargs) -> Response:
         song = get_song_or_abort(args["id"])
-        return make_api_response(200, content=dataclasses.asdict(get_song_detailed(song)))
+        return make_api_response(
+            200, content=dataclasses.asdict(get_song_detailed(song))
+        )
 
     @admin_required
     @parser.use_args(SongBasicSchema(), locations=("view_args",))
@@ -205,8 +217,11 @@ class SongController(rest.Resource):
         )
         metadata.update(values)
         metadata.save()
-        return make_api_response(200, "Successfully updated song metadata",
-                                 content=dataclasses.asdict(get_song_detailed(song)))
+        return make_api_response(
+            200,
+            "Successfully updated song metadata",
+            content=dataclasses.asdict(get_song_detailed(song)),
+        )
 
     @admin_required
     @parser.use_args(SongBasicSchema(), locations=("view_args",))
@@ -258,7 +273,9 @@ class DownloadController(rest.Resource):
         new_token = create_access_token(
             {"id": str(song_id)}, expires_delta=timedelta(seconds=10)
         )
-        return make_api_response(200, content={"download_token": new_token, "id": song_id})
+        return make_api_response(
+            200, content={"download_token": new_token, "id": song_id}
+        )
 
 
 @api.resource("/upload")
@@ -305,7 +322,9 @@ class UploadController(rest.Resource):
                     song = insert_song(final_path)
                     if song:
                         app.logger.info(f'File "{filename}" uploaded')
-                        return make_api_response(200, f'File "{filename}" uploaded', content={"id": song.id})
+                        return make_api_response(
+                            200, f'File "{filename}" uploaded', content={"id": song.id}
+                        )
                 except EncodeError:
                     # delete the original
                     app.logger.exception(f"Encode error for {filepath}")
@@ -340,7 +359,9 @@ class FavouriteController(rest.Resource):
         song = Song[args["id"]]
         if song in current_user.favourites:
             current_user.favourites.remove(song)
-            return make_api_response(200, f'Removed "{song.title}" from your favourites')
+            return make_api_response(
+                200, f'Removed "{song.title}" from your favourites'
+            )
         return make_api_response(400, f'"{song.title}" is not in your favourites')
 
 

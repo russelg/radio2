@@ -13,8 +13,10 @@ from typing import IO
 
 import shouty
 
-from radio import app, redis_client
-from radio.common.utils import get_metadata, next_song
+from radio import app
+from radio import redis_client
+from radio.common.utils import get_metadata
+from radio.common.utils import next_song
 
 logging.basicConfig(
     level=logging.NOTSET,

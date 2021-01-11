@@ -58,7 +58,9 @@ def webargs_error(
     raise HTTPException(description=resp.get_data(as_text=True), response=resp)
 
 
-def make_api_response(status_code: int, description: any = None, content: Dict = None) -> Response:
+def make_api_response(
+    status_code: int, description: any = None, content: Dict = None
+) -> Response:
     """
     Generates a standard response format to use for API responses
 

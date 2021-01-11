@@ -3,7 +3,8 @@ from typing import Callable
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from flask.testing import FlaskClient
-from pony.orm import Database, db_session
+from pony.orm import Database
+from pony.orm import db_session
 
 from radio import app
 from radio.models import define_db

@@ -1,15 +1,14 @@
 from datetime import datetime
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid import uuid4
 
-from pony.orm import (
-    Database,
-    LongStr,
-    Optional,
-    PrimaryKey,
-    Required,
-    Set,
-    set_sql_debug,
-)
+from pony.orm import Database
+from pony.orm import LongStr
+from pony.orm import Optional
+from pony.orm import PrimaryKey
+from pony.orm import Required
+from pony.orm import Set
+from pony.orm import set_sql_debug
 
 from radio import app
 

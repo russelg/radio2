@@ -40,6 +40,10 @@ const OpenIdLink: FunctionComponent<LinkingProps> = ({ status }) => {
   const [{ loggedIn }, dispatch] = useAuthContext()
   if (loggedIn) {
     localStorage.removeItem('linking_token')
+    if (window.opener) {
+      // close the popup since we've logged in successfully
+      window.close()
+    }
     return <Redirect to="/" />
   }
 

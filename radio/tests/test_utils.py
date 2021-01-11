@@ -9,8 +9,10 @@ import flask_restful as rest
 import mutagen
 import pytest
 from flask import Blueprint
-from marshmallow import Schema, fields
-from pony.orm import count, select
+from marshmallow import Schema
+from marshmallow import fields
+from pony.orm import count
+from pony.orm import select
 from werkzeug.exceptions import HTTPException
 
 # import radio.common.utils
@@ -43,8 +45,11 @@ from radio.common import utils
 
 def test_make_api_response(client):
     def validate_response(status_code, error=None, body=None):
-        resp = utils.make_api_response(status_code, description=body.get("description", None) if body else None,
-                                       content=body)
+        resp = utils.make_api_response(
+            status_code,
+            description=body.get("description", None) if body else None,
+            content=body,
+        )
         if not body:
             body = {}
         json = {"status_code": status_code, "error": error, **body}
@@ -310,7 +315,9 @@ def test_insert_song(db, monkeypatch, make_test_song, make_tmp_file):
     tmp_file = make_tmp_file("file.ogg")
 
     monkeypatch.setattr(
-        utils, "get_metadata", lambda file: make_test_song(path=tmp_file),
+        utils,
+        "get_metadata",
+        lambda file: make_test_song(path=tmp_file),
     )
     inserted_song = utils.insert_song(tmp_file)
     database_song = db.Song.get(filename=tmp_file.name)

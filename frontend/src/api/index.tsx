@@ -1,5 +1,6 @@
 import { ApiBaseResponse } from '/api/Schemas'
 import NotificationToast from '/components/NotificationToast'
+import { getLocalStorage } from '/utils'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'react-toastify'
 
@@ -121,4 +122,11 @@ export const handleError = <T extends ApiBaseResponse>(result: T) => {
         </NotificationToast>
       )
   }
+}
+
+export function createAccessTokenRequest(inRefreshToken: string) {
+  return new Request(`${API_BASE}/auth/refresh`, {
+    headers: { Authorization: `Bearer ${inRefreshToken}` },
+    method: 'POST'
+  })
 }

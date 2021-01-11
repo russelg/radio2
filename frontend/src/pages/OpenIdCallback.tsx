@@ -30,11 +30,20 @@ async function openIdCallback(
   })
     .then(resp => resp.clone().json())
     .then(handleLoginResponse(dispatch))
+    .then(resp => {
+      if (window.opener) {
+        // close the popup since we've logged in successfully
+        window.close()
+      }
+      return resp
+    })
 }
 
 const OpenIdCallback: FunctionComponent = () => {
   const [{ loggedIn }, dispatch] = useAuthContext()
-  if (loggedIn) return <Redirect to="/" />
+  if (loggedIn) {
+    return <Redirect to="/" />
+  }
 
   const [queryParam, setQueryParam] = useQueryParams({
     code: StringParam,
@@ -61,7 +70,7 @@ const OpenIdCallback: FunctionComponent = () => {
           if (resp.token) {
             const jwt = parseJwt<{ identity: LinkingStatusJson }>(resp.token)
             if (jwt) {
-              const expired = jwt.exp > Date.now()
+              const expired = jwt.exp < Date.now() / 1000
               if (!expired) {
                 setLinking({ ...resp, ...jwt.identity })
               } else {

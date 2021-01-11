@@ -20,6 +20,7 @@ import {
   useLocalStorage
 } from '/utils'
 import { cx } from 'emotion'
+import { FilePondFile } from 'filepond'
 // @ts-ignore
 import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type'
 import 'filepond/dist/filepond.min.css'
@@ -38,7 +39,7 @@ import {
   TypeaheadMenuProps
 } from 'react-bootstrap-typeahead'
 import 'react-bootstrap-typeahead/css/Typeahead.css'
-import { File as FilePondFile, FilePond, registerPlugin } from 'react-filepond'
+import { FilePond, registerPlugin } from 'react-filepond'
 import Pagination from 'react-js-pagination'
 import { useHistory } from 'react-router-dom'
 import { animated, useSpring } from 'react-spring'
@@ -76,11 +77,11 @@ const SongUploadForm: FunctionComponent<SongUploadFormProps> = ({
   const server = {
     process: {
       url: `${API_BASE}/upload`,
-      onload: (response: string) => {
+      onload: (response: any) => {
         const json: { id: string } = JSON.parse(response)
         return json.id
       },
-      onerror: (response: string) => {
+      onerror: (response: any) => {
         const json: ApiBaseResponse = JSON.parse(response)
         toast(<NotificationToast error>{json.description}</NotificationToast>)
       },
@@ -108,6 +109,7 @@ const SongUploadForm: FunctionComponent<SongUploadFormProps> = ({
   }
 
   return (
+    // @ts-ignore
     <FilePond
       ref={pond}
       name="song"
@@ -116,7 +118,6 @@ const SongUploadForm: FunctionComponent<SongUploadFormProps> = ({
       allowMultiple={true}
       maxFiles={10}
       instantUpload={true}
-      // @ts-ignore
       server={server}
       onupdatefiles={onUpdateFiles}
       onprocessfile={onProcessFile}

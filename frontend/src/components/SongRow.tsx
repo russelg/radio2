@@ -300,8 +300,6 @@ const EditableValue: FunctionComponent<EditableValueProps> = ({
       className={cx(editableStyle, {
         'font-italic font-weight-bold': loading
       })}
-      name={field}
-      dataType="textfield"
       mode="inline"
       isValueClickable
       initialValue={song[field]}

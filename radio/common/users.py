@@ -55,27 +55,25 @@ def sign_in(username: str, password: str) -> Optional[Dict]:
 
 
 @db_session
+def create_base_token(user, fresh=False):
+    return {
+        "access_token": create_access_token(identity=str(user.id), fresh=fresh),
+        "username": user.username,
+        "admin": user.admin,
+    }
+
+
+@db_session
 def get_sign_in_body(user) -> Optional[Dict]:
-    if user:
-        return {
-            "access_token": create_access_token(identity=str(user.id), fresh=True),
-            "refresh_token": create_refresh_token(identity=str(user.id)),
-            "username": user.username,
-            "admin": user.admin,
-        }
-    return None
+    return {
+        **create_base_token(user, fresh=True),
+        "refresh_token": create_refresh_token(identity=str(user.id)),
+    }
 
 
 @db_session
 def refresh_token(user) -> Optional[Dict]:
-    if user:
-        new_token = create_access_token(identity=str(user.id), fresh=False)
-        return {
-            "access_token": new_token,
-            "username": user.username,
-            "admin": user.admin,
-        }
-    return None
+    return create_base_token(user, fresh=False)
 
 
 @db_session
@@ -129,7 +127,9 @@ def admin_required(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs) -> Response:
         if not user_is_admin():
-            return make_api_response(403, "This endpoint can only be accessed by admins")
+            return make_api_response(
+                403, "This endpoint can only be accessed by admins"
+            )
         return fn(*args, **kwargs)
 
     return wrapper
